@@ -31,6 +31,7 @@ Use Node.js 24.18 or newer within the Node.js 24 LTS release line.
 
 ```bash
 npm ci
+cp .local/.env.example .local/.env
 npm run dev
 ```
 
@@ -67,8 +68,18 @@ docker/           Container build and health check
 dist/client/      Generated production client
 ```
 
-Runtime data belongs in `data/`, and locally managed Compose stacks belong
-in `stacks/`. Both directories are intentionally excluded from Git.
+Development-only state is kept under `.local/`:
+
+```text
+.local/
+├── .env       # local environment overrides
+├── data/      # SQLite database and database configuration
+└── stacks/    # locally managed Compose stacks
+```
+
+`.local/.env` and all runtime contents are excluded from Git. The tracked
+`.local/.env.example` documents the available local defaults. Production keeps
+using `/app/data` and `/opt/stacks` when run with the provided Compose file.
 
 ## Container image
 

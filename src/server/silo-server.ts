@@ -1,4 +1,4 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import { MainRouter } from "./routers/main-router";
 import * as fs from "node:fs";
 import { PackageJson } from "type-fest";
@@ -34,6 +34,15 @@ import { Terminal } from "./terminal";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter, createTrpcContext } from "./trpc";
 import { httpRequestDuration, metricsRegistry, socketConnectionErrors, socketConnections } from "./metrics";
+
+const envFile = process.env.SILO_ENV_FILE ?? (process.env.NODE_ENV === "development" ? ".local/.env" : ".env");
+dotenv.config({
+    path: envFile,
+    quiet: true,
+});
+if (process.env.SILO_LOG_LEVEL) {
+    log.setLevel(process.env.SILO_LOG_LEVEL);
+}
 
 export class SiloServer {
     app : Express;
@@ -90,7 +99,7 @@ export class SiloServer {
         // Default stacks directory
         let defaultStacksDir;
         if (isDev || process.platform === "win32") {
-            defaultStacksDir = "./stacks";
+            defaultStacksDir = "./.local/stacks";
         } else {
             defaultStacksDir = "/opt/stacks";
         }
@@ -140,7 +149,7 @@ export class SiloServer {
         this.config.sslKeyPassphrase = args.sslKeyPassphrase || process.env.SILO_SSL_KEY_PASSPHRASE || undefined;
         this.config.port = args.port || Number(process.env.SILO_PORT) || 5001;
         this.config.hostname = args.hostname || process.env.SILO_HOSTNAME || undefined;
-        this.config.dataDir = args.dataDir || process.env.SILO_DATA_DIR || "./data/";
+        this.config.dataDir = args.dataDir || process.env.SILO_DATA_DIR || (isDev ? "./.local/data" : "./data");
         this.config.stacksDir = args.stacksDir || process.env.SILO_STACKS_DIR || defaultStacksDir;
         this.config.enableConsole = args.enableConsole || process.env.SILO_ENABLE_CONSOLE === "true" || false;
         this.stacksDir = this.config.stacksDir;

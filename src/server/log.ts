@@ -25,6 +25,10 @@ class Logger {
         });
     }
 
+    setLevel(level: string) {
+        this.logger.level = level;
+    }
+
     log(module: string, message: unknown, level: LogLevel) {
         if (this.hidden.has(`${level}_${module}`.toLowerCase())) {
             return;

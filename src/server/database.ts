@@ -22,7 +22,7 @@ interface DBConfig {
 
 export class Database {
     /**
-     * SQLite file path (Default: ./data/silo.db)
+     * SQLite file path (development default: ./.local/data/silo.db)
      * @type {string}
      */
     static sqlitePath : string;
