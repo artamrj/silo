@@ -21,6 +21,9 @@ export class TerminalSocketHandler extends SocketHandler {
                 if (terminal instanceof InteractiveTerminal) {
                     //log.debug("terminalInput", "Terminal found, writing to terminal.");
                     terminal.write(input.command);
+                    callbackResult({
+                        ok: true,
+                    }, callback);
                 } else {
                     throw new Error("Terminal not found or it is not a Interactive Terminal.");
                 }

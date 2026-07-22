@@ -621,7 +621,7 @@ export class Stack {
     }
 
     async joinContainerTerminal(socket: SiloSocket, serviceName: string, shell : string = "sh", index: number = 0) {
-        const terminalName = getContainerExecTerminalName("", this.name, serviceName, index);
+        const terminalName = getContainerExecTerminalName("", this.name, serviceName, index, shell);
         let terminal = Terminal.getTerminal(terminalName);
 
         if (!terminal) {

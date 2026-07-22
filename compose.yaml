@@ -21,3 +21,5 @@ services:
       # Tell Silo where is your stacks directory
       - SILO_STACKS_DIR=/opt/stacks
       - SILO_IS_CONTAINER=1
+      # Enables the host shell console. Keep Silo restricted to trusted administrators.
+      - SILO_ENABLE_CONSOLE=true

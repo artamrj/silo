@@ -7,16 +7,18 @@
                 <router-link :to="sh" class="btn btn-normal me-2">{{ $t("Switch to sh") }}</router-link>
             </div>
 
-            <Terminal class="terminal" :rows="20" mode="interactive" :name="terminalName" :stack-name="stackName" :service-name="serviceName" :shell="shell" :endpoint="endpoint"></Terminal>
+            <Terminal :key="terminalName" class="terminal" :rows="20" mode="interactive" :name="terminalName" :stack-name="stackName" :service-name="serviceName" :shell="shell" :endpoint="endpoint"></Terminal>
         </div>
     </transition>
 </template>
 
 <script>
 import { getContainerExecTerminalName } from "../../../shared/utils";
+import Terminal from "../components/Terminal.vue";
 
 export default {
     components: {
+        Terminal,
     },
     data() {
         return {
@@ -37,7 +39,7 @@ export default {
             return this.$route.params.serviceName;
         },
         terminalName() {
-            return getContainerExecTerminalName(this.endpoint, this.stackName, this.serviceName, 0);
+            return getContainerExecTerminalName(this.endpoint, this.stackName, this.serviceName, 0, this.shell);
         },
         sh() {
             let endpoint = this.$route.params.endpoint;
