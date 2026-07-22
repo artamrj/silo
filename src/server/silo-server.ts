@@ -96,13 +96,11 @@ export class SiloServer {
         // Log NODE ENV
         log.info("server", "NODE_ENV: " + process.env.NODE_ENV);
 
-        // Default stacks directory
-        let defaultStacksDir;
-        if (isDev || process.platform === "win32") {
-            defaultStacksDir = "./.local/stacks";
-        } else {
-            defaultStacksDir = "/opt/stacks";
-        }
+        // Only the container image owns the production container paths. A native
+        // `npm start` must remain writable without requiring root privileges.
+        const isContainer = process.env.SILO_IS_CONTAINER === "1";
+        const defaultDataDir = isContainer ? "./data" : "./.local/data";
+        const defaultStacksDir = isContainer ? "/opt/stacks" : "./.local/stacks";
 
         // Define all possible arguments
         let args = parse<Arguments>({
@@ -149,7 +147,7 @@ export class SiloServer {
         this.config.sslKeyPassphrase = args.sslKeyPassphrase || process.env.SILO_SSL_KEY_PASSPHRASE || undefined;
         this.config.port = args.port || Number(process.env.SILO_PORT) || 5001;
         this.config.hostname = args.hostname || process.env.SILO_HOSTNAME || undefined;
-        this.config.dataDir = args.dataDir || process.env.SILO_DATA_DIR || (isDev ? "./.local/data" : "./data");
+        this.config.dataDir = args.dataDir || process.env.SILO_DATA_DIR || defaultDataDir;
         this.config.stacksDir = args.stacksDir || process.env.SILO_STACKS_DIR || defaultStacksDir;
         this.config.enableConsole = args.enableConsole || process.env.SILO_ENABLE_CONSOLE === "true" || false;
         this.stacksDir = this.config.stacksDir;
