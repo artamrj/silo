@@ -115,8 +115,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
-@use "../styles/vars" as *;
+<style scoped>
 
 .small-padding {
     padding-left: 5px !important;
@@ -141,7 +140,7 @@ export default {
         opacity: 0.3;
     }
     &:hover {
-        background-color: $highlight-white;
+        background-color: #e7faec;
     }
     &.active {
         background-color: #cdf8f4;
@@ -151,7 +150,7 @@ export default {
     }
     .endpoint {
         font-size: 12px;
-        color: $dark-font-color3;
+        color: #575c62;
     }
 }
 
@@ -160,7 +159,7 @@ export default {
 }
 
 .animated {
-    transition: all 0.2s $easing-in;
+    transition: all 0.2s cubic-bezier(0.54, 0.78, 0.55, 0.97);
 }
 
 .select-input-wrapper {

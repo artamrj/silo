@@ -4,7 +4,7 @@
             <ul v-if="isArrayInited" class="list-group">
                 <li v-for="(value, index) in array" :key="index" class="list-group-item">
                     <input v-model="array[index]" type="text" class="no-bg domain-input" :placeholder="placeholder" />
-                    <font-awesome-icon icon="times" class="action remove ms-2 me-3 text-danger" @click="remove(index)" />
+                    <app-icon icon="times" class="action remove ms-2 me-3 text-danger" @click="remove(index)" />
                 </li>
             </ul>
 
@@ -122,11 +122,10 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
-@use "../styles/vars" as *;
+<style scoped>
 
 .list-group {
-    background-color: $dark-bg2;
+    background-color: #070a10;
 
     li {
         display: flex;
@@ -135,9 +134,9 @@ export default {
 
         .domain-input {
             flex-grow: 1;
-            background-color: $dark-bg2;
+            background-color: #070a10;
             border: none;
-            color: $dark-font-color;
+            color: #b1b8c0;
             outline: none;
 
             &::placeholder {

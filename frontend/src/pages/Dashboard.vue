@@ -3,7 +3,7 @@
         <div class="row">
             <div v-if="!$root.isMobile" class="col-12 col-md-4 col-xl-3">
                 <div>
-                    <router-link to="/compose" class="btn btn-primary mb-3"><font-awesome-icon icon="plus" /> {{ $t("compose") }}</router-link>
+                    <router-link to="/compose" class="btn btn-primary mb-3"><app-icon icon="plus" /> {{ $t("compose") }}</router-link>
                 </div>
                 <StackList :scrollbar="true" />
             </div>
@@ -35,7 +35,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .container-fluid {
     width: 98%;
 }

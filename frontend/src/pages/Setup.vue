@@ -90,7 +90,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .form-container {
     display: flex;
     align-items: center;

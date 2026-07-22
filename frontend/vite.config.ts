@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import Components from "unplugin-vue-components/vite";
-import { BootstrapVueNextResolver } from "unplugin-vue-components/resolvers";
+import tailwindcss from "@tailwindcss/vite";
 import viteCompression from "vite-plugin-compression";
 import "vue";
 
@@ -9,13 +8,6 @@ const viteCompressionFilter = /\.(js|mjs|json|css|html|svg)$/i;
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    css: {
-        preprocessorOptions: {
-            scss: {
-                quietDeps: true,
-            },
-        },
-    },
     server: {
         port: 5000,
     },
@@ -29,9 +21,7 @@ export default defineConfig({
     },
     plugins: [
         vue(),
-        Components({
-            resolvers: [ BootstrapVueNextResolver() ],
-        }),
+        tailwindcss(),
         viteCompression({
             algorithm: "gzip",
             filter: viteCompressionFilter,

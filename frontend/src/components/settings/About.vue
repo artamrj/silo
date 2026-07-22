@@ -13,7 +13,7 @@
     </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .logo {
     margin: 4em 1em;
 }

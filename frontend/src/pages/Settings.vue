@@ -20,7 +20,7 @@
                     <!-- Logout Button -->
                     <a v-if="$root.isMobile && $root.loggedIn && $root.socket.token !== 'autoLogin'" class="logout" @click.prevent="$root.logout">
                         <div class="menu-item">
-                            <font-awesome-icon icon="sign-out-alt" />
+                            <app-icon icon="sign-out-alt" />
                             {{ $t("Logout") }}
                         </div>
                     </a>
@@ -171,8 +171,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
-@use "../styles/vars" as *;
+<style scoped>
 
 .shadow-box-settings {
     padding: 20px;
@@ -202,21 +201,21 @@ footer {
     }
 
     .menu-item:hover {
-        background: $highlight-white;
+        background: #e7faec;
 
         .dark & {
-            background: $dark-header-bg;
+            background: #161b22;
         }
     }
 
     .active .menu-item {
-        background: $highlight-white;
-        border-left: 4px solid $primary;
+        background: #e7faec;
+        border-left: 4px solid #74c2ff;
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
 
         .dark & {
-            background: $dark-header-bg;
+            background: #161b22;
         }
     }
 }
@@ -232,7 +231,7 @@ footer {
         font-size: 26px;
 
         .dark & {
-            background: $dark-header-bg;
+            background: #161b22;
             border-bottom: 0;
         }
 
@@ -247,6 +246,6 @@ footer {
 }
 
 .logout {
-    color: $danger !important;
+    color: #dc3545 !important;
 }
 </style>

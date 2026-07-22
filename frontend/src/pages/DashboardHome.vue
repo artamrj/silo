@@ -56,22 +56,28 @@
                             </template>
 
                             <!-- Edit Name  -->
-                            <font-awesome-icon v-if="agentItem.name !== ''" icon="pen-to-square" @click="showEditAgentNameDialog[agentItem.name] = !showEditAgentNameDialog[agentItem.Name]" />
+                            <app-icon v-if="agentItem.name !== ''" icon="pen-to-square" @click="showEditAgentNameDialog[agentItem.name] = !showEditAgentNameDialog[agentItem.Name]" />
 
                             <!-- Edit Dialog -->
-                            <BModal v-model="showEditAgentNameDialog[agentItem.name]" :no-close-on-backdrop="true" :close-on-esc="true" :okTitle="$t('Update Name')" okVariant="info" @ok="updateName(agentItem.url, agentItem.updatedName)">
-                                <label for="Update Name" class="form-label">Current value: {{ $t(agentItem.name) }}</label>
-                                <input id="updatedName" v-model="agentItem.updatedName" type="text" class="form-control" optional>
-                            </BModal>
+                            <div v-if="showEditAgentNameDialog[agentItem.name]" class="modal" role="dialog" aria-modal="true">
+                                <div class="modal-dialog"><div class="modal-content">
+                                    <div class="modal-header"><h5 class="modal-title">{{ $t("Update Name") }}</h5><button class="btn-close" aria-label="Close" @click="showEditAgentNameDialog[agentItem.name] = false" /></div>
+                                    <div class="modal-body"><label for="updatedName" class="form-label">Current value: {{ $t(agentItem.name) }}</label><input id="updatedName" v-model="agentItem.updatedName" type="text" class="form-control"></div>
+                                    <div class="modal-footer"><button class="btn btn-normal" @click="showEditAgentNameDialog[agentItem.name] = false">{{ $t("cancel") }}</button><button class="btn btn-info" @click="updateName(agentItem.url, agentItem.updatedName); showEditAgentNameDialog[agentItem.name] = false">{{ $t("Update Name") }}</button></div>
+                                </div></div>
+                            </div>
 
                             <!-- Remove Button -->
-                            <font-awesome-icon v-if="endpoint !== ''" class="ms-2 remove-agent" icon="trash" @click="showRemoveAgentDialog[agentItem.url] = !showRemoveAgentDialog[agentItem.url]" />
+                            <app-icon v-if="endpoint !== ''" class="ms-2 remove-agent" icon="trash" @click="showRemoveAgentDialog[agentItem.url] = !showRemoveAgentDialog[agentItem.url]" />
 
                             <!-- Remove Agent Dialog -->
-                            <BModal v-model="showRemoveAgentDialog[agentItem.url]" :okTitle="$t('removeAgent')" okVariant="danger" @ok="removeAgent(agentItem.url)">
-                                <p>{{ agentItem.url }}</p>
-                                {{ $t("removeAgentMsg") }}
-                            </BModal>
+                            <div v-if="showRemoveAgentDialog[agentItem.url]" class="modal" role="dialog" aria-modal="true" @click.self="showRemoveAgentDialog[agentItem.url] = false">
+                                <div class="modal-dialog"><div class="modal-content">
+                                    <div class="modal-header"><h5 class="modal-title">{{ $t("removeAgent") }}</h5><button class="btn-close" aria-label="Close" @click="showRemoveAgentDialog[agentItem.url] = false" /></div>
+                                    <div class="modal-body"><p>{{ agentItem.url }}</p><p>{{ $t("removeAgentMsg") }}</p></div>
+                                    <div class="modal-footer"><button class="btn btn-normal" @click="showRemoveAgentDialog[agentItem.url] = false">{{ $t("cancel") }}</button><button class="btn btn-danger" @click="removeAgent(agentItem.url); showRemoveAgentDialog[agentItem.url] = false">{{ $t("removeAgent") }}</button></div>
+                                </div></div>
+                            </div>
                         </div>
 
                         <button v-if="!showAgentForm" class="btn btn-normal" @click="showAgentForm = !showAgentForm">{{ $t("addAgent") }}</button>
@@ -323,8 +329,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
-@use "../styles/vars" as *;
+<style scoped>
 
 .num {
     font-size: 30px;
@@ -333,11 +338,11 @@ export default {
     display: block;
 
     &.active {
-        color: $primary;
+        color: #74c2ff;
     }
 
     &.exited {
-        color: $danger;
+        color: #dc3545;
     }
 }
 
@@ -360,7 +365,7 @@ table {
 
 .docker-run {
     border: none;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 15px;
 }
 

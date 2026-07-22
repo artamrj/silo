@@ -4,20 +4,16 @@ import "../../common/util-common";
 import { createApp, defineComponent, h } from "vue";
 import App from "./App.vue";
 import { router } from "./router";
-import { FontAwesomeIcon } from "./icon.js";
+import { AppIcon } from "./icon.js";
 import { i18n } from "./i18n";
 
 // Dependencies
-import "bootstrap";
-import "bootstrap-vue-next/dist/bootstrap-vue-next.css";
-import Toast, { POSITION, useToast } from "vue-toastification";
+import { toast } from "./toast";
 import "@xterm/xterm/lib/xterm.js";
 
 // CSS
-import "@fontsource/jetbrains-mono";
-import "vue-toastification/dist/index.css";
 import "@xterm/xterm/css/xterm.css";
-import "./styles/main.scss";
+import "./styles/main.css";
 
 // Minxins
 import socket from "./mixins/socket";
@@ -28,21 +24,15 @@ document.title = document.title + " - " + location.host;
 
 const app = createApp(rootApp());
 
-app.use(Toast, {
-    position: POSITION.BOTTOM_RIGHT,
-    showCloseButtonOnHover: true,
-});
 app.use(router);
 app.use(i18n);
-app.component("FontAwesomeIcon", FontAwesomeIcon);
+app.component("AppIcon", AppIcon);
 app.mount("#app");
 
 /**
  * Root Vue component
  */
 function rootApp() {
-    const toast = useToast();
-
     return defineComponent({
         mixins: [
             socket,

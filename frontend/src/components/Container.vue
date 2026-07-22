@@ -18,7 +18,7 @@
                 <div class="function">
                     <div class="btn-group me-2" role="group">
                         <router-link v-if="!isEditMode && (status === 'running' || status === 'healthy')" class="btn btn-normal" :to="terminalRouteLink" disabled="">
-                            <font-awesome-icon icon="terminal" />
+                            <app-icon icon="terminal" />
                             Bash
                         </router-link>
                         <button
@@ -27,7 +27,7 @@
                             :disabled="processing"
                             @click="startService"
                         >
-                            <font-awesome-icon icon="play" class="me-1" />
+                            <app-icon icon="play" class="me-1" />
                             {{ $t("startStack") }}
                         </button>
                         <button
@@ -36,7 +36,7 @@
                             :disabled="processing"
                             @click="restartService"
                         >
-                            <font-awesome-icon icon="rotate" class="me-1" />
+                            <app-icon icon="rotate" class="me-1" />
                             {{ $t("restartStack") }}
                         </button>
                         <button
@@ -45,7 +45,7 @@
                             :disabled="processing"
                             @click="stopService"
                         >
-                            <font-awesome-icon icon="stop" class="me-1" />
+                            <app-icon icon="stop" class="me-1" />
                             {{ $t("stopStack") }}
                         </button>
                     </div>
@@ -55,12 +55,12 @@
 
         <div v-if="isEditMode" class="mt-2">
             <button class="btn btn-normal me-2" @click="showConfig = !showConfig">
-                <font-awesome-icon icon="edit" />
+                <app-icon icon="edit" />
                 {{ $t("Edit") }}
             </button>
             <button v-if="false" class="btn btn-normal me-2">Rename</button>
             <button class="btn btn-danger me-2" @click="remove">
-                <font-awesome-icon icon="trash" />
+                <app-icon icon="trash" />
                 {{ $t("deleteContainer") }}
             </button>
         </div>
@@ -76,7 +76,7 @@
                 </template>
                 <div class="d-flex flex-grow-1 justify-content-end">
                     <button class="btn btn-sm btn-normal" @click="expandedStats = !expandedStats">
-                        <font-awesome-icon :icon="expandedStats ? 'chevron-up' : 'chevron-down'" />
+                        <app-icon :icon="expandedStats ? 'chevron-up' : 'chevron-down'" />
                     </button>
                 </div>
             </div>
@@ -191,13 +191,13 @@
 
 <script>
 import { defineComponent } from "vue";
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { AppIcon } from "../icon";
 import { parseDockerPort } from "../../../common/util-common";
 import DockerStat from "./DockerStat.vue";
 
 export default defineComponent({
     components: {
-        FontAwesomeIcon,
+        AppIcon,
         DockerStat
     },
     props: {
@@ -383,8 +383,7 @@ export default defineComponent({
 });
 </script>
 
-<style scoped lang="scss">
-@use "../styles/vars" as *;
+<style scoped>
 
 .container {
     .image {

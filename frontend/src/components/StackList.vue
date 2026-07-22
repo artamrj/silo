@@ -13,10 +13,10 @@
                 <div class="placeholder"></div>
                 <div class="search-wrapper">
                     <a v-if="searchText == ''" class="search-icon">
-                        <font-awesome-icon icon="search" />
+                        <app-icon icon="search" />
                     </a>
                     <a v-if="searchText != ''" class="search-icon" style="cursor: pointer" @click="clearSearchText">
-                        <font-awesome-icon icon="times" />
+                        <app-icon icon="times" />
                     </a>
                     <form>
                         <input v-model="searchText" class="form-control search-input" autocomplete="off" />
@@ -34,11 +34,11 @@
                 <input v-model="selectAll" class="form-check-input select-input" type="checkbox" />
 
                 <button class="btn-outline-normal" @click="pauseDialog">
-                    <font-awesome-icon icon="pause" size="sm" /> {{
+                    <app-icon icon="pause" size="sm" /> {{
                         $t("Pause") }}
                 </button>
                 <button class="btn-outline-normal" @click="resumeSelected">
-                    <font-awesome-icon icon="play" size="sm" />
+                    <app-icon icon="play" size="sm" />
                     {{ $t("Resume") }}
                 </button>
 
@@ -57,8 +57,8 @@
                     @click="closedAgents.set(agent.endpoint, !closedAgents.get(agent.endpoint))"
                 >
                     <span class="me-1">
-                        <font-awesome-icon v-show="closedAgents.get(agent.endpoint)" icon="chevron-circle-right" />
-                        <font-awesome-icon v-show="!closedAgents.get(agent.endpoint)" icon="chevron-circle-down" />
+                        <app-icon v-show="closedAgents.get(agent.endpoint)" icon="chevron-circle-right" />
+                        <app-icon v-show="!closedAgents.get(agent.endpoint)" icon="chevron-circle-down" />
                     </span>
                     <span v-if="agent.endpoint === 'current'">{{ $t("currentEndpoint") }}</span>
                     <span v-else>{{ agent.endpoint }}</span>
@@ -387,8 +387,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
-@use "../styles/vars" as *;
+<style scoped>
 
 .shadow-box {
     height: calc(100vh - 150px);
@@ -409,7 +408,7 @@ export default {
     padding: 10px;
 
     .dark & {
-        background-color: $dark-header-bg;
+        background-color: #161b22;
         border-bottom: 0;
     }
 }
@@ -442,7 +441,7 @@ export default {
     padding: 10px;
     color: #c0c0c0;
 
-    // Clear filter button (X)
+    /* Clear filter button */
     svg[data-icon="times"] {
         cursor: pointer;
         transition: all ease-in-out 0.1s;
@@ -485,7 +484,7 @@ export default {
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    color: $dark-font-color3;
+    color: #575c62;
     padding-left: 10px;
     padding-right: 10px;
     display: flex;

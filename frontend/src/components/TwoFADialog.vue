@@ -1,6 +1,6 @@
 <template>
     <form @submit.prevent="submit">
-        <div ref="modal" class="modal fade" tabindex="-1" data-bs-backdrop="static">
+        <div v-if="visible" class="modal" tabindex="-1" role="dialog" aria-modal="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -9,7 +9,7 @@
                             <span v-if="twoFAStatus == true" class="badge bg-primary">{{ $t("Active") }}</span>
                             <span v-if="twoFAStatus == false" class="badge bg-primary">{{ $t("Inactive") }}</span>
                         </h5>
-                        <button :disabled="processing" type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" />
+                        <button :disabled="processing" type="button" class="btn-close" aria-label="Close" @click="visible = false" />
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
@@ -73,11 +73,9 @@
 </template>
 
 <script lang="ts">
-import { Modal } from "bootstrap";
 import Confirm from "./Confirm.vue";
 import VueQrcode from "vue-qrcode";
-import { useToast } from "vue-toastification";
-const toast = useToast();
+import { toast } from "../toast";
 
 export default {
     components: {
@@ -94,16 +92,16 @@ export default {
             twoFAStatus: null,
             token: null,
             showURI: false,
+            visible: false,
         };
     },
     mounted() {
-        this.modal = new Modal(this.$refs.modal);
         this.getStatus();
     },
     methods: {
         /** Show the dialog */
         show() {
-            this.modal.show();
+            this.visible = true;
         },
 
         /** Show dialog to confirm enabling 2FA */
@@ -142,7 +140,7 @@ export default {
                     this.$root.toastRes(res);
                     this.getStatus();
                     this.currentPassword = "";
-                    this.modal.hide();
+                    this.visible = false;
                 } else {
                     toast.error(res.msg);
                 }
@@ -160,7 +158,7 @@ export default {
                     this.$root.toastRes(res);
                     this.getStatus();
                     this.currentPassword = "";
-                    this.modal.hide();
+                    this.visible = false;
                 } else {
                     toast.error(res.msg);
                 }
@@ -192,12 +190,11 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
-@use "../styles/vars" as *;
+<style scoped>
 
 .dark {
     .modal-dialog .form-text, .modal-dialog p {
-        color: $dark-font-color;
+        color: #b1b8c0;
     }
 }
 </style>

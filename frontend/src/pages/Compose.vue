@@ -12,51 +12,54 @@
             <div v-if="stack.isManagedBySilo" class="mb-3">
                 <div class="btn-group me-2" role="group">
                     <button v-if="isEditMode" class="btn btn-primary" :disabled="processing" @click="deployStack">
-                        <font-awesome-icon icon="rocket" class="me-1" />
+                        <app-icon icon="rocket" class="me-1" />
                         {{ $t("deployStack") }}
                     </button>
 
                     <button v-if="isEditMode" class="btn btn-normal" :disabled="processing" @click="saveStack">
-                        <font-awesome-icon icon="save" class="me-1" />
+                        <app-icon icon="save" class="me-1" />
                         {{ $t("saveStackDraft") }}
                     </button>
 
                     <button v-if="!isEditMode" class="btn btn-secondary" :disabled="processing" @click="enableEditMode">
-                        <font-awesome-icon icon="pen" class="me-1" />
+                        <app-icon icon="pen" class="me-1" />
                         {{ $t("editStack") }}
                     </button>
 
                     <button v-if="!isEditMode && !active" class="btn btn-primary" :disabled="processing" @click="startStack">
-                        <font-awesome-icon icon="play" class="me-1" />
+                        <app-icon icon="play" class="me-1" />
                         {{ $t("startStack") }}
                     </button>
 
                     <button v-if="!isEditMode && active" class="btn btn-normal " :disabled="processing" @click="restartStack">
-                        <font-awesome-icon icon="rotate" class="me-1" />
+                        <app-icon icon="rotate" class="me-1" />
                         {{ $t("restartStack") }}
                     </button>
 
                     <button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="updateStack">
-                        <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
+                        <app-icon icon="cloud-arrow-down" class="me-1" />
                         {{ $t("updateStack") }}
                     </button>
 
                     <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="stopStack">
-                        <font-awesome-icon icon="stop" class="me-1" />
+                        <app-icon icon="stop" class="me-1" />
                         {{ $t("stopStack") }}
                     </button>
 
-                    <BDropdown right text="" variant="normal">
-                        <BDropdownItem @click="downStack">
-                            <font-awesome-icon icon="stop" class="me-1" />
-                            {{ $t("downStack") }}
-                        </BDropdownItem>
-                    </BDropdown>
+                    <details class="action-menu">
+                        <summary class="btn btn-normal" aria-label="More stack actions">•••</summary>
+                        <div class="dropdown-menu">
+                            <button class="dropdown-item" type="button" @click="downStack">
+                                <app-icon icon="stop" class="me-1" />
+                                {{ $t("downStack") }}
+                            </button>
+                        </div>
+                    </details>
                 </div>
 
                 <button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
                 <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
-                    <font-awesome-icon icon="trash" class="me-1" />
+                    <app-icon icon="trash" class="me-1" />
                     {{ $t("deleteStack") }}
                 </button>
             </div>
@@ -238,9 +241,13 @@
             </div>
 
             <!-- Delete Dialog -->
-            <BModal v-model="showDeleteDialog" :cancelTitle="$t('cancel')" :okTitle="$t('deleteStack')" okVariant="danger" @ok="deleteDialog">
-                {{ $t("deleteStackMsg") }}
-            </BModal>
+            <div v-if="showDeleteDialog" class="modal" role="dialog" aria-modal="true" @click.self="showDeleteDialog = false">
+                <div class="modal-dialog"><div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">{{ $t("deleteStack") }}</h5><button class="btn-close" aria-label="Close" @click="showDeleteDialog = false" /></div>
+                    <div class="modal-body">{{ $t("deleteStackMsg") }}</div>
+                    <div class="modal-footer"><button class="btn btn-normal" @click="showDeleteDialog = false">{{ $t("cancel") }}</button><button class="btn btn-danger" @click="deleteDialog">{{ $t("deleteStack") }}</button></div>
+                </div></div>
+            </div>
         </div>
     </transition>
 </template>
@@ -249,11 +256,10 @@
 import CodeMirror from "vue-codemirror6";
 import { yaml } from "@codemirror/lang-yaml";
 import { python } from "@codemirror/lang-python";
-import { dracula as editorTheme } from "thememirror";
 import { lineNumbers, EditorView } from "@codemirror/view";
 import { parseDocument, Document } from "yaml";
 
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { AppIcon } from "../icon";
 import {
     COMBINED_TERMINAL_COLS,
     COMBINED_TERMINAL_ROWS,
@@ -263,7 +269,6 @@ import {
     PROGRESS_TERMINAL_ROWS,
     RUNNING
 } from "../../../common/util-common";
-import { BModal } from "bootstrap-vue-next";
 import NetworkInput from "../components/NetworkInput.vue";
 import dotenv from "dotenv";
 import { ref } from "vue";
@@ -286,9 +291,8 @@ let dockerStatsTimeout = null;
 export default {
     components: {
         NetworkInput,
-        FontAwesomeIcon,
+        AppIcon,
         CodeMirror,
-        BModal,
     },
     beforeRouteUpdate(to, from, next) {
         this.exitConfirm(next);
@@ -305,14 +309,12 @@ export default {
         };
 
         const extensions = [
-            editorTheme,
             yaml(),
             lineNumbers(),
             EditorView.focusChangeEffect.of(focusEffectHandler)
         ];
 
         const extensionsEnv = [
-            editorTheme,
             python(),
             lineNumbers(),
             EditorView.focusChangeEffect.of(focusEffectHandler)
@@ -846,20 +848,19 @@ export default {
 };
 </script>
 
-<style scoped lang="scss">
-@use "../styles/vars" as *;
+<style scoped>
 
 .terminal {
     height: 200px;
 }
 
 .editor-box {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 14px;
 }
 
 .agent-name {
     font-size: 13px;
-    color: $dark-font-color3;
+    color: #575c62;
 }
 </style>

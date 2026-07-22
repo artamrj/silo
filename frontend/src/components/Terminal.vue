@@ -85,7 +85,7 @@ export default {
 
         this.terminal = new Terminal({
             fontSize: 14,
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
             cursorBlink,
             cols: this.cols,
             rows: this.rows,
@@ -375,13 +375,13 @@ export default {
 };
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .main-terminal {
     height: 100%;
 }
 </style>
 
-<style lang="scss">
+<style>
 .terminal {
     background-color: black !important;
     height: 100%;

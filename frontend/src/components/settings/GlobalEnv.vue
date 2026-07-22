@@ -32,7 +32,6 @@
 <script>
 import CodeMirror from "vue-codemirror6";
 import { python } from "@codemirror/lang-python"; // good enough for .env key=value highlighting
-import { dracula as editorTheme } from "thememirror";
 import { lineNumbers, EditorView } from "@codemirror/view";
 import { ref } from "vue";
 
@@ -51,7 +50,6 @@ export default {
         };
 
         const extensionsEnv = [
-            editorTheme,
             python(),
             lineNumbers(),
             EditorView.focusChangeEffect.of(focusEffectHandler),
@@ -86,9 +84,9 @@ export default {
 };
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .editor-box {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 14px;
 
     &.edit-mode {

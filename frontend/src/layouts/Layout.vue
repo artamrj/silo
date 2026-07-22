@@ -19,13 +19,13 @@
             <ul class="nav nav-pills">
                 <li v-if="$root.loggedIn" class="nav-item me-2">
                     <router-link to="/" class="nav-link">
-                        <font-awesome-icon icon="home" /> {{ $t("home") }}
+                        <app-icon icon="home" /> {{ $t("home") }}
                     </router-link>
                 </li>
 
                 <li v-if="$root.loggedIn" class="nav-item me-2">
                     <router-link to="/console" class="nav-link">
-                        <font-awesome-icon icon="terminal" /> {{ $t("console") }}
+                        <app-icon icon="terminal" /> {{ $t("console") }}
                     </router-link>
                 </li>
 
@@ -33,7 +33,7 @@
                     <div class="dropdown dropdown-profile-pic">
                         <div class="nav-link" data-bs-toggle="dropdown">
                             <div class="profile-pic">{{ $root.usernameFirstChar }}</div>
-                            <font-awesome-icon icon="angle-down" />
+                            <app-icon icon="angle-down" />
                         </div>
 
                         <!-- Header's Dropdown Menu -->
@@ -52,25 +52,25 @@
 
                             <!--<li>
                                 <router-link to="/registry" class="dropdown-item" :class="{ active: $route.path.includes('settings') }">
-                                    <font-awesome-icon icon="warehouse" /> {{ $t("registry") }}
+                                    <app-icon icon="warehouse" /> {{ $t("registry") }}
                                 </router-link>
                             </li>-->
 
                             <li>
                                 <button class="dropdown-item" @click="scanFolder">
-                                    <font-awesome-icon icon="arrows-rotate" /> {{ $t("scanFolder") }}
+                                    <app-icon icon="arrows-rotate" /> {{ $t("scanFolder") }}
                                 </button>
                             </li>
 
                             <li>
                                 <router-link to="/settings/general" class="dropdown-item" :class="{ active: $route.path.includes('settings') }">
-                                    <font-awesome-icon icon="cog" /> {{ $t("Settings") }}
+                                    <app-icon icon="cog" /> {{ $t("Settings") }}
                                 </router-link>
                             </li>
 
                             <li>
                                 <button class="dropdown-item" @click="$root.logout">
-                                    <font-awesome-icon icon="sign-out-alt" />
+                                    <app-icon icon="sign-out-alt" />
                                     {{ $t("Logout") }}
                                 </button>
                             </li>
@@ -142,8 +142,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
-@use "../styles/vars" as *;
+<style scoped>
 
 .nav-link {
     &.status-page {
@@ -176,7 +175,7 @@ export default {
         text-decoration: none;
 
         &.router-link-exact-active, &.active {
-            color: $primary;
+            color: #74c2ff;
             font-weight: bold;
         }
 
@@ -207,7 +206,7 @@ main {
     z-index: 99999;
 }
 
-// Profile Pic Button with Dropdown
+/* Profile button with dropdown */
 .dropdown-profile-pic {
     user-select: none;
 
@@ -248,20 +247,20 @@ main {
         }
 
         .dark & {
-            background-color: $dark-bg;
-            color: $dark-font-color;
-            border-color: $dark-border-color;
+            background-color: #0d1117;
+            color: #b1b8c0;
+            border-color: #1d2634;
 
             .dropdown-item {
-                color: $dark-font-color;
+                color: #b1b8c0;
 
                 &.active {
-                    color: $dark-font-color2;
-                    background-color: $highlight !important;
+                    color: #020b05;
+                    background-color: #9dd1ff !important;
                 }
 
                 &:hover {
-                    background-color: $dark-bg2;
+                    background-color: #070a10;
                 }
             }
         }
@@ -272,7 +271,7 @@ main {
         align-items: center;
         justify-content: center;
         color: white;
-        background-color: $primary;
+        background-color: #74c2ff;
         width: 24px;
         height: 24px;
         margin-right: 5px;
@@ -284,8 +283,8 @@ main {
 
 .dark {
     header {
-        background-color: $dark-header-bg;
-        border-bottom-color: $dark-header-bg !important;
+        background-color: #161b22;
+        border-bottom-color: #161b22 !important;
 
         span {
             color: #f0f6fc;
@@ -293,7 +292,7 @@ main {
     }
 
     .bottom-nav {
-        background-color: $dark-bg;
+        background-color: #0d1117;
     }
 }
 </style>

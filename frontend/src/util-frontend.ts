@@ -1,6 +1,5 @@
 import dayjs from "dayjs";
 import timezones from "timezones-list";
-import { POSITION } from "vue-toastification";
 
 /**
  * Returns the offset from UTC in hours for the current locale.
@@ -111,66 +110,4 @@ export function hostNameRegexPattern(mqtt = false) {
     const hostNameRegexPattern = `^${mqtt ? mqttSchemeRegexPattern : ""}([a-zA-Z0-9])?(([a-zA-Z0-9_]|[a-zA-Z0-9_][a-zA-Z0-9\\-_]*[a-zA-Z0-9_])\\.)*([A-Za-z0-9_]|[A-Za-z0-9_][A-Za-z0-9\\-_]*[A-Za-z0-9_])(\\.)?$`;
 
     return `${ipRegexPattern}|${hostNameRegexPattern}`;
-}
-
-/**
- * Loads the toast timeout settings from storage.
- * @returns {object} The toast plugin options object.
- */
-export function loadToastSettings() {
-    return {
-        position: POSITION.BOTTOM_RIGHT,
-        containerClassName: "toast-container",
-        showCloseButtonOnHover: true,
-
-        filterBeforeCreate: (toast, toasts) => {
-            if (toast.timeout === 0) {
-                return false;
-            } else {
-                return toast;
-            }
-        },
-    };
-}
-
-/**
- * Get timeout for success toasts
- * @returns {(number|boolean)} Timeout in ms. If false timeout disabled.
- */
-export function getToastSuccessTimeout() {
-    let successTimeout = 20000;
-
-    if (localStorage.toastSuccessTimeout !== undefined) {
-        const parsedTimeout = parseInt(localStorage.toastSuccessTimeout);
-        if (parsedTimeout != null && !Number.isNaN(parsedTimeout)) {
-            successTimeout = parsedTimeout;
-        }
-    }
-
-    if (successTimeout === -1) {
-        successTimeout = false;
-    }
-
-    return successTimeout;
-}
-
-/**
- * Get timeout for error toasts
- * @returns {(number|boolean)} Timeout in ms. If false timeout disabled.
- */
-export function getToastErrorTimeout() {
-    let errorTimeout = -1;
-
-    if (localStorage.toastErrorTimeout !== undefined) {
-        const parsedTimeout = parseInt(localStorage.toastErrorTimeout);
-        if (parsedTimeout != null && !Number.isNaN(parsedTimeout)) {
-            errorTimeout = parsedTimeout;
-        }
-    }
-
-    if (errorTimeout === -1) {
-        errorTimeout = false;
-    }
-
-    return errorTimeout;
 }

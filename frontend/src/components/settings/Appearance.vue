@@ -58,8 +58,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
-@use "../../styles/vars" as *;
+<style scoped>
 
 .btn-check:active + .btn-outline-primary,
 .btn-check:checked + .btn-outline-primary,
@@ -73,8 +72,8 @@ export default {
 
 .dark {
     .list-group-item {
-        background-color: $dark-bg2;
-        color: $dark-font-color;
+        background-color: #070a10;
+        color: #b1b8c0;
     }
 }
 </style>

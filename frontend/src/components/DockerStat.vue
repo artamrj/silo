@@ -51,7 +51,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .stats-container {
     container-type: inline-size;
 
