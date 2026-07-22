@@ -388,7 +388,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../styles/vars.scss";
+@use "../styles/vars" as *;
 
 .shadow-box {
     height: calc(100vh - 150px);

@@ -1,6 +1,13 @@
-@import "vars.scss";
-@import "bootstrap/scss/bootstrap";
-@import "bootstrap-vue-next/dist/bootstrap-vue-next.css";
+@use "sass:color";
+@use "vars" as *;
+@use "bootstrap/scss/bootstrap" with (
+    $primary: $primary,
+    $danger: $danger,
+    $warning: $warning,
+    $link-color: $link-color,
+    $border-radius: $border-radius,
+    $dropdown-border-radius: $dropdown-border-radius
+);
 
 #app {
     font-family: BlinkMacSystemFont, segoe ui, Roboto, helvetica neue, Arial, noto sans, sans-serif, apple color emoji, segoe ui emoji, segoe ui symbol, noto color emoji;
@@ -140,7 +147,7 @@ optgroup {
     border-color: $bg-color;
 
     &:hover {
-        $hover-color: darken($bg-color, 3%);
+        $hover-color: color.adjust($bg-color, $lightness: -3%);
         background-color: $hover-color;
         border-color: $hover-color;
     }
@@ -339,7 +346,7 @@ optgroup {
         border-color: $bg-color;
 
         &:hover {
-            $hover-color: darken($bg-color, 3%);
+            $hover-color: color.adjust($bg-color, $lightness: -3%);
             background-color: $hover-color;
             border-color: $hover-color;
         }

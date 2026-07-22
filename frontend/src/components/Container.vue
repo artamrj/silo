@@ -384,7 +384,7 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
-@import "../styles/vars";
+@use "../styles/vars" as *;
 
 .container {
     .image {

@@ -59,7 +59,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../../styles/vars.scss";
+@use "../../styles/vars" as *;
 
 .btn-check:active + .btn-outline-primary,
 .btn-check:checked + .btn-outline-primary,

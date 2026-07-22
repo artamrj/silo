@@ -9,6 +9,7 @@ import { i18n } from "./i18n";
 
 // Dependencies
 import "bootstrap";
+import "bootstrap-vue-next/dist/bootstrap-vue-next.css";
 import Toast, { POSITION, useToast } from "vue-toastification";
 import "@xterm/xterm/lib/xterm.js";
 

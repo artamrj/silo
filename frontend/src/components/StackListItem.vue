@@ -116,7 +116,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../styles/vars.scss";
+@use "../styles/vars" as *;
 
 .small-padding {
     padding-left: 5px !important;

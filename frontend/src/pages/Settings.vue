@@ -172,7 +172,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../styles/vars.scss";
+@use "../styles/vars" as *;
 
 .shadow-box-settings {
     padding: 20px;
