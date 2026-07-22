@@ -1,18 +1,16 @@
 <template>
-    <div class="container-fluid">
-        <div class="row">
-            <div v-if="!$root.isMobile" class="col-12 col-md-4 col-xl-3">
-                <div>
-                    <router-link to="/compose" class="btn btn-primary mb-3"><app-icon icon="plus" /> {{ $t("compose") }}</router-link>
-                </div>
-                <StackList :scrollbar="true" />
+    <div class="dashboard-shell">
+        <aside v-if="!$root.isMobile" class="dashboard-sidebar">
+            <div>
+                <router-link to="/compose" class="btn btn-primary mb-3"><app-icon icon="plus" /> {{ $t("compose") }}</router-link>
             </div>
+            <StackList :scrollbar="true" />
+        </aside>
 
-            <div ref="container" class="col-12 col-md-8 col-xl-9 mb-3">
-                <!-- Add :key to disable vue router re-use the same component -->
-                <router-view :key="$route.fullPath" :calculatedHeight="height" />
-            </div>
-        </div>
+        <section ref="container" class="dashboard-content">
+            <!-- Add :key to disable vue router re-use the same component -->
+            <router-view :key="$route.fullPath" :calculatedHeight="height" />
+        </section>
     </div>
 </template>
 
@@ -36,7 +34,34 @@ export default {
 </script>
 
 <style scoped>
-.container-fluid {
-    width: 98%;
+.dashboard-shell {
+    width: min(100% - 32px, 1440px);
+    margin: 0 auto;
+    padding: 24px 0 40px;
+    display: grid;
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    align-items: start;
+    gap: 28px;
+}
+
+.dashboard-sidebar {
+    min-width: 0;
+}
+
+.dashboard-content {
+    min-width: 0;
+}
+
+@media (max-width: 900px) {
+    .dashboard-shell {
+        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+        gap: 18px;
+    }
+}
+
+:global(.mobile) .dashboard-shell {
+    display: block;
+    width: min(100% - 24px, 720px);
+    padding-top: 16px;
 }
 </style>

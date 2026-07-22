@@ -1,5 +1,5 @@
 <template>
-    <div class="shadow-box mb-3" :style="boxStyle">
+    <div class="shadow-box stack-panel mb-3">
         <div class="list-header">
             <div class="header-top">
                 <!-- TODO -->
@@ -48,6 +48,11 @@
             </div>
         </div>
         <div ref="stackList" class="stack-list" :class="{ scrollbar: scrollbar }" :style="stackListStyle">
+            <div v-if="agentStackList.length === 0" class="empty-stacks">
+                <div class="empty-stacks-icon"><app-icon icon="warehouse" /></div>
+                <strong>{{ $t("No Stacks") }}</strong>
+                <router-link to="/compose">{{ $t("addFirstStackMsg") }}</router-link>
+            </div>
             <div v-if="agentStackList[0] && agentStackList[0].stacks.length === 0" class="text-center mt-3">
                 <router-link to="/compose">{{ $t("addFirstStackMsg") }}</router-link>
             </div>
@@ -389,10 +394,13 @@ export default {
 
 <style scoped>
 
-.shadow-box {
-    height: calc(100vh - 150px);
+.stack-panel {
+    height: calc(100vh - 155px);
+    min-height: 420px;
+    max-height: 900px;
     position: sticky;
-    top: 10px;
+    top: 96px;
+    overflow: hidden;
 }
 
 .small-padding {
@@ -434,6 +442,7 @@ export default {
 
 .search-wrapper {
     display: flex;
+    flex: 1;
     align-items: center;
 }
 
@@ -453,11 +462,39 @@ export default {
 }
 
 .search-input {
-    max-width: 15em;
+    width: 100%;
+    min-width: 0;
+}
+
+.search-wrapper form {
+    flex: 1;
 }
 
 .stack-item {
     width: 100%;
+}
+
+.empty-stacks {
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    color: #575c62;
+    text-align: center;
+}
+
+.empty-stacks-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: rgba(116, 194, 255, 0.15);
+    color: #74c2ff;
+    font-size: 22px;
 }
 
 .tags {

@@ -10,74 +10,76 @@
         </div>
 
         <!-- Desktop header -->
-        <header v-if="! $root.isMobile" class="d-flex flex-wrap justify-content-center py-3 mb-3 border-bottom">
-            <router-link to="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
-                <object class="bi me-2 ms-4" width="40" height="40" data="/icon.svg" />
-                <span class="fs-4 title">Silo</span>
-            </router-link>
+        <header v-if="! $root.isMobile" class="app-header">
+            <div class="app-header-inner">
+                <router-link to="/" class="brand-link">
+                    <object class="brand-icon" width="40" height="40" data="/icon.svg" />
+                    <span class="fs-4 title">Silo</span>
+                </router-link>
 
-            <ul class="nav nav-pills">
-                <li v-if="$root.loggedIn" class="nav-item me-2">
-                    <router-link to="/" class="nav-link">
-                        <app-icon icon="home" /> {{ $t("home") }}
-                    </router-link>
-                </li>
+                <ul class="nav app-nav">
+                    <li v-if="$root.loggedIn" class="nav-item">
+                        <router-link to="/" class="nav-link">
+                            <app-icon icon="home" /> {{ $t("home") }}
+                        </router-link>
+                    </li>
 
-                <li v-if="$root.loggedIn" class="nav-item me-2">
-                    <router-link to="/console" class="nav-link">
-                        <app-icon icon="terminal" /> {{ $t("console") }}
-                    </router-link>
-                </li>
+                    <li v-if="$root.loggedIn" class="nav-item">
+                        <router-link to="/console" class="nav-link">
+                            <app-icon icon="terminal" /> {{ $t("console") }}
+                        </router-link>
+                    </li>
 
-                <li v-if="$root.loggedIn" class="nav-item">
-                    <div class="dropdown dropdown-profile-pic">
-                        <div class="nav-link" data-bs-toggle="dropdown">
-                            <div class="profile-pic">{{ $root.usernameFirstChar }}</div>
-                            <app-icon icon="angle-down" />
-                        </div>
+                    <li v-if="$root.loggedIn" class="nav-item">
+                        <details class="dropdown-profile-pic">
+                            <summary class="nav-link profile-trigger">
+                                <div class="profile-pic">{{ $root.usernameFirstChar }}</div>
+                                <app-icon icon="angle-down" />
+                            </summary>
 
-                        <!-- Header's Dropdown Menu -->
-                        <ul class="dropdown-menu">
-                            <!-- Username -->
-                            <li>
-                                <i18n-t v-if="$root.username != null" tag="span" keypath="signedInDisp" class="dropdown-item-text">
-                                    <strong>{{ $root.username }}</strong>
-                                </i18n-t>
-                                <span v-if="$root.username == null" class="dropdown-item-text">{{ $t("signedInDispDisabled") }}</span>
-                            </li>
+                            <!-- Header's Dropdown Menu -->
+                            <ul class="dropdown-menu">
+                                <!-- Username -->
+                                <li>
+                                    <i18n-t v-if="$root.username != null" tag="span" keypath="signedInDisp" class="dropdown-item-text">
+                                        <strong>{{ $root.username }}</strong>
+                                    </i18n-t>
+                                    <span v-if="$root.username == null" class="dropdown-item-text">{{ $t("signedInDispDisabled") }}</span>
+                                </li>
 
-                            <li><hr class="dropdown-divider"></li>
+                                <li><hr class="dropdown-divider"></li>
 
-                            <!-- Functions -->
+                                <!-- Functions -->
 
-                            <!--<li>
+                                <!--<li>
                                 <router-link to="/registry" class="dropdown-item" :class="{ active: $route.path.includes('settings') }">
                                     <app-icon icon="warehouse" /> {{ $t("registry") }}
                                 </router-link>
                             </li>-->
 
-                            <li>
-                                <button class="dropdown-item" @click="scanFolder">
-                                    <app-icon icon="arrows-rotate" /> {{ $t("scanFolder") }}
-                                </button>
-                            </li>
+                                <li>
+                                    <button class="dropdown-item" @click="scanFolder">
+                                        <app-icon icon="arrows-rotate" /> {{ $t("scanFolder") }}
+                                    </button>
+                                </li>
 
-                            <li>
-                                <router-link to="/settings/general" class="dropdown-item" :class="{ active: $route.path.includes('settings') }">
-                                    <app-icon icon="cog" /> {{ $t("Settings") }}
-                                </router-link>
-                            </li>
+                                <li>
+                                    <router-link to="/settings/general" class="dropdown-item" :class="{ active: $route.path.includes('settings') }">
+                                        <app-icon icon="cog" /> {{ $t("Settings") }}
+                                    </router-link>
+                                </li>
 
-                            <li>
-                                <button class="dropdown-item" @click="$root.logout">
-                                    <app-icon icon="sign-out-alt" />
-                                    {{ $t("Logout") }}
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-            </ul>
+                                <li>
+                                    <button class="dropdown-item" @click="$root.logout">
+                                        <app-icon icon="sign-out-alt" />
+                                        {{ $t("Logout") }}
+                                    </button>
+                                </li>
+                            </ul>
+                        </details>
+                    </li>
+                </ul>
+            </div>
         </header>
 
         <main>
@@ -144,6 +146,50 @@ export default {
 
 <style scoped>
 
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid #e2e8f0;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+}
+
+.app-header-inner {
+    width: min(100% - 32px, 1440px);
+    min-height: 72px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.brand-icon {
+    display: block;
+}
+
+.app-nav {
+    align-items: center;
+    flex-wrap: nowrap;
+    margin: 0;
+}
+
+.app-nav .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 40px;
+}
+
 .nav-link {
     &.status-page {
         background-color: rgba(255, 255, 255, 0.1);
@@ -193,10 +239,6 @@ main {
     font-weight: bold;
 }
 
-.nav {
-    margin-right: 25px;
-}
-
 .lost-connection {
     padding: 5px;
     background-color: crimson;
@@ -208,7 +250,16 @@ main {
 
 /* Profile button with dropdown */
 .dropdown-profile-pic {
+    position: relative;
     user-select: none;
+
+    summary {
+        list-style: none;
+    }
+
+    summary::-webkit-details-marker {
+        display: none;
+    }
 
     .nav-link {
         cursor: pointer;
@@ -224,10 +275,16 @@ main {
     }
 
     .dropdown-menu {
+        display: block;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 110;
+        width: 220px;
         transition: all 0.2s;
         padding-left: 0;
         padding-bottom: 0;
-        margin-top: 8px !important;
+        margin-top: 0;
         border-radius: 16px;
         overflow: hidden;
 
@@ -283,8 +340,8 @@ main {
 
 .dark {
     header {
-        background-color: #161b22;
-        border-bottom-color: #161b22 !important;
+        background-color: rgba(22, 27, 34, 0.94);
+        border-bottom-color: #1d2634;
 
         span {
             color: #f0f6fc;
