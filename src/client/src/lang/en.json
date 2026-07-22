@@ -133,5 +133,13 @@
     "rmCode": "rm",
     "rmRfCode": "rm -rf",
     "envVarCode": "SILO_ENABLE_CONSOLE=true",
-    "confirmLeaveStack": "You are currently editing a stack. Are you sure you want to leave?"
+    "confirmLeaveStack": "You are currently editing a stack. Are you sure you want to leave?",
+    "deploymentHistory": "History",
+    "noDeploymentHistory": "No deployments have been recorded yet.",
+    "composeDiff": "Compose diff",
+    "environmentDiff": "Environment diff",
+    "imageDigestHistory": "Image digest history",
+    "rollbackRevision": "Rollback",
+    "rollbackStackMsg": "Rollback restores this revision's Compose and environment files, then redeploys the stack.",
+    "rollbackStackConfirmation": "Type {confirmation} to confirm rollback."
 }

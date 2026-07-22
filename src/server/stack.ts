@@ -20,6 +20,26 @@ import { InteractiveTerminal, Terminal } from "./terminal";
 import * as childProcessAsync from "promisify-child-process";
 import { Settings } from "./settings";
 
+export interface StackRevision {
+    id: string;
+    stackName: string;
+    composeFileName: string;
+    composeYAML: string;
+    composeENV: string;
+    composeDiff: string;
+    envDiff: string;
+    imageDigests: Record<string, string[]>;
+    metadata: {
+        user: string;
+        timestamp: string;
+        durationMs: number;
+        result: "success" | "failed" | "rolled_back";
+        operation: string;
+        message?: string;
+        rollbackToRevisionId?: string;
+    };
+}
+
 export class Stack {
 
     name: string;
@@ -31,6 +51,14 @@ export class Stack {
     protected server: SiloServer;
 
     protected combinedTerminal? : Terminal;
+
+    protected get historyDir() : string {
+        return path.join(this.path, ".silo", "history");
+    }
+
+    protected get auditLogPath() : string {
+        return path.join(this.path, ".silo", "deployment-audit.log");
+    }
 
     protected static managedStackList: Map<string, Stack> = new Map();
     protected static deploymentLocks: Set<string> = new Set();
@@ -324,14 +352,139 @@ export class Stack {
         };
     }
 
-    async deploy(socket : SiloSocket) : Promise<number> {
+    async deploy(socket : SiloSocket, user = "unknown") : Promise<number> {
         return this.withDeploymentLock("deploy", async () => {
+            const startedAt = Date.now();
+            try {
+                await this.validateComposeConfig();
+                const terminalName = getComposeTerminalName("", this.name);
+                const exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("up", "-d", "--remove-orphans"), this.path);
+                if (exitCode !== 0) {
+                    throw new Error("Failed to deploy, please check the terminal output for more information.");
+                }
+                await this.recordRevision("deploy", user, startedAt, "success");
+                return exitCode;
+            } catch (e) {
+                await this.recordRevision("deploy", user, startedAt, "failed", e instanceof Error ? e.message : "Deployment failed");
+                throw e;
+            }
+        });
+    }
+
+    protected createUnifiedDiff(label: string, previous: string, current: string) : string {
+        const previousLines = previous.split("\n");
+        const currentLines = current.split("\n");
+        if (previous === current) {
+            return `${label}: no changes`;
+        }
+        const out = [ `--- previous/${label}`, `+++ current/${label}` ];
+        const max = Math.max(previousLines.length, currentLines.length);
+        for (let i = 0; i < max; i++) {
+            if (previousLines[i] === currentLines[i]) {
+                out.push(` ${previousLines[i] ?? ""}`);
+            } else {
+                if (previousLines[i] !== undefined) {
+                    out.push(`-${previousLines[i]}`);
+                }
+                if (currentLines[i] !== undefined) {
+                    out.push(`+${currentLines[i]}`);
+                }
+            }
+        }
+        return out.join("\n");
+    }
+
+    protected async getImageDigests() : Promise<Record<string, string[]>> {
+        const doc = yaml.parse(this.composeYAML) as { services?: Record<string, { image?: string }> } | null;
+        const images = new Set<string>();
+        for (const service of Object.values(doc?.services ?? {})) {
+            if (service?.image) {
+                images.add(service.image);
+            }
+        }
+        const digests: Record<string, string[]> = {};
+        for (const image of images) {
+            try {
+                const res = await childProcessAsync.spawn("docker", [ "image", "inspect", image, "--format", "{{json .RepoDigests}}" ], { encoding: "utf-8" });
+                digests[image] = JSON.parse(res.stdout?.toString().trim() || "[]") ?? [];
+            } catch {
+                digests[image] = [];
+            }
+        }
+        return digests;
+    }
+
+    async listRevisions() : Promise<StackRevision[]> {
+        if (!await fileExists(this.historyDir)) {
+            return [];
+        }
+        const files = (await fsAsync.readdir(this.historyDir)).filter((file) => file.endsWith(".json")).sort().reverse();
+        const revisions: StackRevision[] = [];
+        for (const file of files) {
+            try {
+                revisions.push(JSON.parse(await fsAsync.readFile(path.join(this.historyDir, file), "utf-8")) as StackRevision);
+            } catch (e) {
+                log.warn("listRevisions", `Skipping invalid revision ${file}: ${e instanceof Error ? e.message : e}`);
+            }
+        }
+        return revisions;
+    }
+
+    async getRevision(revisionId: string) : Promise<StackRevision> {
+        if (!revisionId.match(/^[0-9TZ._-]+$/)) {
+            throw new ValidationError("Invalid revision id");
+        }
+        const revisionPath = path.join(this.historyDir, `${revisionId}.json`);
+        if (!await fileExists(revisionPath)) {
+            throw new ValidationError("Revision not found");
+        }
+        return JSON.parse(await fsAsync.readFile(revisionPath, "utf-8")) as StackRevision;
+    }
+
+    async recordRevision(operation: string, user: string, startedAt: number, result: StackRevision["metadata"]["result"], message?: string, rollbackToRevisionId?: string) : Promise<StackRevision> {
+        const previous = (await this.listRevisions())[0];
+        const timestamp = new Date().toISOString();
+        const id = timestamp.replace(/[:]/g, "-").replace(/\..+/, "") + `-${operation}`;
+        const revision: StackRevision = {
+            id,
+            stackName: this.name,
+            composeFileName: this._composeFileName,
+            composeYAML: this.composeYAML,
+            composeENV: this.composeENV,
+            composeDiff: this.createUnifiedDiff(this._composeFileName, previous?.composeYAML ?? "", this.composeYAML),
+            envDiff: this.createUnifiedDiff(".env", previous?.composeENV ?? "", this.composeENV),
+            imageDigests: await this.getImageDigests(),
+            metadata: { user,
+                timestamp,
+                durationMs: Date.now() - startedAt,
+                result,
+                operation,
+                message,
+                rollbackToRevisionId },
+        };
+        await fsAsync.mkdir(this.historyDir, { recursive: true });
+        await fsAsync.writeFile(path.join(this.historyDir, `${id}.json`), JSON.stringify(revision, null, 2));
+        await fsAsync.appendFile(this.auditLogPath, `${timestamp}\t${user}\t${operation}\t${result}\t${Date.now() - startedAt}ms\t${message ?? ""}\n`);
+        return revision;
+    }
+
+    async rollback(socket: SiloSocket, revisionId: string, user = "unknown") : Promise<number> {
+        return this.withDeploymentLock("rollback", async () => {
+            const startedAt = Date.now();
+            const revision = await this.getRevision(revisionId);
+            fs.writeFileSync(path.join(this.path, revision.composeFileName), revision.composeYAML);
+            fs.writeFileSync(path.join(this.path, ".env"), revision.composeENV);
+            this._composeYAML = revision.composeYAML;
+            this._composeENV = revision.composeENV;
+            this._composeFileName = revision.composeFileName;
             await this.validateComposeConfig();
             const terminalName = getComposeTerminalName("", this.name);
-            let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("up", "-d", "--remove-orphans"), this.path);
+            const exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("up", "-d", "--remove-orphans"), this.path);
             if (exitCode !== 0) {
-                throw new Error("Failed to deploy, please check the terminal output for more information.");
+                await this.recordRevision("rollback", user, startedAt, "failed", "Rollback deploy failed", revisionId);
+                throw new Error("Failed to roll back, please check the terminal output for more information.");
             }
+            await this.recordRevision("rollback", user, startedAt, "rolled_back", undefined, revisionId);
             return exitCode;
         });
     }

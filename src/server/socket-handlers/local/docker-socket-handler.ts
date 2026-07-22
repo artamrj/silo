@@ -2,7 +2,8 @@ import { SocketHandler } from "../../socket-handler";
 import { SiloServer } from "../../silo-server";
 import { callbackError, callbackResult, checkLogin, SiloSocket, ValidationError } from "../../utils/socket";
 import { Stack } from "../../stack";
-import { stackDeleteSchema, stackSaveSchema } from "../../../shared/schemas";
+import { stackDeleteSchema, stackRollbackSchema, stackSaveSchema } from "../../../shared/schemas";
+import { R } from "redbean-node";
 import { validate } from "../../utils/socket";
 
 export class DockerSocketHandler extends SocketHandler {
@@ -12,7 +13,7 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
                 const stack = await this.saveStack(server, name, composeYAML, composeENV, isAdd);
-                await stack.deploy(socket);
+                await stack.deploy(socket, await this.getUsername(socket));
                 server.sendStackList();
                 callbackResult({
                     ok: true,
@@ -109,6 +110,42 @@ export class DockerSocketHandler extends SocketHandler {
                     ok: true,
                     stack: await stack.toJSON(""),
                 }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("getStackRevisions", async (stackName : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                if (typeof stackName !== "string") {
+                    throw new ValidationError("Stack name must be a string");
+                }
+                const stack = await Stack.getStack(server, stackName);
+                callbackResult({
+                    ok: true,
+                    revisions: await stack.listRevisions(),
+                }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("rollbackStack", async (name : unknown, revisionId : unknown, confirmation : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                const input = validate(stackRollbackSchema, { name,
+                    revisionId,
+                    confirmation });
+                if (input.confirmation !== `ROLLBACK ${input.name}`) {
+                    throw new ValidationError(`Type ROLLBACK ${input.name} to confirm rollback`);
+                }
+                const stack = await Stack.getStack(server, input.name);
+                await stack.rollback(socket, input.revisionId, await this.getUsername(socket));
+                server.sendStackList();
+                callbackResult({ ok: true,
+                    msg: "Rolled back",
+                    msgi18n: false }, callback);
             } catch (e) {
                 callbackError(e, callback);
             }
@@ -355,6 +392,11 @@ export class DockerSocketHandler extends SocketHandler {
                 callbackError(e, callback);
             }
         });
+    }
+
+    async getUsername(socket: SiloSocket) : Promise<string> {
+        const user = await R.findOne("user", " id = ? ", [ socket.userID ]) as { username?: string } | null;
+        return user?.username ?? `user:${socket.userID}`;
     }
 
     async saveStack(server : SiloServer, name : unknown, composeYAML : unknown, composeENV : unknown, isAdd : unknown) : Promise<Stack> {
