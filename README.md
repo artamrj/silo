@@ -27,7 +27,7 @@ Open <http://localhost:5001> and create the administrator account.
 
 ## Development
 
-Use Node.js 22.18 or newer within the Node.js 22 release line.
+Use Node.js 24.18 or newer within the Node.js 24 LTS release line.
 
 ```bash
 npm ci
