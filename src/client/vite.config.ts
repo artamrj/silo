@@ -39,9 +39,5 @@ export default defineConfig({
             algorithm: "gzip",
             filter: viteCompressionFilter,
         }),
-        viteCompression({
-            algorithm: "brotliCompress",
-            filter: viteCompressionFilter,
-        }),
     ],
 });

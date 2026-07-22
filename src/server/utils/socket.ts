@@ -74,10 +74,16 @@ export function callbackError(error : unknown, callback : unknown) {
         callback({
             ok: false,
             msg: error.message,
-            msgi18n: true,
+            msgi18n: false,
         });
     } else {
-        log.debug("console", "Unknown error: " + error);
+        const message = typeof error === "string" ? error : "An unexpected server error occurred.";
+        log.error("console", "Unknown error: " + String(error));
+        callback({
+            ok: false,
+            msg: message,
+            msgi18n: false,
+        });
     }
 }
 

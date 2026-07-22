@@ -55,7 +55,7 @@
                 </div>
 
                 <button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
-                <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
+                <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="openDeleteDialog">
                     <app-icon icon="trash" class="me-1" />
                     {{ $t("deleteStack") }}
                 </button>
@@ -224,8 +224,20 @@
             <div v-if="showDeleteDialog" class="modal" role="dialog" aria-modal="true" @click.self="showDeleteDialog = false">
                 <div class="modal-dialog"><div class="modal-content">
                     <div class="modal-header"><h5 class="modal-title">{{ $t("deleteStack") }}</h5><button class="btn-close" aria-label="Close" @click="showDeleteDialog = false" /></div>
-                    <div class="modal-body">{{ $t("deleteStackMsg") }}</div>
-                    <div class="modal-footer"><button class="btn btn-normal" @click="showDeleteDialog = false">{{ $t("cancel") }}</button><button class="btn btn-danger" @click="deleteDialog">{{ $t("deleteStack") }}</button></div>
+                    <div class="modal-body">
+                        <p>{{ $t("deleteStackMsg") }}</p>
+                        <label for="delete-confirmation" class="form-label">
+                            {{ $t("deleteStackConfirmation", { confirmation: deleteConfirmationText }) }}
+                        </label>
+                        <input
+                            id="delete-confirmation"
+                            v-model="deleteConfirmation"
+                            class="form-control"
+                            :placeholder="deleteConfirmationText"
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-normal" @click="showDeleteDialog = false">{{ $t("cancel") }}</button><button class="btn btn-danger" :disabled="deleteConfirmation !== deleteConfirmationText || processing" @click="deleteDialog">{{ $t("deleteStack") }}</button></div>
                 </div></div>
             </div>
         </div>
@@ -250,6 +262,10 @@ import {
     RUNNING
 } from "../../../shared/utils";
 import NetworkInput from "../components/NetworkInput.vue";
+import ArrayInput from "../components/ArrayInput.vue";
+import Container from "../components/Container.vue";
+import Terminal from "../components/Terminal.vue";
+import Uptime from "../components/Uptime.vue";
 import dotenv from "dotenv";
 import { ref } from "vue";
 
@@ -270,9 +286,13 @@ let dockerStatsTimeout = null;
 
 export default {
     components: {
+        ArrayInput,
+        Container,
         NetworkInput,
         AppIcon,
         CodeMirror,
+        Terminal,
+        Uptime,
     },
     beforeRouteUpdate(to, from, next) {
         this.exitConfirm(next);
@@ -323,6 +343,7 @@ export default {
             isEditMode: false,
             submitted: false,
             showDeleteDialog: false,
+            deleteConfirmation: "",
             newContainerName: "",
             stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
@@ -405,6 +426,10 @@ export default {
             } else {
                 return `/compose/${this.stack.name}`;
             }
+        },
+
+        deleteConfirmationText() {
+            return `DELETE ${this.stack.name}`;
         },
     },
     watch: {
@@ -563,7 +588,7 @@ export default {
         },
 
         bindTerminal() {
-            this.$refs.progressTerminal?.bind(this.endpoint, this.terminalName);
+            this.$refs.progressTerminal?.bind?.(this.endpoint, this.terminalName);
         },
 
         loadStack() {
@@ -682,10 +707,21 @@ export default {
             });
         },
 
+        openDeleteDialog() {
+            this.deleteConfirmation = "";
+            this.showDeleteDialog = true;
+        },
+
         deleteDialog() {
-            this.$root.emitServer("deleteStack", this.stack.name, (res) => {
+            this.processing = true;
+            this.$root.emitServer("deleteStack", this.stack.name, {
+                deleteData: true,
+                confirmation: this.deleteConfirmation,
+            }, (res) => {
+                this.processing = false;
                 this.$root.toastRes(res);
                 if (res.ok) {
+                    this.showDeleteDialog = false;
                     this.$router.push("/");
                 }
             });
