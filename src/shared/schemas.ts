@@ -22,6 +22,12 @@ export const stackDeleteSchema = z.object({
     confirmation: z.string().optional(),
 });
 
+export const stackRollbackSchema = z.object({
+    name: stackNameSchema,
+    revisionId: nonEmptyString.max(128),
+    confirmation: z.string().optional(),
+});
+
 export const terminalInputSchema = z.object({
     terminalName: nonEmptyString,
     command: z.string().max(64_000),

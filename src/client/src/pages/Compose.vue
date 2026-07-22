@@ -38,6 +38,11 @@
                         {{ $t("updateStack") }}
                     </button>
 
+                    <button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="toggleHistory">
+                        <app-icon icon="history" class="me-1" />
+                        {{ $t("deploymentHistory") }}
+                    </button>
+
                     <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="stopStack">
                         <app-icon icon="stop" class="me-1" />
                         {{ $t("stopStack") }}
@@ -59,6 +64,36 @@
                     <app-icon icon="trash" class="me-1" />
                     {{ $t("deleteStack") }}
                 </button>
+            </div>
+
+            <div v-if="showHistory" class="shadow-box big-padding mb-3 deployment-history">
+                <h4 class="mb-3">{{ $t("deploymentHistory") }}</h4>
+                <p v-if="revisions.length === 0" class="text-muted">{{ $t("noDeploymentHistory") }}</p>
+                <div v-for="revision in revisions" :key="revision.id" class="revision-card mb-3">
+                    <div class="revision-header">
+                        <strong>{{ revision.id }}</strong>
+                        <span class="badge bg-secondary">{{ revision.metadata.result }}</span>
+                    </div>
+                    <div class="small text-muted">
+                        {{ revision.metadata.user }} · {{ revision.metadata.timestamp }} · {{ revision.metadata.durationMs }}ms · {{ revision.metadata.operation }}
+                    </div>
+                    <div v-if="revision.metadata.message" class="small text-danger">{{ revision.metadata.message }}</div>
+                    <details class="mt-2">
+                        <summary>{{ $t("composeDiff") }}</summary>
+                        <pre class="diff-viewer">{{ revision.composeDiff }}</pre>
+                    </details>
+                    <details class="mt-2">
+                        <summary>{{ $t("environmentDiff") }}</summary>
+                        <pre class="diff-viewer">{{ revision.envDiff }}</pre>
+                    </details>
+                    <details class="mt-2">
+                        <summary>{{ $t("imageDigestHistory") }}</summary>
+                        <pre class="diff-viewer">{{ JSON.stringify(revision.imageDigests, null, 2) }}</pre>
+                    </details>
+                    <button class="btn btn-danger btn-sm mt-2" :disabled="processing" @click="openRollbackDialog(revision)">
+                        {{ $t("rollbackRevision") }}
+                    </button>
+                </div>
             </div>
 
             <!-- URLs -->
@@ -93,7 +128,6 @@
                                 <input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase">
                                 <div class="form-text">{{ $t("Lowercase only") }}</div>
                             </div>
-
                         </div>
                     </div>
 
@@ -212,7 +246,6 @@
                             <NetworkInput />
                         </div>
                     </div>
-
                 </div>
             </div>
 
@@ -220,25 +253,43 @@
                 {{ $t("stackNotManagedBySiloMsg") }}
             </div>
 
+            <div v-if="showRollbackDialog" class="modal" role="dialog" aria-modal="true" @click.self="showRollbackDialog = false">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header"><h5 class="modal-title">{{ $t("rollbackRevision") }}</h5><button class="btn-close" aria-label="Close" @click="showRollbackDialog = false" /></div>
+                        <div class="modal-body">
+                            <p>{{ $t("rollbackStackMsg") }}</p>
+                            <label for="rollback-confirmation" class="form-label">
+                                {{ $t("rollbackStackConfirmation", { confirmation: rollbackConfirmationText }) }}
+                            </label>
+                            <input id="rollback-confirmation" v-model="rollbackConfirmation" class="form-control" :placeholder="rollbackConfirmationText" autocomplete="off" />
+                        </div>
+                        <div class="modal-footer"><button class="btn btn-normal" @click="showRollbackDialog = false">{{ $t("cancel") }}</button><button class="btn btn-danger" :disabled="rollbackConfirmation !== rollbackConfirmationText || processing" @click="rollbackDialog">{{ $t("rollbackRevision") }}</button></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Delete Dialog -->
             <div v-if="showDeleteDialog" class="modal" role="dialog" aria-modal="true" @click.self="showDeleteDialog = false">
-                <div class="modal-dialog"><div class="modal-content">
-                    <div class="modal-header"><h5 class="modal-title">{{ $t("deleteStack") }}</h5><button class="btn-close" aria-label="Close" @click="showDeleteDialog = false" /></div>
-                    <div class="modal-body">
-                        <p>{{ $t("deleteStackMsg") }}</p>
-                        <label for="delete-confirmation" class="form-label">
-                            {{ $t("deleteStackConfirmation", { confirmation: deleteConfirmationText }) }}
-                        </label>
-                        <input
-                            id="delete-confirmation"
-                            v-model="deleteConfirmation"
-                            class="form-control"
-                            :placeholder="deleteConfirmationText"
-                            autocomplete="off"
-                        />
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header"><h5 class="modal-title">{{ $t("deleteStack") }}</h5><button class="btn-close" aria-label="Close" @click="showDeleteDialog = false" /></div>
+                        <div class="modal-body">
+                            <p>{{ $t("deleteStackMsg") }}</p>
+                            <label for="delete-confirmation" class="form-label">
+                                {{ $t("deleteStackConfirmation", { confirmation: deleteConfirmationText }) }}
+                            </label>
+                            <input
+                                id="delete-confirmation"
+                                v-model="deleteConfirmation"
+                                class="form-control"
+                                :placeholder="deleteConfirmationText"
+                                autocomplete="off"
+                            />
+                        </div>
+                        <div class="modal-footer"><button class="btn btn-normal" @click="showDeleteDialog = false">{{ $t("cancel") }}</button><button class="btn btn-danger" :disabled="deleteConfirmation !== deleteConfirmationText || processing" @click="deleteDialog">{{ $t("deleteStack") }}</button></div>
                     </div>
-                    <div class="modal-footer"><button class="btn btn-normal" @click="showDeleteDialog = false">{{ $t("cancel") }}</button><button class="btn btn-danger" :disabled="deleteConfirmation !== deleteConfirmationText || processing" @click="deleteDialog">{{ $t("deleteStack") }}</button></div>
-                </div></div>
+                </div>
             </div>
         </div>
     </transition>
@@ -344,6 +395,11 @@ export default {
             submitted: false,
             showDeleteDialog: false,
             deleteConfirmation: "",
+            showHistory: false,
+            revisions: [],
+            selectedRevision: null,
+            showRollbackDialog: false,
+            rollbackConfirmation: "",
             newContainerName: "",
             stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
@@ -430,6 +486,10 @@ export default {
 
         deleteConfirmationText() {
             return `DELETE ${this.stack.name}`;
+        },
+
+        rollbackConfirmationText() {
+            return `ROLLBACK ${this.stack.name}`;
         },
     },
     watch: {
@@ -707,6 +767,42 @@ export default {
             });
         },
 
+        toggleHistory() {
+            this.showHistory = !this.showHistory;
+            if (this.showHistory) {
+                this.loadRevisions();
+            }
+        },
+
+        loadRevisions() {
+            this.$root.emitServer("getStackRevisions", this.stack.name, (res) => {
+                if (res.ok) {
+                    this.revisions = res.revisions;
+                } else {
+                    this.$root.toastRes(res);
+                }
+            });
+        },
+
+        openRollbackDialog(revision) {
+            this.selectedRevision = revision;
+            this.rollbackConfirmation = "";
+            this.showRollbackDialog = true;
+        },
+
+        rollbackDialog() {
+            this.processing = true;
+            this.$root.emitServer("rollbackStack", this.stack.name, this.selectedRevision.id, this.rollbackConfirmation, (res) => {
+                this.processing = false;
+                this.$root.toastRes(res);
+                if (res.ok) {
+                    this.showRollbackDialog = false;
+                    this.loadStack();
+                    this.loadRevisions();
+                }
+            });
+        },
+
         openDeleteDialog() {
             this.deleteConfirmation = "";
             this.showDeleteDialog = true;
@@ -919,5 +1015,27 @@ export default {
     .stack-toolbar .action-menu summary {
         width: 100%;
     }
+}
+
+.revision-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.revision-header {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.diff-viewer {
+    background: var(--bg);
+    border-radius: 10px;
+    max-height: 260px;
+    overflow: auto;
+    padding: 12px;
+    white-space: pre-wrap;
 }
 </style>
