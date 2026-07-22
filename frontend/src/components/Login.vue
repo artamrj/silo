@@ -2,7 +2,10 @@
     <div class="form-container">
         <div class="form">
             <form @submit.prevent="submit">
-                <h1 class="h3 mb-3 fw-normal" />
+                <div class="login-brand">
+                    <object width="52" height="52" data="/icon.svg" />
+                    <div><h1>Silo</h1><p>{{ $t("Login") }}</p></div>
+                </div>
 
                 <div v-if="!tokenRequired" class="form-floating">
                     <input id="floatingInput" v-model="username" type="text" class="form-control" placeholder="Username" autocomplete="username" required>
@@ -88,6 +91,7 @@ export default {
 
 <style scoped>
 .form-container {
+    min-height: calc(100vh - 72px);
     display: flex;
     align-items: center;
     padding-top: 40px;
@@ -106,9 +110,29 @@ export default {
 
 .form {
     width: 100%;
-    max-width: 330px;
-    padding: 15px;
+    max-width: 420px;
+    padding: 32px;
     margin: auto;
-    text-align: center;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+    box-shadow: var(--shadow-lg);
+}
+
+.login-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+}
+
+.login-brand h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.login-brand p {
+    margin: 2px 0 0;
+    color: var(--text-muted);
 }
 </style>

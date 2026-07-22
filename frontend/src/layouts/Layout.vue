@@ -150,8 +150,8 @@ export default {
     position: sticky;
     top: 0;
     z-index: 100;
-    border-bottom: 1px solid #e2e8f0;
-    background: rgba(255, 255, 255, 0.92);
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
     backdrop-filter: blur(16px);
 }
 
@@ -236,7 +236,9 @@ main {
 }
 
 .title {
-    font-weight: bold;
+    color: var(--text);
+    font-weight: 750;
+    letter-spacing: -0.03em;
 }
 
 .lost-connection {
@@ -266,11 +268,12 @@ main {
         display: flex;
         gap: 6px;
         align-items: center;
-        background-color: rgba(200, 200, 200, 0.2);
-        padding: 0.5rem 0.8rem;
+        min-width: 64px;
+        background-color: var(--surface-muted);
+        padding: 0.4rem 0.55rem;
 
         &:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+            background-color: var(--primary-soft);
         }
     }
 
@@ -328,20 +331,20 @@ main {
         align-items: center;
         justify-content: center;
         color: white;
-        background-color: #74c2ff;
-        width: 24px;
-        height: 24px;
+        background: linear-gradient(135deg, #6366f1, #22d3ee);
+        width: 30px;
+        height: 30px;
         margin-right: 5px;
         border-radius: 50rem;
         font-weight: bold;
-        font-size: 10px;
+        font-size: 12px;
     }
 }
 
 .dark {
     header {
-        background-color: rgba(22, 27, 34, 0.94);
-        border-bottom-color: #1d2634;
+        background: color-mix(in srgb, var(--surface) 90%, transparent);
+        border-bottom-color: var(--border);
 
         span {
             color: #f0f6fc;

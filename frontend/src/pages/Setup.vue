@@ -92,6 +92,7 @@ export default {
 
 <style scoped>
 .form-container {
+    min-height: 100vh;
     display: flex;
     align-items: center;
     padding-top: 40px;
@@ -121,9 +122,13 @@ export default {
 .form {
 
     width: 100%;
-    max-width: 330px;
-    padding: 15px;
+    max-width: 440px;
+    padding: 36px;
     margin: auto;
     text-align: center;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+    box-shadow: var(--shadow-lg);
 }
 </style>

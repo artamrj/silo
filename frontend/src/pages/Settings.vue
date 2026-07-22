@@ -13,6 +13,7 @@
                         :to="`/settings/${key}`"
                     >
                         <div class="menu-item">
+                            <app-icon :icon="item.icon" />
                             {{ item.title }}
                         </div>
                     </router-link>
@@ -76,18 +77,23 @@ export default {
             return {
                 general: {
                     title: this.$t("general"),
+                    icon: "cog",
                 },
                 appearance: {
                     title: this.$t("Appearance"),
+                    icon: "palette",
                 },
                 security: {
                     title: this.$t("Security"),
+                    icon: "security",
                 },
                 globalEnv: {
                     title: this.$t("GlobalEnv"),
+                    icon: "file-code",
                 },
                 about: {
                     title: this.$t("About"),
+                    icon: "home",
                 },
             };
         },
@@ -174,8 +180,14 @@ export default {
 <style scoped>
 
 .shadow-box-settings {
-    padding: 20px;
+    padding: 0;
+    overflow: hidden;
     min-height: calc(100vh - 155px);
+}
+
+.shadow-box-settings > .row {
+    min-height: inherit;
+    margin: 0;
 }
 
 footer {
@@ -192,9 +204,12 @@ footer {
     }
 
     .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         border-radius: 10px;
-        margin: 0.5em;
-        padding: 0.7em 1em;
+        margin: 4px;
+        padding: 10px 12px;
         cursor: pointer;
         border-left-width: 0;
         transition: all ease-in-out 0.1s;
@@ -209,10 +224,8 @@ footer {
     }
 
     .active .menu-item {
-        background: #e7faec;
-        border-left: 4px solid #74c2ff;
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
+        background: var(--primary-soft);
+        color: var(--primary);
 
         .dark & {
             background: #161b22;
@@ -221,14 +234,14 @@ footer {
 }
 
 .settings-content {
+    border-left: 1px solid var(--border);
+
     .settings-content-header {
-        width: calc(100% + 20px);
-        border-bottom: 1px solid #dee2e6;
-        border-radius: 0 10px 0 0;
-        margin-top: -20px;
-        margin-right: -20px;
-        padding: 12.5px 1em;
-        font-size: 26px;
+        border-bottom: 1px solid var(--border);
+        padding: 18px 24px;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
 
         .dark & {
             background: #161b22;
@@ -243,6 +256,10 @@ footer {
             }
         }
     }
+}
+
+.settings-menu {
+    padding: 14px;
 }
 
 .logout {

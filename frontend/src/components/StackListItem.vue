@@ -140,10 +140,11 @@ export default {
         opacity: 0.3;
     }
     &:hover {
-        background-color: #e7faec;
+        background-color: var(--surface-muted);
     }
     &.active {
-        background-color: #cdf8f4;
+        background-color: var(--primary-soft);
+        color: var(--primary);
     }
     .title {
         margin-top: -4px;

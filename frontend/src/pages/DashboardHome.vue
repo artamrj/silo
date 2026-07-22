@@ -1,6 +1,6 @@
 <template>
     <transition ref="tableContainer" name="slide-fade" appear>
-        <div v-if="$route.name === 'DashboardHome'">
+        <div v-if="$route.name === 'DashboardHome'" class="home-dashboard">
             <h1 class="mb-3">
                 {{ $t("home") }}
             </h1>
@@ -9,7 +9,7 @@
                 <!-- Left -->
                 <div class="col-md-7">
                     <!-- Stats -->
-                    <div class="shadow-box big-padding text-center mb-4">
+                    <div class="shadow-box big-padding text-center mb-4 stats-card">
                         <div class="row">
                             <div class="col">
                                 <h3>{{ $t("active") }}</h3>
@@ -37,7 +37,7 @@
                 <!-- Right -->
                 <div class="col-md-5">
                     <!-- Agent List -->
-                    <div class="shadow-box big-padding">
+                    <div class="shadow-box big-padding agent-card">
                         <h4 class="mb-3">{{ $t("siloAgent", 2) }} <span class="badge bg-warning" style="font-size: 12px;">beta</span></h4>
 
                         <div v-for="(agentItem, endpoint) in $root.agentList" :key="endpoint" class="mb-3 agent">
@@ -371,6 +371,48 @@ table {
 
 .first-row .shadow-box {
 
+}
+
+.home-dashboard > h1 {
+    letter-spacing: -0.025em;
+}
+
+.stats-card .row {
+    margin: 0;
+}
+
+.stats-card .col {
+    position: relative;
+    padding: 10px 14px;
+}
+
+.stats-card .col + .col::before {
+    content: "";
+    position: absolute;
+    top: 15%;
+    bottom: 15%;
+    left: 0;
+    width: 1px;
+    background: var(--border);
+}
+
+.stats-card h3 {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.docker-run {
+    min-height: 148px;
+    resize: vertical;
+}
+
+.agent-card h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .remove-agent {

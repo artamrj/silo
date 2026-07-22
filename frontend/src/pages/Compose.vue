@@ -1,6 +1,6 @@
 <template>
     <transition name="slide-fade" appear>
-        <div>
+        <div class="compose-page">
             <h1 v-if="isAdd" class="mb-3">{{ $t("compose") }}</h1>
             <h1 v-else class="mb-3">
                 <Uptime :stack="globalStack" :pill="true" /> {{ stack.name }}
@@ -9,7 +9,7 @@
                 </span>
             </h1>
 
-            <div v-if="stack.isManagedBySilo" class="mb-3">
+            <div v-if="stack.isManagedBySilo" class="stack-toolbar mb-3">
                 <div class="btn-group me-2" role="group">
                     <button v-if="isEditMode" class="btn btn-primary" :disabled="processing" @click="deployStack">
                         <app-icon icon="rocket" class="me-1" />
@@ -84,7 +84,7 @@
                 ></Terminal>
             </transition>
 
-            <div v-if="stack.isManagedBySilo" class="row">
+            <div v-if="stack.isManagedBySilo" class="row compose-grid">
                 <div class="col-lg-6">
                     <!-- General -->
                     <div v-if="isAdd">
@@ -854,5 +854,54 @@ export default {
 .agent-name {
     font-size: 13px;
     color: #575c62;
+}
+
+.compose-page > h1 {
+    letter-spacing: -0.025em;
+}
+
+.stack-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.stack-toolbar .btn-group {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.stack-toolbar .btn-group > .btn {
+    margin: 0;
+    border-radius: 10px;
+}
+
+.compose-grid {
+    row-gap: 24px;
+}
+
+.editor-box {
+    overflow: hidden;
+    border-radius: 14px;
+}
+
+@media (max-width: 760px) {
+    .stack-toolbar,
+    .stack-toolbar .btn-group {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .stack-toolbar .btn,
+    .stack-toolbar .action-menu,
+    .stack-toolbar .action-menu summary {
+        width: 100%;
+    }
 }
 </style>

@@ -409,7 +409,7 @@ export default {
 }
 
 .list-header {
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--border);
     border-radius: 10px 10px 0 0;
     margin: -10px;
     margin-bottom: 10px;
@@ -448,7 +448,7 @@ export default {
 
 .search-icon {
     padding: 10px;
-    color: #c0c0c0;
+    color: var(--text-muted);
 
     /* Clear filter button */
     svg[data-icon="times"] {
@@ -482,7 +482,7 @@ export default {
     justify-content: center;
     gap: 10px;
     padding: 24px;
-    color: #575c62;
+    color: var(--text-muted);
     text-align: center;
 }
 
@@ -492,8 +492,8 @@ export default {
     display: grid;
     place-items: center;
     border-radius: 14px;
-    background: rgba(116, 194, 255, 0.15);
-    color: #74c2ff;
+    background: var(--primary-soft);
+    color: var(--primary);
     font-size: 22px;
 }
 
