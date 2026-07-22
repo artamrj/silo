@@ -1,6 +1,6 @@
 import { log } from "./log";
 import { R } from "redbean-node";
-import { DockgeServer } from "./dockge-server";
+import { SiloServer } from "./silo-server";
 import fs from "fs";
 import path from "path";
 import knex from "knex";
@@ -22,7 +22,7 @@ interface DBConfig {
 
 export class Database {
     /**
-     * SQLite file path (Default: ./data/dockge.db)
+     * SQLite file path (Default: ./data/silo.db)
      * @type {string}
      */
     static sqlitePath : string;
@@ -33,14 +33,14 @@ export class Database {
 
     static knexMigrationsPath = "./backend/migrations";
 
-    private static server : DockgeServer;
+    private static server : SiloServer;
 
     /**
      * Use for decode the auth object
      */
     jwtSecret? : string;
 
-    static async init(server : DockgeServer) {
+    static async init(server : SiloServer) {
         this.server = server;
 
         log.debug("server", "Connecting to the database");
@@ -108,7 +108,12 @@ export class Database {
         log.info("db", `Database Type: ${dbConfig.type}`);
 
         if (dbConfig.type === "sqlite") {
-            this.sqlitePath = path.join(this.server.config.dataDir, "dockge.db");
+            this.sqlitePath = path.join(this.server.config.dataDir, "silo.db");
+            const legacySQLitePath = path.join(this.server.config.dataDir, "dockge.db");
+            if (!fs.existsSync(this.sqlitePath) && fs.existsSync(legacySQLitePath)) {
+                fs.renameSync(legacySQLitePath, this.sqlitePath);
+                log.info("db", "Migrated the legacy database file to silo.db");
+            }
             Dialect.prototype._driver = () => sqlite;
 
             config = {
@@ -189,7 +194,7 @@ export class Database {
                 // Allow missing patch files for downgrade or testing pr.
                 if (e.message.includes("the following files are missing:")) {
                     log.warn("db", e.message);
-                    log.warn("db", "Database migration failed, you may be downgrading Dockge.");
+                    log.warn("db", "Database migration failed, you may be downgrading Silo.");
                 } else {
                     log.error("db", "Database migration failed");
                     throw e;

@@ -1,42 +1,46 @@
-############################################
-# Healthcheck Binary
-############################################
-FROM louislam/dockge:build-healthcheck AS build_healthcheck
+FROM golang:1.24-bookworm AS healthcheck
+WORKDIR /src
+COPY extra/healthcheck.go .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /healthcheck healthcheck.go
 
-############################################
-# Build
-############################################
-FROM louislam/dockge:base AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
-COPY --chown=node:node  ./package.json ./package.json
-COPY --chown=node:node  ./package-lock.json ./package-lock.json
-RUN npm ci --omit=dev
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY frontend ./frontend
+COPY common ./common
+RUN npm run build:frontend \
+    && npm prune --omit=dev
 
-############################################
-# ⭐ Main Image
-############################################
-FROM louislam/dockge:base AS release
+FROM node:22-bookworm-slim AS release
+RUN apt-get update && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        curl \
+        dumb-init \
+        gnupg \
+        unzip \
+    && install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+    && chmod a+r /etc/apt/keyrings/docker.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list \
+    && apt-get update \
+    && apt-get install --yes --no-install-recommends docker-ce-cli docker-compose-plugin \
+    && npm install --global tsx \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-COPY --chown=node:node --from=build_healthcheck /app/extra/healthcheck /app/extra/healthcheck
+COPY --from=healthcheck /healthcheck /app/extra/healthcheck
 COPY --from=build /app/node_modules /app/node_modules
-COPY --chown=node:node  . .
-RUN mkdir ./data
+COPY . .
+COPY --from=build /app/frontend-dist /app/frontend-dist
+RUN mkdir -p /app/data
 
+ENV NODE_ENV=production \
+    SILO_IS_CONTAINER=1 \
+    UV_USE_IO_URING=0
 
-# It is just for safe, as by default, it is disabled in the latest Node.js now.
-# Read more:
-# - https://github.com/sagemathinc/cocalc/issues/6963
-# - https://github.com/microsoft/node-pty/issues/630#issuecomment-1987212447
-ENV UV_USE_IO_URING=0
-
-VOLUME /app/data
+VOLUME ["/app/data"]
 EXPOSE 5001
-HEALTHCHECK --interval=60s --timeout=30s --start-period=60s --retries=5 CMD extra/healthcheck
+HEALTHCHECK --interval=60s --timeout=30s --start-period=60s --retries=5 CMD ["/app/extra/healthcheck"]
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["tsx", "./backend/index.ts"]
-
-############################################
-# Mark as Nightly
-############################################
-FROM release AS nightly
-RUN npm run mark-as-nightly

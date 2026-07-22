@@ -1,7 +1,7 @@
-import { DockgeServer } from "./dockge-server";
+import { SiloServer } from "./silo-server";
 import { AgentSocket } from "../common/agent-socket";
-import { DockgeSocket } from "./util-server";
+import { SiloSocket } from "./util-server";
 
 export abstract class AgentSocketHandler {
-    abstract create(socket : DockgeSocket, server : DockgeServer, agentSocket : AgentSocket): void;
+    abstract create(socket : SiloSocket, server : SiloServer, agentSocket : AgentSocket): void;
 }

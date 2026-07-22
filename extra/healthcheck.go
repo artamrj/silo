@@ -1,6 +1,5 @@
 /*
- * If changed, have to run `npm run build-docker-builder-go`.
- * This script should be run after a period of time (180s), because the server may need some time to prepare.
+ * Container health check for the Silo HTTP endpoint.
  */
 package main
 
@@ -15,9 +14,9 @@ import (
 )
 
 func main() {
-	// Is K8S + "dockge" as the container name
+	// Detect a Kubernetes-injected service value before reading the port.
 	// See https://github.com/louislam/uptime-kuma/pull/2083
-	isK8s := strings.HasPrefix(os.Getenv("DOCKGE_PORT"), "tcp://")
+	isK8s := strings.HasPrefix(os.Getenv("SILO_PORT"), "tcp://")
 
 	// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
@@ -28,18 +27,18 @@ func main() {
 		Timeout: 28 * time.Second,
 	}
 
-	sslKey := os.Getenv("DOCKGE_SSL_KEY")
-	sslCert := os.Getenv("DOCKGE_SSL_CERT")
+	sslKey := os.Getenv("SILO_SSL_KEY")
+	sslCert := os.Getenv("SILO_SSL_CERT")
 
-	hostname := os.Getenv("DOCKGE_HOST")
+	hostname := os.Getenv("SILO_HOSTNAME")
 	if len(hostname) == 0 {
 		hostname = "127.0.0.1"
 	}
 
 	port := ""
-	// DOCKGE_PORT is override by K8S unexpectedly,
+	// SILO_PORT can be overridden by Kubernetes service discovery.
 	if !isK8s {
-		port = os.Getenv("DOCKGE_PORT")
+		port = os.Getenv("SILO_PORT")
 	}
 	if len(port) == 0 {
 		port = "5001"
