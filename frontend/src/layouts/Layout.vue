@@ -155,9 +155,9 @@ export default {
 }
 
 .app-header-inner {
-    width: min(100% - 32px, 1440px);
+    width: 100%;
     min-height: 72px;
-    margin: 0 auto;
+    padding: 0 clamp(16px, 2vw, 32px);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -231,6 +231,7 @@ export default {
 }
 
 main {
+    width: 100%;
     min-height: calc(100vh - 160px);
 }
 

@@ -35,9 +35,8 @@ export default {
 
 <style scoped>
 .dashboard-shell {
-    width: min(100% - 32px, 1440px);
-    margin: 0 auto;
-    padding: 24px 0 40px;
+    width: 100%;
+    padding: 24px clamp(16px, 2vw, 32px) 40px;
     display: grid;
     grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
     align-items: start;
@@ -61,7 +60,7 @@ export default {
 
 :global(.mobile) .dashboard-shell {
     display: block;
-    width: min(100% - 24px, 720px);
-    padding-top: 16px;
+    width: 100%;
+    padding: 16px 12px 80px;
 }
 </style>
