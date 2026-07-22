@@ -29,7 +29,7 @@ import { Stack } from "./stack";
 import { Cron } from "croner";
 import gracefulShutdown from "http-graceful-shutdown";
 import User from "./models/user";
-import childProcessAsync from "promisify-child-process";
+import * as childProcessAsync from "promisify-child-process";
 import { AgentManager } from "./agent-manager";
 import { AgentProxySocketHandler } from "./socket-handlers/agent-proxy-socket-handler";
 import { AgentSocketHandler } from "./agent-socket-handler";
@@ -197,7 +197,7 @@ export class SiloServer {
         }));
 
         // Universal Route Handler, must be at the end of all express routes.
-        this.app.get("*", async (_request, response) => {
+        this.app.get("/{*splat}", async (_request, response) => {
             response.send(this.indexHTML);
         });
 
@@ -395,7 +395,7 @@ export class SiloServer {
             }
 
             // Run every 10 seconds
-            Cron("*/10 * * * * *", {
+            new Cron("*/10 * * * * *", {
                 protect: true,  // Enabled over-run protection.
             }, () => {
                 //log.debug("server", "Cron job running");
@@ -532,7 +532,7 @@ export class SiloServer {
         try {
             dayjs.utc("2013-11-18 11:55").tz(timezone).format();
         } catch (e) {
-            throw new Error("Invalid timezone:" + timezone);
+            throw new Error("Invalid timezone:" + timezone, { cause: e });
         }
     }
 

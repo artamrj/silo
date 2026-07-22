@@ -9,7 +9,7 @@ tmp
 
 # Docker extra
 .editorconfig
-.eslintrc.cjs
+eslint.config.js
 .git
 .gitignore
 README.md
