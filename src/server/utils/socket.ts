@@ -11,6 +11,7 @@ import type { ClientToServerEvents, ServerToClientEvents } from "../../shared/so
 export interface JWTDecoded {
     username : string;
     h? : string;
+    exp? : number;
 }
 
 export interface SiloSocket extends Socket<ClientToServerEvents, ServerToClientEvents> {

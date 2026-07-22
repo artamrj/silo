@@ -85,6 +85,14 @@ export class MainSocketHandler extends SocketHandler {
                         throw new Error("The token is invalid due to password change or old token");
                     }
 
+                    if (decoded.exp && decoded.exp * 1000 - Date.now() < 60 * 60 * 1000) {
+                        callback({
+                            ok: true,
+                            token: User.createJWT(user, server.jwtSecret),
+                        });
+                        return;
+                    }
+
                     log.debug("auth", "afterLogin");
                     await server.afterLogin(socket, user);
                     log.debug("auth", "afterLogin ok");
@@ -120,6 +128,22 @@ export class MainSocketHandler extends SocketHandler {
                 });
             }
 
+        });
+
+        socket.on("refreshToken", async (token, callback) => {
+            try {
+                const decoded = jwt.verify(token, server.jwtSecret) as JWTDecoded;
+                const user = await R.findOne("user", " username = ? AND active = 1 ", [ decoded.username ]) as User;
+                if (!user || decoded.h !== shake256(user.password, SHAKE256_LENGTH)) {
+                    throw new Error("The token is invalid due to password change or old token");
+                }
+                callback({
+                    ok: true,
+                    token: User.createJWT(user, server.jwtSecret),
+                });
+            } catch (e) {
+                callbackError(e, callback);
+            }
         });
 
         // Login

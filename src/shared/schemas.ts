@@ -16,6 +16,12 @@ export const stackSaveSchema = z.object({
     isAdd: z.boolean(),
 });
 
+export const stackDeleteSchema = z.object({
+    name: stackNameSchema,
+    deleteData: z.boolean().default(false),
+    confirmation: z.string().optional(),
+});
+
 export const terminalInputSchema = z.object({
     terminalName: nonEmptyString,
     command: z.string().max(64_000),

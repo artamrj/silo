@@ -2,7 +2,7 @@ import { SocketHandler } from "../../socket-handler";
 import { SiloServer } from "../../silo-server";
 import { callbackError, callbackResult, checkLogin, SiloSocket, ValidationError } from "../../utils/socket";
 import { Stack } from "../../stack";
-import { stackSaveSchema } from "../../../shared/schemas";
+import { stackDeleteSchema, stackSaveSchema } from "../../../shared/schemas";
 import { validate } from "../../utils/socket";
 
 export class DockerSocketHandler extends SocketHandler {
@@ -40,16 +40,22 @@ export class DockerSocketHandler extends SocketHandler {
             }
         });
 
-        socket.on("deleteStack", async (name : unknown, callback) => {
+        socket.on("deleteStack", async (name : unknown, optionsOrCallback : unknown, maybeCallback?: unknown) => {
+            const callback = typeof optionsOrCallback === "function" ? optionsOrCallback : maybeCallback;
             try {
                 checkLogin(socket);
-                if (typeof(name) !== "string") {
-                    throw new ValidationError("Name must be a string");
+                const options = typeof optionsOrCallback === "function" ? { name } : { name,
+                    ...(typeof optionsOrCallback === "object" && optionsOrCallback ? optionsOrCallback : {}) };
+                const input = validate(stackDeleteSchema, options);
+
+                if (input.deleteData && input.confirmation !== `DELETE ${input.name}`) {
+                    throw new ValidationError(`Type DELETE ${input.name} to confirm stack data deletion`);
                 }
-                const stack = await Stack.getStack(server, name);
+
+                const stack = await Stack.getStack(server, input.name);
 
                 try {
-                    await stack.delete(socket);
+                    await stack.delete(socket, input.deleteData);
                 } catch (e) {
                     server.sendStackList();
                     throw e;
@@ -58,10 +64,28 @@ export class DockerSocketHandler extends SocketHandler {
                 server.sendStackList();
                 callbackResult({
                     ok: true,
-                    msg: "Deleted",
-                    msgi18n: true,
+                    msg: input.deleteData ? "Deleted stack and data" : "Stopped stack. Data was preserved.",
+                    msgi18n: false,
                 }, callback);
 
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("exportStack", async (stackName : unknown, callback) => {
+            try {
+                checkLogin(socket);
+
+                if (typeof(stackName) !== "string") {
+                    throw new ValidationError("Stack name must be a string");
+                }
+
+                const stack = await Stack.getStack(server, stackName);
+                callbackResult({
+                    ok: true,
+                    data: stack.exportFiles(),
+                }, callback);
             } catch (e) {
                 callbackError(e, callback);
             }

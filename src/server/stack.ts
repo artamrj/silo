@@ -33,6 +33,7 @@ export class Stack {
     protected combinedTerminal? : Terminal;
 
     protected static managedStackList: Map<string, Stack> = new Map();
+    protected static deploymentLocks: Set<string> = new Set();
 
     constructor(server : SiloServer, name : string, composeYAML? : string, composeENV? : string, skipFSOperations = false) {
         this.name = name;
@@ -117,8 +118,7 @@ export class Stack {
             throw new ValidationError("Stack name can only contain [a-z][0-9] _ - only");
         }
 
-        // Check YAML format
-        yaml.parse(this.composeYAML);
+        this.validateComposeSecurity();
 
         let lines = this.composeENV.split("\n");
 
@@ -127,6 +127,57 @@ export class Stack {
         // It only happens when there is one line and it doesn't contain "="
         if (lines.length === 1 && !lines[0].includes("=") && lines[0].length > 0) {
             throw new ValidationError("Invalid .env format");
+        }
+    }
+
+    validateComposeSecurity() {
+        let doc;
+        try {
+            doc = yaml.parse(this.composeYAML);
+        } catch (e) {
+            throw new ValidationError(e instanceof Error ? `Invalid compose YAML: ${e.message}` : "Invalid compose YAML");
+        }
+
+        if (!doc || typeof doc !== "object" || !doc.services || typeof doc.services !== "object") {
+            throw new ValidationError("Compose file must define services");
+        }
+
+        const dangerousCaps = new Set([ "ALL", "SYS_ADMIN", "NET_ADMIN", "SYS_MODULE", "SYS_PTRACE", "DAC_READ_SEARCH", "DAC_OVERRIDE" ]);
+        for (const [ serviceName, service ] of Object.entries(doc.services as Record<string, Record<string, unknown>>)) {
+            if (!service || typeof service !== "object") {
+                continue;
+            }
+            if (service.privileged === true) {
+                throw new ValidationError(`Service ${serviceName} enables privileged mode`);
+            }
+            for (const field of [ "network_mode", "pid", "ipc" ]) {
+                if (service[field] === "host") {
+                    throw new ValidationError(`Service ${serviceName} uses host ${field.replace("_mode", " networking")}`);
+                }
+            }
+            const capAdd = Array.isArray(service.cap_add) ? service.cap_add : service.cap_add ? [ service.cap_add ] : [];
+            for (const cap of capAdd) {
+                if (dangerousCaps.has(String(cap).toUpperCase())) {
+                    throw new ValidationError(`Service ${serviceName} adds dangerous capability ${cap}`);
+                }
+            }
+            const volumes = Array.isArray(service.volumes) ? service.volumes : [];
+            for (const volume of volumes) {
+                const source = typeof volume === "string" ? volume.split(":")[0] : volume?.source;
+                if (source === "/var/run/docker.sock" || source === "/run/docker.sock") {
+                    throw new ValidationError(`Service ${serviceName} mounts the Docker socket`);
+                }
+            }
+            const ports = Array.isArray(service.ports) ? service.ports : [];
+            const image = String(service.image ?? "").toLowerCase();
+            if (/(postgres|mysql|mariadb|mongo|redis|clickhouse|couchdb|influxdb)/.test(image)) {
+                for (const port of ports) {
+                    const published = typeof port === "string" ? port : port?.published;
+                    if (published) {
+                        throw new ValidationError(`Database service ${serviceName} exposes host port ${published}`);
+                    }
+                }
+            }
         }
     }
 
@@ -176,57 +227,134 @@ export class Stack {
      * @param isAdd
      */
     async save(isAdd : boolean) {
-        this.validate();
+        await this.withDeploymentLock("save", async () => {
+            this.validate();
 
-        let dir = this.path;
+            let dir = this.path;
+            let createdDir = false;
 
-        // Check if the name is used if isAdd
-        if (isAdd) {
-            if (await fileExists(dir)) {
-                throw new ValidationError("Stack name already exists");
+            // Check if the name is used if isAdd
+            if (isAdd) {
+                if (await fileExists(dir)) {
+                    throw new ValidationError("Stack name already exists");
+                }
+
+                // Create the stack folder
+                await fsAsync.mkdir(dir);
+                createdDir = true;
+            } else {
+                if (!await fileExists(dir)) {
+                    throw new ValidationError("Stack not found");
+                }
             }
 
-            // Create the stack folder
-            await fsAsync.mkdir(dir);
-        } else {
-            if (!await fileExists(dir)) {
-                throw new ValidationError("Stack not found");
-            }
-        }
+            try {
+                // Write or overwrite the compose.yaml and .env before Docker validates interpolation.
+                fs.writeFileSync(path.join(dir, this._composeFileName), this.composeYAML);
+                fs.writeFileSync(path.join(dir, ".env"), this.composeENV);
 
-        // Write or overwrite the compose.yaml
-        fs.writeFileSync(path.join(dir, this._composeFileName), this.composeYAML);
-        if (process.env.PUID && process.env.PGID) {
-            const uid = Number(process.env.PUID);
-            const gid = Number(process.env.PGID);
-            fs.lchownSync(dir, uid, gid);
-            fs.chownSync(path.join(dir, this._composeFileName), uid, gid);
+                if (process.env.PUID && process.env.PGID) {
+                    const uid = Number(process.env.PUID);
+                    const gid = Number(process.env.PGID);
+                    fs.lchownSync(dir, uid, gid);
+                    fs.chownSync(path.join(dir, this._composeFileName), uid, gid);
+                    fs.chownSync(path.join(dir, ".env"), uid, gid);
+                }
+
+                await this.validateComposeConfig();
+            } catch (e) {
+                if (createdDir) {
+                    await fsAsync.rm(dir, {
+                        recursive: true,
+                        force: true,
+                    });
+                }
+                throw e;
+            }
+        });
+    }
+
+    async validateComposeConfig() {
+        try {
+            await childProcessAsync.spawn("docker", this.getComposeOptions("config"), {
+                cwd: this.path,
+                encoding: "utf-8",
+            });
+        } catch (e) {
+            const processError = e as { stderr?: { toString: () => string }; stdout?: { toString: () => string } };
+            const stderr = processError.stderr?.toString() ?? "";
+            const stdout = processError.stdout?.toString() ?? "";
+            throw new ValidationError(`docker compose config failed: ${stderr || stdout || (e instanceof Error ? e.message : "unknown error")}`.trim());
         }
+    }
+
+    emitDeploymentEvent(operation: string, status: string, message: string) {
+        this.server.io.emit("deploymentEvent", {
+            stackName: this.name,
+            operation,
+            status,
+            message,
+            at: new Date().toISOString(),
+        });
+    }
+
+    async withDeploymentLock<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+        if (Stack.deploymentLocks.has(this.name)) {
+            throw new ValidationError(`Stack ${this.name} already has an operation in progress`);
+        }
+        Stack.deploymentLocks.add(this.name);
+        this.emitDeploymentEvent(operation, "started", `${operation} started`);
+        try {
+            const result = await fn();
+            this.emitDeploymentEvent(operation, "completed", `${operation} completed`);
+            return result;
+        } catch (e) {
+            this.emitDeploymentEvent(operation, "failed", e instanceof Error ? e.message : `${operation} failed`);
+            throw e;
+        } finally {
+            Stack.deploymentLocks.delete(this.name);
+        }
+    }
+
+    exportFiles() {
+        return {
+            composeFileName: this._composeFileName,
+            composeYAML: this.composeYAML,
+            composeENV: this.composeENV,
+        };
     }
 
     async deploy(socket : SiloSocket) : Promise<number> {
-        const terminalName = getComposeTerminalName("", this.name);
-        let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("up", "-d", "--remove-orphans"), this.path);
-        if (exitCode !== 0) {
-            throw new Error("Failed to deploy, please check the terminal output for more information.");
-        }
-        return exitCode;
+        return this.withDeploymentLock("deploy", async () => {
+            await this.validateComposeConfig();
+            const terminalName = getComposeTerminalName("", this.name);
+            let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("up", "-d", "--remove-orphans"), this.path);
+            if (exitCode !== 0) {
+                throw new Error("Failed to deploy, please check the terminal output for more information.");
+            }
+            return exitCode;
+        });
     }
 
-    async delete(socket: SiloSocket) : Promise<number> {
-        const terminalName = getComposeTerminalName("", this.name);
-        let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("down", "--remove-orphans"), this.path);
-        if (exitCode !== 0) {
-            throw new Error("Failed to delete, please check the terminal output for more information.");
-        }
+    async delete(socket: SiloSocket, deleteData = false) : Promise<number> {
+        return this.withDeploymentLock("delete", async () => {
+            const terminalName = getComposeTerminalName("", this.name);
+            const downOptions = deleteData ? this.getComposeOptions("down", "--remove-orphans", "--volumes") : this.getComposeOptions("down", "--remove-orphans");
+            let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", downOptions, this.path);
+            if (exitCode !== 0) {
+                throw new Error("Failed to delete, please check the terminal output for more information.");
+            }
 
-        // Remove the stack folder
-        await fsAsync.rm(this.path, {
-            recursive: true,
-            force: true
+            // Remove the stack folder only after explicit confirmation.
+            if (deleteData) {
+                await fsAsync.rm(this.path, {
+                    recursive: true,
+                    force: true
+                });
+            }
+
+            return exitCode;
         });
-
-        return exitCode;
     }
 
     async updateStatus() {
@@ -414,7 +542,6 @@ export class Stack {
             }
             options.splice(1, 0, "--env-file", "../global.env");
         }
-        console.log(options);
         return options;
     }
 
