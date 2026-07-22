@@ -9,14 +9,14 @@
         "fmt": "eslint \"**/*.{ts,vue}\" --fix",
         "lint": "eslint \"**/*.{ts,vue}\"",
         "check-ts": "tsc --noEmit",
-        "start": "tsx ./backend/index.ts",
-        "dev": "concurrently -k -r \"wait-on tcp:5173 && npm run dev:backend\" \"npm run dev:frontend\"",
-        "dev:backend": "cross-env NODE_ENV=development tsx watch --inspect ./backend/index.ts",
-        "dev:frontend": "cross-env NODE_ENV=development vite --host --config ./frontend/vite.config.ts",
-        "build:frontend": "vite build --config ./frontend/vite.config.ts",
+        "start": "tsx ./src/server/index.ts",
+        "dev": "concurrently -k -r \"wait-on tcp:5173 && npm run dev:server\" \"npm run dev:client\"",
+        "dev:server": "cross-env NODE_ENV=development tsx watch --inspect ./src/server/index.ts",
+        "dev:client": "cross-env NODE_ENV=development vite --host --config ./src/client/vite.config.ts",
+        "build:client": "vite build --config ./src/client/vite.config.ts",
         "build:docker": "docker build -t ghcr.io/artamrj/silo:latest -f ./docker/Dockerfile .",
         "start-docker": "docker run --rm -p 5001:5001 --name silo ghcr.io/artamrj/silo:latest",
-        "reset-password": "tsx ./extra/reset-password.ts"
+        "reset-password": "tsx ./scripts/reset-password.ts"
     },
     "dependencies": {
         "@homebridge/node-pty-prebuilt-multiarch": "0.13.1",

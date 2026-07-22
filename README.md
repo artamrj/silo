@@ -9,8 +9,7 @@ It keeps the practical stack-management experience while giving this fork a clea
 - Discover and manage Docker Compose stacks
 - Create, edit, start, stop, restart, update, and remove stacks
 - Use interactive web and container terminals
-- Manage remote Silo instances
-- Authentication and multilingual interface
+- Protect access with administrator authentication
 
 ## Run with Docker
 
@@ -34,17 +33,32 @@ npm ci
 npm run dev
 ```
 
-Open <http://localhost:5173>. The Vite frontend reloads when UI code
-changes, while the backend watcher restarts the Socket.IO server on port
-5001 when backend code changes.
+Open <http://localhost:5173>. The Vite client reloads when UI code
+changes, while the server watcher restarts the Socket.IO server on port
+5001 when server code changes.
 
 Project checks:
 
 ```bash
 npm run lint
 npm run check-ts
-npm run build:frontend
+npm run build:client
 ```
+
+## Project structure
+
+```text
+src/
+├── client/       Vue application, styles, and static assets
+├── server/       HTTP, Socket.IO, database, and Docker integration
+└── shared/       Types and utilities used by client and server
+scripts/          Administrative utilities
+docker/           Container build and health check
+dist/client/      Generated production client
+```
+
+Runtime data belongs in `data/`, and locally managed Compose stacks belong
+in `stacks/`. Both directories are intentionally excluded from Git.
 
 ## Container image
 

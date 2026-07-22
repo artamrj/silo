@@ -7,7 +7,8 @@
         "skipLibCheck": true
     },
     "include": [
-        "backend/**/*",
-        "common/**/*"
+        "src/server/**/*",
+        "src/shared/**/*",
+        "scripts/**/*"
     ]
 }

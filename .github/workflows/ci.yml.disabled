@@ -21,4 +21,4 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run check-ts
-      - run: npm run build:frontend
+      - run: npm run build:client

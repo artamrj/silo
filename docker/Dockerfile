@@ -1,15 +1,15 @@
 FROM golang:1.24-bookworm AS healthcheck
 WORKDIR /src
-COPY extra/healthcheck.go .
+COPY docker/healthcheck.go .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /healthcheck healthcheck.go
 
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
-COPY frontend ./frontend
-COPY common ./common
-RUN npm run build:frontend \
+COPY src/client ./src/client
+COPY src/shared ./src/shared
+RUN npm run build:client \
     && npm prune --omit=dev
 
 FROM node:24-bookworm-slim AS release
@@ -29,10 +29,10 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=healthcheck /healthcheck /app/extra/healthcheck
+COPY --from=healthcheck /healthcheck /app/bin/healthcheck
 COPY --from=build /app/node_modules /app/node_modules
 COPY . .
-COPY --from=build /app/frontend-dist /app/frontend-dist
+COPY --from=build /app/dist/client /app/dist/client
 RUN mkdir -p /app/data
 
 ENV NODE_ENV=production \
@@ -41,6 +41,6 @@ ENV NODE_ENV=production \
 
 VOLUME ["/app/data"]
 EXPOSE 5001
-HEALTHCHECK --interval=60s --timeout=30s --start-period=60s --retries=5 CMD ["/app/extra/healthcheck"]
+HEALTHCHECK --interval=60s --timeout=30s --start-period=60s --retries=5 CMD ["/app/bin/healthcheck"]
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["tsx", "./backend/index.ts"]
+CMD ["tsx", "./src/server/index.ts"]

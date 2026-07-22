@@ -7,7 +7,7 @@ stacks
 tmp
 /private
 
-# Docker extra
+# Repository metadata and development configuration
 .editorconfig
 eslint.config.js
 .git

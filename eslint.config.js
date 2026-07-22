@@ -56,7 +56,7 @@ const sharedRules = {
 
 export default [
     {
-        ignores: [ "node_modules/**", "frontend-dist/**" ],
+        ignores: [ "node_modules/**", "dist/**" ],
     },
     js.configs.recommended,
     ...tsPlugin.configs["flat/recommended"],

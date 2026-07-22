@@ -8,5 +8,4 @@ tmp
 /private
 
 # Git only
-frontend-dist
-
+dist
