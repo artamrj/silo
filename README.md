@@ -34,6 +34,10 @@ npm ci
 npm run dev
 ```
 
+Open <http://localhost:5173>. The Vite frontend reloads when UI code
+changes, while the backend watcher restarts the Socket.IO server on port
+5001 when backend code changes.
+
 Project checks:
 
 ```bash

@@ -100,7 +100,7 @@ export class SiloServer {
 
         // Default stacks directory
         let defaultStacksDir;
-        if (process.platform === "win32") {
+        if (isDev || process.platform === "win32") {
             defaultStacksDir = "./stacks";
         } else {
             defaultStacksDir = "/opt/stacks";
