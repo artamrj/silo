@@ -31,6 +31,9 @@ import gracefulShutdown from "http-graceful-shutdown";
 import User from "./models/user";
 import * as childProcessAsync from "promisify-child-process";
 import { Terminal } from "./terminal";
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { appRouter, createTrpcContext } from "./trpc";
+import { httpRequestDuration, metricsRegistry, socketConnectionErrors, socketConnections } from "./metrics";
 
 export class SiloServer {
     app : Express;
@@ -159,6 +162,16 @@ export class SiloServer {
         // Create express
         this.app = express();
 
+        this.app.use((request, response, next) => {
+            const end = httpRequestDuration.startTimer();
+            response.on("finish", () => end({
+                method: request.method,
+                route: request.route?.path ?? request.path,
+                status_code: response.statusCode,
+            }));
+            next();
+        });
+
         // Create HTTP server
         if (this.config.sslKey && this.config.sslCert) {
             log.info("server", "Server Type: HTTPS");
@@ -176,6 +189,16 @@ export class SiloServer {
         for (const router of this.routerList) {
             this.app.use(router.create(this.app, this));
         }
+
+        this.app.use("/trpc", createExpressMiddleware({
+            router: appRouter,
+            createContext: (options) => createTrpcContext(this, options),
+        }));
+
+        this.app.get("/metrics", async (_request, response) => {
+            response.setHeader("Content-Type", metricsRegistry.contentType);
+            response.send(await metricsRegistry.metrics());
+        });
 
         // Static files
         this.app.use("/", expressStaticGzip("dist/client", {
@@ -229,6 +252,9 @@ export class SiloServer {
                     log.debug("auth", "Origin check is bypassed");
                 }
 
+                if (!isOriginValid) {
+                    socketConnectionErrors.inc();
+                }
                 callback(null, isOriginValid);
             }
         });
@@ -236,6 +262,7 @@ export class SiloServer {
         this.io.on("connection", async (socket: Socket) => {
             let siloSocket = socket as SiloSocket;
             log.info("server", "Socket connected");
+            socketConnections.inc();
 
             this.sendInfo(siloSocket, true);
 
@@ -265,6 +292,7 @@ export class SiloServer {
             // Socket disconnect
             siloSocket.on("disconnect", () => {
                 log.info("server", "Socket disconnected!");
+                socketConnections.dec();
             });
 
         });

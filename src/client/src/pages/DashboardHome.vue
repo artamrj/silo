@@ -42,6 +42,7 @@
 
 <script>
 import { statusNameShort } from "../../../shared/utils";
+import { trpc } from "../trpc";
 
 export default {
     components: {
@@ -117,21 +118,18 @@ export default {
             return num;
         },
 
-        convertDockerRun() {
+        async convertDockerRun() {
             if (this.dockerRunCommand.trim() === "docker run") {
                 throw new Error("Please enter a docker run command");
             }
 
-            // composerize is working in dev, but after "vite build", it is not working
-            // So pass to backend to do the conversion
-            this.$root.getSocket().emit("composerize", this.dockerRunCommand, (res) => {
-                if (res.ok) {
-                    this.$root.composeTemplate = res.composeTemplate;
-                    this.$router.push("/compose");
-                } else {
-                    this.$root.toastRes(res);
-                }
-            });
+            try {
+                const result = await trpc.compose.fromDockerRun.mutate({ command: this.dockerRunCommand });
+                this.$root.composeTemplate = result.composeTemplate;
+                this.$router.push("/compose");
+            } catch (error) {
+                this.$root.toastError(error instanceof Error ? error.message : "Conversion failed");
+            }
         },
 
         /**

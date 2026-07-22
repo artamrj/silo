@@ -2,6 +2,8 @@ import { SocketHandler } from "../../socket-handler";
 import { SiloServer } from "../../silo-server";
 import { callbackError, callbackResult, checkLogin, SiloSocket, ValidationError } from "../../utils/socket";
 import { Stack } from "../../stack";
+import { stackSaveSchema } from "../../../shared/schemas";
+import { validate } from "../../utils/socket";
 
 export class DockerSocketHandler extends SocketHandler {
     create(socket : SiloSocket, server : SiloServer) {
@@ -333,21 +335,13 @@ export class DockerSocketHandler extends SocketHandler {
 
     async saveStack(server : SiloServer, name : unknown, composeYAML : unknown, composeENV : unknown, isAdd : unknown) : Promise<Stack> {
         // Check types
-        if (typeof(name) !== "string") {
-            throw new ValidationError("Name must be a string");
-        }
-        if (typeof(composeYAML) !== "string") {
-            throw new ValidationError("Compose YAML must be a string");
-        }
-        if (typeof(composeENV) !== "string") {
-            throw new ValidationError("Compose ENV must be a string");
-        }
-        if (typeof(isAdd) !== "boolean") {
-            throw new ValidationError("isAdd must be a boolean");
-        }
+        const input = validate(stackSaveSchema, { name,
+            composeYAML,
+            composeENV,
+            isAdd });
 
-        const stack = new Stack(server, name, composeYAML, composeENV, false);
-        await stack.save(isAdd);
+        const stack = new Stack(server, input.name, input.composeYAML, input.composeENV, false);
+        await stack.save(input.isAdd);
         return stack;
     }
 

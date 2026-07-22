@@ -11,6 +11,18 @@ export default defineConfig({
     server: {
         port: 5173,
         strictPort: true,
+        proxy: {
+            "/socket.io": {
+                target: "http://127.0.0.1:5001",
+                ws: true,
+            },
+            "/trpc": {
+                target: "http://127.0.0.1:5001",
+            },
+            "/metrics": {
+                target: "http://127.0.0.1:5001",
+            },
+        },
     },
     define: {
         "FRONTEND_VERSION": JSON.stringify(process.env.npm_package_version),

@@ -9,6 +9,8 @@
         "fmt": "eslint \"**/*.{ts,vue}\" --fix",
         "lint": "eslint \"**/*.{ts,vue}\"",
         "check-ts": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest",
         "start": "tsx ./src/server/index.ts",
         "dev": "concurrently -k -r \"wait-on tcp:5173 && npm run dev:server\" \"npm run dev:client\"",
         "dev:server": "cross-env NODE_ENV=development tsx watch --inspect ./src/server/index.ts",
@@ -21,6 +23,8 @@
     "dependencies": {
         "@homebridge/node-pty-prebuilt-multiarch": "0.13.1",
         "@inventage/envsubst": "^0.17.0",
+        "@trpc/client": "^11.18.0",
+        "@trpc/server": "^11.18.0",
         "bcryptjs": "~3.0.3",
         "check-password-strength": "~3.0.0",
         "command-exists": "~1.2.9",
@@ -36,6 +40,8 @@
         "knex": "~3.3.0",
         "limiter-es6-compat": "~2.1.2",
         "mysql2": "~3.23.1",
+        "pino": "^9.14.0",
+        "prom-client": "^15.1.3",
         "promisify-child-process": "~5.0.1",
         "redbean-node": "~0.3.3",
         "semver": "^7.8.5",
@@ -46,7 +52,8 @@
         "ts-command-line-args": "~2.5.1",
         "tsx": "~4.23.1",
         "type-fest": "~5.8.0",
-        "yaml": "~2.9.0"
+        "yaml": "~2.9.0",
+        "zod": "^4.4.3"
     },
     "devDependencies": {
         "@codemirror/lang-python": "^6.2.1",
@@ -73,6 +80,7 @@
         "typescript": "~6.0.3",
         "vite": "~8.1.5",
         "vite-plugin-compression": "~0.5.1",
+        "vitest": "^4.1.10",
         "vue": "~3.5.40",
         "vue-codemirror6": "^1.6.1",
         "vue-eslint-parser": "~10.4.1",

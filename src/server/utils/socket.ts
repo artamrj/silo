@@ -5,13 +5,15 @@ import { ERROR_TYPE_VALIDATION } from "../../shared/utils";
 import { R } from "redbean-node";
 import { verifyPassword } from "../password-hash";
 import fs from "fs";
+import { z } from "zod";
+import type { ClientToServerEvents, ServerToClientEvents } from "../../shared/socket-events";
 
 export interface JWTDecoded {
     username : string;
     h? : string;
 }
 
-export interface SiloSocket extends Socket {
+export interface SiloSocket extends Socket<ClientToServerEvents, ServerToClientEvents> {
     userID: number;
     consoleTerminal? : Terminal;
 }
@@ -46,22 +48,30 @@ export class ValidationError extends Error {
     }
 }
 
+export function validate<T>(schema: z.ZodType<T>, value: unknown): T {
+    const result = schema.safeParse(value);
+    if (!result.success) {
+        throw new ValidationError(result.error.issues[0]?.message ?? "Invalid input");
+    }
+    return result.data;
+}
+
 export function callbackError(error : unknown, callback : unknown) {
     if (typeof(callback) !== "function") {
         log.error("console", "Callback is not a function");
         return;
     }
 
-    if (error instanceof Error) {
-        callback({
-            ok: false,
-            msg: error.message,
-            msgi18n: true,
-        });
-    } else if (error instanceof ValidationError) {
+    if (error instanceof ValidationError) {
         callback({
             ok: false,
             type: ERROR_TYPE_VALIDATION,
+            msg: error.message,
+            msgi18n: false,
+        });
+    } else if (error instanceof Error) {
+        callback({
+            ok: false,
             msg: error.message,
             msgi18n: true,
         });

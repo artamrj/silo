@@ -3,8 +3,9 @@ import { Socket } from "socket.io-client";
 import { defineComponent } from "vue";
 import { jwtDecode } from "jwt-decode";
 import { Terminal } from "@xterm/xterm";
+import type { ClientToServerEvents, ServerToClientEvents } from "../../../shared/socket-events";
 
-let socket : Socket;
+let socket : Socket<ServerToClientEvents, ClientToServerEvents>;
 
 let terminalMap : Map<string, Terminal> = new Map();
 
@@ -104,19 +105,13 @@ export default defineComponent({
             }
 
             this.socketIO.initedSocketIO = true;
-            let url : string;
-            const env = process.env.NODE_ENV || "production";
-            if (env === "development" || localStorage.dev === "dev") {
-                url = location.protocol + "//" + location.hostname + ":5001";
-            } else {
-                url = location.protocol + "//" + location.host;
-            }
-
             let connectingMsgTimeout = setTimeout(() => {
                 this.socketIO.connecting = true;
             }, 1500);
 
-            socket = io(url);
+            // Always use the page origin. Vite proxies /socket.io in development,
+            // and production serves the client and Socket.IO from one server.
+            socket = io();
 
             socket.on("connect", () => {
                 console.log("Connected to the socket server");
@@ -222,7 +217,7 @@ export default defineComponent({
             return (this.remember) ? localStorage : sessionStorage;
         },
 
-        getSocket() : Socket {
+        getSocket() : Socket<ServerToClientEvents, ClientToServerEvents> {
             return socket;
         },
 

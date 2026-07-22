@@ -20,6 +20,8 @@ import jwt from "jsonwebtoken";
 import { Settings } from "../settings";
 import fs, { promises as fsAsync } from "fs";
 import path from "path";
+import { loginSchema } from "../../shared/schemas";
+import { validate } from "../utils/socket";
 
 export class MainSocketHandler extends SocketHandler {
     create(socket : SiloSocket, server : SiloServer) {
@@ -131,7 +133,10 @@ export class MainSocketHandler extends SocketHandler {
                 return;
             }
 
-            if (!data) {
+            try {
+                data = validate(loginSchema, data);
+            } catch (error) {
+                callbackError(error, callback);
                 return;
             }
 

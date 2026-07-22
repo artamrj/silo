@@ -4,6 +4,8 @@ import { log } from "../../log";
 import { InteractiveTerminal, MainTerminal, Terminal } from "../../terminal";
 import { Stack } from "../../stack";
 import { SocketHandler } from "../../socket-handler";
+import { terminalInputSchema, terminalResizeSchema } from "../../../shared/schemas";
+import { validate } from "../../utils/socket";
 
 export class TerminalSocketHandler extends SocketHandler {
     create(socket : SiloSocket, server : SiloServer) {
@@ -12,18 +14,13 @@ export class TerminalSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(terminalName) !== "string") {
-                    throw new Error("Terminal name must be a string.");
-                }
+                const input = validate(terminalInputSchema, { terminalName,
+                    command: cmd });
 
-                if (typeof(cmd) !== "string") {
-                    throw new Error("Command must be a string.");
-                }
-
-                let terminal = Terminal.getTerminal(terminalName);
+                let terminal = Terminal.getTerminal(input.terminalName);
                 if (terminal instanceof InteractiveTerminal) {
                     //log.debug("terminalInput", "Terminal found, writing to terminal.");
-                    terminal.write(cmd);
+                    terminal.write(input.command);
                 } else {
                     throw new Error("Terminal not found or it is not a Interactive Terminal.");
                 }
@@ -169,24 +166,17 @@ export class TerminalSocketHandler extends SocketHandler {
             log.info("terminalResize", `Terminal: ${terminalName}`);
             try {
                 checkLogin(socket);
-                if (typeof terminalName !== "string") {
-                    throw new Error("Terminal name must be a string.");
-                }
+                const input = validate(terminalResizeSchema, { terminalName,
+                    rows,
+                    columns: cols });
 
-                if (typeof rows !== "number") {
-                    throw new Error("Command must be a number.");
-                }
-                if (typeof cols !== "number") {
-                    throw new Error("Command must be a number.");
-                }
-
-                let terminal = Terminal.getTerminal(terminalName);
+                let terminal = Terminal.getTerminal(input.terminalName);
 
                 // log.info("terminal", terminal);
                 if (terminal instanceof Terminal) {
                     //log.debug("terminalInput", "Terminal found, writing to terminal.");
-                    terminal.rows = rows;
-                    terminal.cols = cols;
+                    terminal.rows = input.rows;
+                    terminal.cols = input.columns;
                 } else {
                     throw new Error(`${terminalName} Terminal not found.`);
                 }
