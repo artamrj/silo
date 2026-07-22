@@ -4,9 +4,6 @@
             <h1 v-if="isAdd" class="mb-3">{{ $t("compose") }}</h1>
             <h1 v-else class="mb-3">
                 <Uptime :stack="globalStack" :pill="true" /> {{ stack.name }}
-                <span v-if="$root.agentCount > 1 && endpoint !== ''" class="agent-name">
-                    ({{ endpointDisplay }})
-                </span>
             </h1>
 
             <div v-if="stack.isManagedBySilo" class="stack-toolbar mb-3">
@@ -97,15 +94,6 @@
                                 <div class="form-text">{{ $t("Lowercase only") }}</div>
                             </div>
 
-                            <!-- Endpoint -->
-                            <div class="mt-3">
-                                <label for="name" class="form-label">{{ $t("siloAgent") }}</label>
-                                <select v-model="stack.endpoint" class="form-select">
-                                    <option v-for="(agent, agentEndpoint) in $root.agentList" :key="agentEndpoint" :value="agentEndpoint" :disabled="$root.agentStatusList[agentEndpoint] != 'online'">
-                                        ({{ $root.agentStatusList[agentEndpoint] }}) {{ (agent.name !== '') ? agent.name : agent.url || $t("Current") }}
-                                    </option>
-                                </select>
-                            </div>
                         </div>
                     </div>
 
@@ -341,9 +329,6 @@ export default {
         };
     },
     computed: {
-        endpointDisplay() {
-            return this.$root.endpointDisplayFunction(this.endpoint);
-        },
 
         urls() {
             if (!this.envsubstJSONConfig["x-silo"] || !this.envsubstJSONConfig["x-silo"].urls || !Array.isArray(this.envsubstJSONConfig["x-silo"].urls)) {
@@ -381,7 +366,7 @@ export default {
          * @return {*}
          */
         globalStack() {
-            return this.$root.completeStackList[this.stack.name + "_" + this.endpoint];
+            return this.$root.completeStackList[this.stack.name];
         },
 
         status() {
@@ -530,7 +515,7 @@ export default {
                 return;
             }
 
-            this.$root.emitAgent(this.endpoint, "serviceStatusList", this.stack.name, (res) => {
+            this.$root.emitServer("serviceStatusList", this.stack.name, (res) => {
                 if (res.ok) {
                     this.serviceStatusList = res.serviceStatusList;
                 }
@@ -541,7 +526,7 @@ export default {
         },
 
         requestDockerStats() {
-            this.$root.emitAgent(this.endpoint, "dockerStats", (res) => {
+            this.$root.emitServer("dockerStats", (res) => {
                 if (res.ok) {
                     this.dockerStats = res.dockerStats;
                 }
@@ -574,7 +559,7 @@ export default {
 
             // Leave Combined Terminal
             console.debug("leaveCombinedTerminal", this.endpoint, this.stack.name);
-            this.$root.emitAgent(this.endpoint, "leaveCombinedTerminal", this.stack.name, () => {});
+            this.$root.emitServer("leaveCombinedTerminal", this.stack.name, () => {});
         },
 
         bindTerminal() {
@@ -583,7 +568,7 @@ export default {
 
         loadStack() {
             this.processing = true;
-            this.$root.emitAgent(this.endpoint, "getStack", this.stack.name, (res) => {
+            this.$root.emitServer("getStack", this.stack.name, (res) => {
                 if (res.ok) {
                     this.stack = res.stack;
                     this.yamlCodeChange();
@@ -627,7 +612,7 @@ export default {
 
             this.bindTerminal();
 
-            this.$root.emitAgent(this.stack.endpoint, "deployStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
+            this.$root.emitServer("deployStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
 
@@ -641,7 +626,7 @@ export default {
         saveStack() {
             this.processing = true;
 
-            this.$root.emitAgent(this.stack.endpoint, "saveStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
+            this.$root.emitServer("saveStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
 
@@ -655,7 +640,7 @@ export default {
         startStack() {
             this.processing = true;
 
-            this.$root.emitAgent(this.endpoint, "startStack", this.stack.name, (res) => {
+            this.$root.emitServer("startStack", this.stack.name, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
             });
@@ -664,7 +649,7 @@ export default {
         stopStack() {
             this.processing = true;
 
-            this.$root.emitAgent(this.endpoint, "stopStack", this.stack.name, (res) => {
+            this.$root.emitServer("stopStack", this.stack.name, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
             });
@@ -673,7 +658,7 @@ export default {
         downStack() {
             this.processing = true;
 
-            this.$root.emitAgent(this.endpoint, "downStack", this.stack.name, (res) => {
+            this.$root.emitServer("downStack", this.stack.name, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
             });
@@ -682,7 +667,7 @@ export default {
         restartStack() {
             this.processing = true;
 
-            this.$root.emitAgent(this.endpoint, "restartStack", this.stack.name, (res) => {
+            this.$root.emitServer("restartStack", this.stack.name, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
             });
@@ -691,14 +676,14 @@ export default {
         updateStack() {
             this.processing = true;
 
-            this.$root.emitAgent(this.endpoint, "updateStack", this.stack.name, (res) => {
+            this.$root.emitServer("updateStack", this.stack.name, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
             });
         },
 
         deleteDialog() {
-            this.$root.emitAgent(this.endpoint, "deleteStack", this.stack.name, (res) => {
+            this.$root.emitServer("deleteStack", this.stack.name, (res) => {
                 this.$root.toastRes(res);
                 if (res.ok) {
                     this.$router.push("/");
@@ -801,7 +786,7 @@ export default {
         startService(serviceName) {
             this.processing = true;
 
-            this.$root.emitAgent(this.endpoint, "startService", this.stack.name, serviceName, (res) => {
+            this.$root.emitServer("startService", this.stack.name, serviceName, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
 
@@ -814,7 +799,7 @@ export default {
         stopService(serviceName) {
             this.processing = true;
 
-            this.$root.emitAgent(this.endpoint, "stopService", this.stack.name, serviceName, (res) => {
+            this.$root.emitServer("stopService", this.stack.name, serviceName, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
 
@@ -827,7 +812,7 @@ export default {
         restartService(serviceName) {
             this.processing = true;
 
-            this.$root.emitAgent(this.endpoint, "restartService", this.stack.name, serviceName, (res) => {
+            this.$root.emitServer("restartService", this.stack.name, serviceName, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
 
@@ -849,11 +834,6 @@ export default {
 .editor-box {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 14px;
-}
-
-.agent-name {
-    font-size: 13px;
-    color: #575c62;
 }
 
 .compose-page > h1 {

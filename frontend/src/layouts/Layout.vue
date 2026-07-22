@@ -95,7 +95,6 @@
 
 <script>
 import Login from "../components/Login.vue";
-import { ALL_ENDPOINTS } from "../../../common/util-common";
 
 export default {
 
@@ -135,7 +134,7 @@ export default {
 
     methods: {
         scanFolder() {
-            this.$root.emitAgent(ALL_ENDPOINTS, "requestStackList", (res) => {
+            this.$root.emitServer("requestStackList", (res) => {
                 this.$root.toastRes(res);
             });
         },

@@ -7,7 +7,7 @@
 
             <div class="row first-row">
                 <!-- Left -->
-                <div class="col-md-7">
+                <div class="col-12">
                     <!-- Stats -->
                     <div class="shadow-box big-padding text-center mb-4 stats-card">
                         <div class="row">
@@ -33,83 +33,6 @@
                     </div>
 
                     <button class="btn-normal btn mb-4" @click="convertDockerRun">{{ $t("Convert to Compose") }}</button>
-                </div>
-                <!-- Right -->
-                <div class="col-md-5">
-                    <!-- Agent List -->
-                    <div class="shadow-box big-padding agent-card">
-                        <h4 class="mb-3">{{ $t("siloAgent", 2) }} <span class="badge bg-warning" style="font-size: 12px;">beta</span></h4>
-
-                        <div v-for="(agentItem, endpoint) in $root.agentList" :key="endpoint" class="mb-3 agent">
-                            <!-- Agent Status -->
-                            <template v-if="$root.agentStatusList[endpoint]">
-                                <span v-if="$root.agentStatusList[endpoint] === 'online'" class="badge bg-primary me-2">{{ $t("agentOnline") }}</span>
-                                <span v-else-if="$root.agentStatusList[endpoint] === 'offline'" class="badge bg-danger me-2">{{ $t("agentOffline") }}</span>
-                                <span v-else class="badge bg-secondary me-2">{{ $t($root.agentStatusList[endpoint]) }}</span>
-                            </template>
-
-                            <!-- Agent Display Name -->
-                            <template v-if="$root.agentStatusList[endpoint]">
-                                <span v-if="endpoint === '' && agentItem.name === ''" class="badge bg-secondary me-2">Current</span>
-                                <span v-else-if="agentItem.name === ''" :href="agentItem.url" class="me-2">{{ endpoint }}</span>
-                                <span v-else :href="agentItem.url" class="me-2">{{ agentItem.name }}</span>
-                            </template>
-
-                            <!-- Edit Name  -->
-                            <app-icon v-if="agentItem.name !== ''" icon="pen-to-square" @click="showEditAgentNameDialog[agentItem.name] = !showEditAgentNameDialog[agentItem.Name]" />
-
-                            <!-- Edit Dialog -->
-                            <div v-if="showEditAgentNameDialog[agentItem.name]" class="modal" role="dialog" aria-modal="true">
-                                <div class="modal-dialog"><div class="modal-content">
-                                    <div class="modal-header"><h5 class="modal-title">{{ $t("Update Name") }}</h5><button class="btn-close" aria-label="Close" @click="showEditAgentNameDialog[agentItem.name] = false" /></div>
-                                    <div class="modal-body"><label for="updatedName" class="form-label">Current value: {{ $t(agentItem.name) }}</label><input id="updatedName" v-model="agentItem.updatedName" type="text" class="form-control"></div>
-                                    <div class="modal-footer"><button class="btn btn-normal" @click="showEditAgentNameDialog[agentItem.name] = false">{{ $t("cancel") }}</button><button class="btn btn-info" @click="updateName(agentItem.url, agentItem.updatedName); showEditAgentNameDialog[agentItem.name] = false">{{ $t("Update Name") }}</button></div>
-                                </div></div>
-                            </div>
-
-                            <!-- Remove Button -->
-                            <app-icon v-if="endpoint !== ''" class="ms-2 remove-agent" icon="trash" @click="showRemoveAgentDialog[agentItem.url] = !showRemoveAgentDialog[agentItem.url]" />
-
-                            <!-- Remove Agent Dialog -->
-                            <div v-if="showRemoveAgentDialog[agentItem.url]" class="modal" role="dialog" aria-modal="true" @click.self="showRemoveAgentDialog[agentItem.url] = false">
-                                <div class="modal-dialog"><div class="modal-content">
-                                    <div class="modal-header"><h5 class="modal-title">{{ $t("removeAgent") }}</h5><button class="btn-close" aria-label="Close" @click="showRemoveAgentDialog[agentItem.url] = false" /></div>
-                                    <div class="modal-body"><p>{{ agentItem.url }}</p><p>{{ $t("removeAgentMsg") }}</p></div>
-                                    <div class="modal-footer"><button class="btn btn-normal" @click="showRemoveAgentDialog[agentItem.url] = false">{{ $t("cancel") }}</button><button class="btn btn-danger" @click="removeAgent(agentItem.url); showRemoveAgentDialog[agentItem.url] = false">{{ $t("removeAgent") }}</button></div>
-                                </div></div>
-                            </div>
-                        </div>
-
-                        <button v-if="!showAgentForm" class="btn btn-normal" @click="showAgentForm = !showAgentForm">{{ $t("addAgent") }}</button>
-
-                        <!-- Add Agent Form -->
-                        <form v-if="showAgentForm" @submit.prevent="addAgent">
-                            <div class="mb-3">
-                                <label for="url" class="form-label">{{ $t("siloURL") }}</label>
-                                <input id="url" v-model="agent.url" type="url" class="form-control" required placeholder="http://">
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="username" class="form-label">{{ $t("Username") }}</label>
-                                <input id="username" v-model="agent.username" type="text" class="form-control" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="password" class="form-label">{{ $t("Password") }}</label>
-                                <input id="password" v-model="agent.password" type="password" class="form-control" required autocomplete="new-password">
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="name" class="form-label">{{ $t("Friendly Name") }}</label>
-                                <input id="name" v-model="agent.name" type="text" class="form-control" optional>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary" :disabled="connectingAgent">
-                                <template v-if="connectingAgent">{{ $t("connecting") }}</template>
-                                <template v-else>{{ $t("connect") }}</template>
-                            </button>
-                        </form>
-                    </div>
                 </div>
             </div>
         </div>
@@ -142,17 +65,6 @@ export default {
             importantHeartBeatListLength: 0,
             displayedRecords: [],
             dockerRunCommand: "",
-            showAgentForm: false,
-            showRemoveAgentDialog: {},
-            showEditAgentNameDialog: {},
-            connectingAgent: false,
-            agent: {
-                url: "http://",
-                username: "",
-                password: "",
-                name: "",
-                updatedName: "",
-            }
         };
     },
 
@@ -192,51 +104,6 @@ export default {
     },
 
     methods: {
-
-        addAgent() {
-            this.connectingAgent = true;
-            this.$root.getSocket().emit("addAgent", this.agent, (res) => {
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.showAgentForm = false;
-                    this.agent = {
-                        url: "http://",
-                        username: "",
-                        password: "",
-                    };
-                }
-
-                this.connectingAgent = false;
-            });
-        },
-
-        removeAgent(url) {
-            this.$root.getSocket().emit("removeAgent", url, (res) => {
-                if (res.ok) {
-                    this.$root.toastRes(res);
-
-                    let urlObj = new URL(url);
-                    let endpoint = urlObj.host;
-
-                    // Remove the stack list and status list of the removed agent
-                    delete this.$root.allAgentStackList[endpoint];
-                }
-            });
-        },
-
-        updateName(url, updatedName) {
-            this.$root.getSocket().emit("updateAgent", url, updatedName, (res) => {
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.showAgentForm = false;
-                    this.agent = {
-                        updatedName: "",
-                    };
-                }
-            });
-        },
 
         getStatusNum(statusName) {
             let num = 0;
@@ -407,23 +274,6 @@ table {
 .docker-run {
     min-height: 148px;
     resize: vertical;
-}
-
-.agent-card h4 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.remove-agent {
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.3);
-}
-
-.agent {
-    a {
-        text-decoration: none;
-    }
 }
 
 </style>

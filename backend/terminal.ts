@@ -125,7 +125,7 @@ export class Terminal {
 
                 for (const socketID in this.socketList) {
                     const socket = this.socketList[socketID];
-                    socket.emitAgent("terminalWrite", this.name, data);
+                    socket.emit("terminalWrite", this.name, data);
                 }
             });
 
@@ -151,7 +151,7 @@ export class Terminal {
     protected exit = (res : {exitCode: number, signal?: number | undefined}) => {
         for (const socketID in this.socketList) {
             const socket = this.socketList[socketID];
-            socket.emitAgent("terminalExit", this.name, res.exitCode);
+            socket.emit("terminalExit", this.name, res.exitCode);
         }
 
         // Remove all clients

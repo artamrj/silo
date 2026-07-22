@@ -124,14 +124,14 @@ export default {
 
         // Create a new Terminal
         if (this.mode === "mainTerminal") {
-            this.$root.emitAgent(this.endpoint, "mainTerminal", this.name, (res) => {
+            this.$root.emitServer("mainTerminal", this.name, (res) => {
                 if (!res.ok) {
                     this.$root.toastRes(res);
                 }
             });
         } else if (this.mode === "interactive") {
             console.debug("Create Interactive terminal:", this.name);
-            this.$root.emitAgent(this.endpoint, "interactiveTerminal", this.stackName, this.serviceName, this.shell, (res) => {
+            this.$root.emitServer("interactiveTerminal", this.stackName, this.serviceName, this.shell, (res) => {
                 if (!res.ok) {
                     this.$root.toastRes(res);
                 }
@@ -153,11 +153,11 @@ export default {
             // Workaround: normally this.name should be set, but it is not sometimes, so we use the parameter, but eventually this.name and name must be the same name
             if (name) {
                 this.$root.unbindTerminal(name);
-                this.$root.bindTerminal(endpoint, name, this.terminal);
+                this.$root.bindTerminal(name, this.terminal);
                 console.debug("Terminal bound via parameter: " + name);
             } else if (this.name) {
                 this.$root.unbindTerminal(this.name);
-                this.$root.bindTerminal(this.endpoint, this.name, this.terminal);
+                this.$root.bindTerminal(this.name, this.terminal);
                 console.debug("Terminal bound: " + this.name);
             } else {
                 console.debug("Terminal name not set");
@@ -198,7 +198,7 @@ export default {
                     // Remove the input from the terminal
                     this.removeInput();
 
-                    this.$root.emitAgent(this.endpoint, "terminalInput", this.name, buffer + e.key, (err) => {
+                    this.$root.emitServer("terminalInput", this.name, buffer + e.key, (err) => {
                         this.$root.toastError(err.msg);
                     });
                 } else if (e.key === "\u007F") {      // Backspace
@@ -236,7 +236,7 @@ export default {
                     }
                 } else if (e.key === "\u0003") {      // Ctrl + C
                     console.debug("Ctrl + C");
-                    this.$root.emitAgent(this.endpoint, "terminalInput", this.name, e.key);
+                    this.$root.emitServer("terminalInput", this.name, e.key);
                     this.removeInput();
                 } else if (e.key === "\u0016" || (e.domEvent?.ctrlKey && e.key.toLowerCase() === "v")) {      // Ctrl + V
                     this.handlePaste();
@@ -260,7 +260,7 @@ export default {
                     return;
                 }
 
-                this.$root.emitAgent(this.endpoint, "terminalInput", this.name, e.key, (res) => {
+                this.$root.emitServer("terminalInput", this.name, e.key, (res) => {
                     if (!res.ok) {
                         this.$root.toastRes(res);
                     }
@@ -289,7 +289,7 @@ export default {
             this.terminalFitAddOn.fit();
             let rows = this.terminal.rows;
             let cols = this.terminal.cols;
-            this.$root.emitAgent(this.endpoint, "terminalResize", this.name, rows, cols);
+            this.$root.emitServer("terminalResize", this.name, rows, cols);
         },
 
         /**
@@ -329,7 +329,7 @@ export default {
 
             } else if (this.mode === "interactive") {
                 // For interactive terminal, send directly to server
-                this.$root.emitAgent(this.endpoint, "terminalInput", this.name, text, (res) => {
+                this.$root.emitServer("terminalInput", this.name, text, (res) => {
                     if (!res.ok) {
                         this.$root.toastRes(res);
                     }

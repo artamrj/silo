@@ -48,29 +48,15 @@
             </div>
         </div>
         <div ref="stackList" class="stack-list" :class="{ scrollbar: scrollbar }" :style="stackListStyle">
-            <div v-if="agentStackList.length === 0" class="empty-stacks">
+            <div v-if="filteredStackList.length === 0" class="empty-stacks">
                 <div class="empty-stacks-icon"><app-icon icon="warehouse" /></div>
                 <strong>{{ $t("No Stacks") }}</strong>
                 <router-link to="/compose">{{ $t("addFirstStackMsg") }}</router-link>
             </div>
-            <div v-if="agentStackList[0] && agentStackList[0].stacks.length === 0" class="text-center mt-3">
-                <router-link to="/compose">{{ $t("addFirstStackMsg") }}</router-link>
-            </div>
-            <div v-for="(agent, agentIndex) in agentStackList" :key="agentIndex" class="stack-list-inner">
-                <div
-                    v-if="$root.agentCount > 1" class="p-2 agent-select"
-                    @click="closedAgents.set(agent.endpoint, !closedAgents.get(agent.endpoint))"
-                >
-                    <span class="me-1">
-                        <app-icon v-show="closedAgents.get(agent.endpoint)" icon="chevron-circle-right" />
-                        <app-icon v-show="!closedAgents.get(agent.endpoint)" icon="chevron-circle-down" />
-                    </span>
-                    <span v-if="agent.endpoint === 'current'">{{ $t("currentEndpoint") }}</span>
-                    <span v-else>{{ agent.endpoint }}</span>
-                </div>
+            <div class="stack-list-inner">
                 <StackListItem
-                    v-for="(item, index) in agent.stacks"
-                    v-show="$root.agentCount === 1 || !closedAgents.get(agent.endpoint)" :key="index" :stack="item" :isSelectMode="selectMode"
+                    v-for="(item, index) in filteredStackList"
+                    :key="index" :stack="item" :isSelectMode="selectMode"
                     :isSelected="isSelected" :select="select" :deselect="deselect"
                 />
             </div>
@@ -111,7 +97,6 @@ export default {
                 active: null,
                 tags: null,
             },
-            closedAgents: new Map(),
         };
     },
     computed: {
@@ -138,7 +123,7 @@ export default {
          * Returns a sorted list of stacks based on the applied filters and search text.
          * @returns {Array} The sorted list of stacks.
          */
-        agentStackList() {
+        filteredStackList() {
             let result = Object.values(this.$root.completeStackList);
 
             result = result.filter(stack => {
@@ -206,29 +191,6 @@ export default {
                 return m1.name.localeCompare(m2.name);
             });
 
-            // Group stacks by endpoint, sorting them so the local endpoint is first
-            // and the rest are sorted alphabetically
-            result = [
-                ...result.reduce((acc, stack) => {
-                    const endpoint = stack.endpoint || "current";
-                    if (!acc.has(endpoint)) {
-                        acc.set(endpoint, []);
-                    }
-                    acc.get(endpoint).push(stack);
-                    return acc;
-                }, new Map()).entries()
-            ].map(([ endpoint, stacks ]) => ({
-                endpoint,
-                stacks
-            })).sort((a, b) => {
-                if (a.endpoint === "current" && b.endpoint !== "current") {
-                    return -1;
-                } else if (a.endpoint !== "current" && b.endpoint === "current") {
-                    return 1;
-                }
-                return a.endpoint.localeCompare(b.endpoint);
-            });
-
             return result;
         },
 
@@ -263,7 +225,7 @@ export default {
     },
     watch: {
         searchText() {
-            for (let stack of this.agentStackList) {
+            for (let stack of this.filteredStackList) {
                 if (!this.selectedStacks[stack.id]) {
                     if (this.selectAll) {
                         this.disableSelectAllWatcher = true;
@@ -278,7 +240,7 @@ export default {
                 this.selectedStacks = {};
 
                 if (this.selectAll) {
-                    this.agentStackList.forEach((item) => {
+                    this.filteredStackList.forEach((item) => {
                         this.selectedStacks[item.id] = true;
                     });
                 }
@@ -517,15 +479,4 @@ export default {
     gap: 10px;
 }
 
-.agent-select {
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    color: #575c62;
-    padding-left: 10px;
-    padding-right: 10px;
-    display: flex;
-    align-items: center;
-    user-select: none;
-}
 </style>

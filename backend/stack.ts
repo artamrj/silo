@@ -53,7 +53,7 @@ export class Stack {
 
     async toJSON(endpoint : string) : Promise<object> {
 
-        // Since we have multiple agents now, embed primary hostname in the stack object too.
+        // Use the configured primary hostname when one is available.
         let primaryHostname = await Settings.get("primaryHostname");
         if (!primaryHostname) {
             if (!endpoint) {
@@ -205,7 +205,7 @@ export class Stack {
     }
 
     async deploy(socket : SiloSocket) : Promise<number> {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("up", "-d", "--remove-orphans"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to deploy, please check the terminal output for more information.");
@@ -214,7 +214,7 @@ export class Stack {
     }
 
     async delete(socket: SiloSocket) : Promise<number> {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("down", "--remove-orphans"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to delete, please check the terminal output for more information.");
@@ -419,7 +419,7 @@ export class Stack {
     }
 
     async start(socket: SiloSocket) {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("up", "-d", "--remove-orphans"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to start, please check the terminal output for more information.");
@@ -428,7 +428,7 @@ export class Stack {
     }
 
     async stop(socket: SiloSocket) : Promise<number> {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("stop"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to stop, please check the terminal output for more information.");
@@ -437,7 +437,7 @@ export class Stack {
     }
 
     async restart(socket: SiloSocket) : Promise<number> {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("restart"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to restart, please check the terminal output for more information.");
@@ -446,7 +446,7 @@ export class Stack {
     }
 
     async down(socket: SiloSocket) : Promise<number> {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("down"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to down, please check the terminal output for more information.");
@@ -455,7 +455,7 @@ export class Stack {
     }
 
     async update(socket: SiloSocket) {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("pull"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to pull, please check the terminal output for more information.");
@@ -476,7 +476,7 @@ export class Stack {
     }
 
     async joinCombinedTerminal(socket: SiloSocket) {
-        const terminalName = getCombinedTerminalName(socket.endpoint, this.name);
+        const terminalName = getCombinedTerminalName("", this.name);
         const terminal = Terminal.getOrCreateTerminal(this.server, terminalName, "docker", this.getComposeOptions("logs", "-f", "--tail", "100"), this.path);
         terminal.enableKeepAlive = true;
         terminal.rows = COMBINED_TERMINAL_ROWS;
@@ -486,7 +486,7 @@ export class Stack {
     }
 
     async leaveCombinedTerminal(socket: SiloSocket) {
-        const terminalName = getCombinedTerminalName(socket.endpoint, this.name);
+        const terminalName = getCombinedTerminalName("", this.name);
         const terminal = Terminal.getTerminal(terminalName);
         if (terminal) {
             terminal.leave(socket);
@@ -494,7 +494,7 @@ export class Stack {
     }
 
     async joinContainerTerminal(socket: SiloSocket, serviceName: string, shell : string = "sh", index: number = 0) {
-        const terminalName = getContainerExecTerminalName(socket.endpoint, this.name, serviceName, index);
+        const terminalName = getContainerExecTerminalName("", this.name, serviceName, index);
         let terminal = Terminal.getTerminal(terminalName);
 
         if (!terminal) {
@@ -552,7 +552,7 @@ export class Stack {
     }
 
     async startService(socket: SiloSocket, serviceName: string) {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         const exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", [ "compose", "up", "-d", serviceName ], this.path);
         if (exitCode !== 0) {
             throw new Error(`Failed to start service ${serviceName}, please check logs for more information.`);
@@ -562,7 +562,7 @@ export class Stack {
     }
 
     async stopService(socket: SiloSocket, serviceName: string): Promise<number> {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         const exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", [ "compose", "stop", serviceName ], this.path);
         if (exitCode !== 0) {
             throw new Error(`Failed to stop service ${serviceName}, please check logs for more information.`);
@@ -572,7 +572,7 @@ export class Stack {
     }
 
     async restartService(socket: SiloSocket, serviceName: string): Promise<number> {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const terminalName = getComposeTerminalName("", this.name);
         const exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", [ "compose", "restart", serviceName ], this.path);
         if (exitCode !== 0) {
             throw new Error(`Failed to restart service ${serviceName}, please check logs for more information.`);

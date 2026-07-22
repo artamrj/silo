@@ -1,15 +1,14 @@
-import { SiloServer } from "../silo-server";
-import { callbackError, callbackResult, checkLogin, SiloSocket, ValidationError } from "../util-server";
-import { log } from "../log";
-import { InteractiveTerminal, MainTerminal, Terminal } from "../terminal";
-import { Stack } from "../stack";
-import { AgentSocketHandler } from "../agent-socket-handler";
-import { AgentSocket } from "../../common/agent-socket";
+import { SiloServer } from "../../silo-server";
+import { callbackError, callbackResult, checkLogin, SiloSocket, ValidationError } from "../../util-server";
+import { log } from "../../log";
+import { InteractiveTerminal, MainTerminal, Terminal } from "../../terminal";
+import { Stack } from "../../stack";
+import { SocketHandler } from "../../socket-handler";
 
-export class TerminalSocketHandler extends AgentSocketHandler {
-    create(socket : SiloSocket, server : SiloServer, agentSocket : AgentSocket) {
+export class TerminalSocketHandler extends SocketHandler {
+    create(socket : SiloSocket, server : SiloServer) {
 
-        agentSocket.on("terminalInput", async (terminalName : unknown, cmd : unknown, callback) => {
+        socket.on("terminalInput", async (terminalName : unknown, cmd : unknown, callback) => {
             try {
                 checkLogin(socket);
 
@@ -34,7 +33,7 @@ export class TerminalSocketHandler extends AgentSocketHandler {
         });
 
         // Main Terminal
-        agentSocket.on("mainTerminal", async (terminalName : unknown, callback) => {
+        socket.on("mainTerminal", async (terminalName : unknown, callback) => {
             try {
                 checkLogin(socket);
 
@@ -72,7 +71,7 @@ export class TerminalSocketHandler extends AgentSocketHandler {
         });
 
         // Check if MainTerminal is enabled
-        agentSocket.on("checkMainTerminal", async (callback) => {
+        socket.on("checkMainTerminal", async (callback) => {
             try {
                 checkLogin(socket);
                 callbackResult({
@@ -84,7 +83,7 @@ export class TerminalSocketHandler extends AgentSocketHandler {
         });
 
         // Interactive Terminal for containers
-        agentSocket.on("interactiveTerminal", async (stackName : unknown, serviceName : unknown, shell : unknown, callback) => {
+        socket.on("interactiveTerminal", async (stackName : unknown, serviceName : unknown, shell : unknown, callback) => {
             try {
                 checkLogin(socket);
 
@@ -116,7 +115,7 @@ export class TerminalSocketHandler extends AgentSocketHandler {
         });
 
         // Join Output Terminal
-        agentSocket.on("terminalJoin", async (terminalName : unknown, callback) => {
+        socket.on("terminalJoin", async (terminalName : unknown, callback) => {
             if (typeof(callback) !== "function") {
                 log.debug("console", "Callback is not a function.");
                 return;
@@ -144,7 +143,7 @@ export class TerminalSocketHandler extends AgentSocketHandler {
         });
 
         // Leave Combined Terminal
-        agentSocket.on("leaveCombinedTerminal", async (stackName : unknown, callback) => {
+        socket.on("leaveCombinedTerminal", async (stackName : unknown, callback) => {
             try {
                 checkLogin(socket);
 
@@ -166,7 +165,7 @@ export class TerminalSocketHandler extends AgentSocketHandler {
         });
 
         // Resize Terminal
-        agentSocket.on("terminalResize", async (terminalName: unknown, rows: unknown, cols: unknown) => {
+        socket.on("terminalResize", async (terminalName: unknown, rows: unknown, cols: unknown) => {
             log.info("terminalResize", `Terminal: ${terminalName}`);
             try {
                 checkLogin(socket);

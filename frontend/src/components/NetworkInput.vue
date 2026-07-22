@@ -138,7 +138,7 @@ export default {
         },
 
         loadExternalNetworkList() {
-            this.$root.emitAgent(this.endpoint, "getDockerNetworkList", (res) => {
+            this.$root.emitServer("getDockerNetworkList", (res) => {
                 if (res.ok) {
                     this.externalNetworkList = res.dockerNetworkList.filter((n) => {
                         // Filter out this stack networks

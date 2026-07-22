@@ -17,24 +17,19 @@ import { SocketHandler } from "./socket-handler";
 import { Settings } from "./settings";
 import dayjs from "dayjs";
 import { R } from "redbean-node";
-import { genSecret, isDev, LooseObject } from "../common/util-common";
+import { genSecret, isDev } from "../common/util-common";
 import { generatePasswordHash } from "./password-hash";
 import { Bean } from "redbean-node/dist/bean";
 import { Arguments, Config, SiloSocket } from "./util-server";
-import { DockerSocketHandler } from "./agent-socket-handlers/docker-socket-handler";
+import { DockerSocketHandler } from "./socket-handlers/local/docker-socket-handler";
 import expressStaticGzip from "express-static-gzip";
 import path from "path";
-import { TerminalSocketHandler } from "./agent-socket-handlers/terminal-socket-handler";
+import { TerminalSocketHandler } from "./socket-handlers/local/terminal-socket-handler";
 import { Stack } from "./stack";
 import { Cron } from "croner";
 import gracefulShutdown from "http-graceful-shutdown";
 import User from "./models/user";
 import * as childProcessAsync from "promisify-child-process";
-import { AgentManager } from "./agent-manager";
-import { AgentProxySocketHandler } from "./socket-handlers/agent-proxy-socket-handler";
-import { AgentSocketHandler } from "./agent-socket-handler";
-import { AgentSocket } from "../common/agent-socket";
-import { ManageAgentSocketHandler } from "./socket-handlers/manage-agent-socket-handler";
 import { Terminal } from "./terminal";
 
 export class SiloServer {
@@ -53,19 +48,10 @@ export class SiloServer {
     ];
 
     /**
-     * List of socket handlers (no agent support)
+     * List of socket handlers
      */
     socketHandlerList : SocketHandler[] = [
         new MainSocketHandler(),
-        new ManageAgentSocketHandler(),
-    ];
-
-    agentProxySocketHandler = new AgentProxySocketHandler();
-
-    /**
-     * List of socket handlers (support agent)
-     */
-    agentSocketHandlerList : AgentSocketHandler[] = [
         new DockerSocketHandler(),
         new TerminalSocketHandler(),
     ];
@@ -249,27 +235,7 @@ export class SiloServer {
 
         this.io.on("connection", async (socket: Socket) => {
             let siloSocket = socket as SiloSocket;
-            siloSocket.instanceManager = new AgentManager(siloSocket);
-            siloSocket.emitAgent = (event : string, ...args : unknown[]) => {
-                let obj = args[0];
-                if (typeof(obj) === "object") {
-                    let obj2 = obj as LooseObject;
-                    obj2.endpoint = siloSocket.endpoint;
-                }
-                siloSocket.emit("agent", event, ...args);
-            };
-
-            if (typeof(socket.request.headers.endpoint) === "string") {
-                siloSocket.endpoint = socket.request.headers.endpoint;
-            } else {
-                siloSocket.endpoint = "";
-            }
-
-            if (siloSocket.endpoint) {
-                log.info("server", "Socket connected (agent), as endpoint " + siloSocket.endpoint);
-            } else {
-                log.info("server", "Socket connected (direct)");
-            }
+            log.info("server", "Socket connected");
 
             this.sendInfo(siloSocket, true);
 
@@ -278,21 +244,10 @@ export class SiloServer {
                 siloSocket.emit("setup");
             }
 
-            // Create socket handlers (original, no agent support)
+            // Create socket handlers
             for (const socketHandler of this.socketHandlerList) {
                 socketHandler.create(siloSocket, this);
             }
-
-            // Create Agent Socket
-            let agentSocket = new AgentSocket();
-
-            // Create agent socket handlers
-            for (const socketHandler of this.agentSocketHandlerList) {
-                socketHandler.create(siloSocket, this, agentSocket);
-            }
-
-            // Create agent proxy socket handlers
-            this.agentProxySocketHandler.create2(siloSocket, this, agentSocket);
 
             // ***************************
             // Better do anything after added all socket handlers here
@@ -310,7 +265,6 @@ export class SiloServer {
             // Socket disconnect
             siloSocket.on("disconnect", () => {
                 log.info("server", "Socket disconnected!");
-                siloSocket.instanceManager.disconnectAll();
             });
 
         });
@@ -338,10 +292,6 @@ export class SiloServer {
             log.error("server", e);
         }
 
-        socket.instanceManager.sendAgentList();
-
-        // Also connect to other silo instances
-        socket.instanceManager.connectAll();
     }
 
     /**
@@ -599,11 +549,11 @@ export class SiloServer {
                 let map : Map<string, object> = new Map();
 
                 for (let [ stackName, stack ] of stackList) {
-                    map.set(stackName, stack.toSimpleJSON(siloSocket.endpoint));
+                    map.set(stackName, stack.toSimpleJSON(""));
                 }
 
-                log.debug("server", "Send stack list to user: " + siloSocket.id + " (" + siloSocket.endpoint + ")");
-                siloSocket.emitAgent("stackList", {
+                log.debug("server", "Send stack list to user: " + siloSocket.id);
+                siloSocket.emit("stackList", {
                     ok: true,
                     stackList: Object.fromEntries(map),
                 });

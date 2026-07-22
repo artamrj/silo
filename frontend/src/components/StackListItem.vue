@@ -52,15 +52,8 @@ export default {
         };
     },
     computed: {
-        endpointDisplay() {
-            return this.$root.endpointDisplayFunction(this.stack.endpoint);
-        },
         url() {
-            if (this.stack.endpoint) {
-                return `/compose/${this.stack.name}/${this.stack.endpoint}`;
-            } else {
-                return `/compose/${this.stack.name}`;
-            }
+            return `/compose/${this.stack.name}`;
         },
         depthMargin() {
             return {

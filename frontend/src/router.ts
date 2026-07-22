@@ -36,10 +36,6 @@ const routes = [
                                 component: Compose,
                             },
                             {
-                                path: "/compose/:stackName/:endpoint",
-                                component: Compose,
-                            },
-                            {
                                 path: "/compose/:stackName",
                                 component: Compose,
                             },
@@ -48,19 +44,10 @@ const routes = [
                                 component: ContainerTerminal,
                                 name: "containerTerminal",
                             },
-                            {
-                                path: "/terminal/:stackName/:serviceName/:type/:endpoint",
-                                component: ContainerTerminal,
-                                name: "containerTerminalEndpoint",
-                            },
                         ]
                     },
                     {
                         path: "/console",
-                        component: Console,
-                    },
-                    {
-                        path: "/console/:endpoint",
                         component: Console,
                     },
                     {
