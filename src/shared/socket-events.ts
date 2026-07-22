@@ -24,6 +24,7 @@ export interface ServerToClientEvents {
     terminalExit: (terminalName: string, exitCode: number) => void;
     stackList: (result: SocketResult & { stackList: Record<string, unknown> }) => void;
     stackStatusList: (result: SocketResult & { stackStatusList: Record<string, unknown> }) => void;
+    deploymentEvent: (event: { stackName: string; operation: string; status: string; message: string; at: string }) => void;
 }
 
 /**
@@ -35,7 +36,7 @@ export interface ClientToServerEvents {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [event: string]: (...args: any[]) => void;
     login: (data: { username: string; password: string; token?: string }, callback: (result: SocketResult & { token?: string; tokenRequired?: boolean }) => void) => void;
-    loginByToken: (token: string, callback: SocketCallback) => void;
+    loginByToken: (token: string, callback: SocketCallback<{ token?: string }>) => void;
     terminalInput: (terminalName: string, command: string, callback?: SocketCallback) => void;
     terminalResize: (terminalName: string, rows: number, columns: number) => void;
     terminalJoin: (terminalName: string, callback: SocketCallback<{ buffer?: string }>) => void;

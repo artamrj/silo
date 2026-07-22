@@ -200,8 +200,8 @@ export function getContainerTerminalName(endpoint : string, container : string) 
     return "container-" + endpoint + "-" + container;
 }
 
-export function getContainerExecTerminalName(endpoint : string, stackName : string, container : string, index : number) {
-    return "container-exec-" + endpoint + "-" + stackName + "-" + container + "-" + index;
+export function getContainerExecTerminalName(endpoint : string, stackName : string, container : string, index : number, shell = "sh") {
+    return "container-exec-" + endpoint + "-" + stackName + "-" + container + "-" + index + "-" + shell;
 }
 
 export function copyYAMLComments(doc : Document, src : Document) {

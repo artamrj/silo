@@ -223,9 +223,14 @@ export class Terminal {
 
     public static exec(server : SiloServer, socket : SiloSocket | undefined, terminalName : string, file : string, args : string | string[], cwd : string) : Promise<number> {
         return new Promise((resolve, reject) => {
+            if (!commandExistsSync(file)) {
+                reject(new Error(`Required command "${file}" was not found in PATH. Install the Docker CLI in the Silo runtime and restart Silo.`));
+                return;
+            }
+
             // check if terminal exists
             if (Terminal.terminalMap.has(terminalName)) {
-                reject("Another operation is already running, please try again later.");
+                reject(new Error("Another operation is already running, please try again later."));
                 return;
             }
 

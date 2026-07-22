@@ -211,7 +211,7 @@ export class SiloServer {
 
         // Static files
         this.app.use("/", expressStaticGzip("dist/client", {
-            enableBrotli: true,
+            enableBrotli: false,
         }));
 
         // Universal Route Handler, must be at the end of all express routes.
