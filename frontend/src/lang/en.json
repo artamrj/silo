@@ -1,5 +1,4 @@
 {
-    "languageName": "English",
     "Create your admin account": "Create your admin account",
     "authIncorrectCreds": "Incorrect username or password.",
     "PasswordsDoNotMatch": "Passwords do not match.",
@@ -59,7 +58,6 @@
     "createExternalNetwork": "Create",
     "addInternalNetwork": "Add",
     "Save": "Save",
-    "Language": "Language",
     "Current User": "Current User",
     "Change Password": "Change Password",
     "Current Password": "Current Password",

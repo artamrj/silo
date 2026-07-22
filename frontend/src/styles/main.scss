@@ -604,7 +604,7 @@ h5.settings-subheading::after {
 
 /* required class */
 .code-editor, .css-editor {
-    /* we dont use `language-` classes anymore so thats why we need to add background and text color manually */
+    /* Keep editor colors explicit so light and dark themes remain readable. */
 
     border-radius: 1rem;
     padding: 10px 5px;
@@ -692,6 +692,3 @@ code {
 .cm-focused {
     outline: none !important;
 }
-
-// Localization
-@import "localization.scss";

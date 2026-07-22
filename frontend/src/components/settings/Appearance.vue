@@ -1,19 +1,5 @@
 <template>
     <div>
-        <div class="my-4">
-            <label for="language" class="form-label">
-                {{ $t("Language") }}
-            </label>
-            <select id="language" v-model="$root.language" class="form-select">
-                <option
-                    v-for="(lang, i) in $i18n.availableLocales"
-                    :key="`Lang${i}`"
-                    :value="lang"
-                >
-                    {{ $i18n.messages[lang].languageName }}
-                </option>
-            </select>
-        </div>
         <div v-show="true" class="my-4">
             <label for="timezone" class="form-label">{{ $t("Theme") }}</label>
             <div>

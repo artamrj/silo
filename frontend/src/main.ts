@@ -20,7 +20,6 @@ import "./styles/main.scss";
 
 // Minxins
 import socket from "./mixins/socket";
-import lang from "./mixins/lang";
 import theme from "./mixins/theme";
 
 // Set Title
@@ -46,7 +45,6 @@ function rootApp() {
     return defineComponent({
         mixins: [
             socket,
-            lang,
             theme,
         ],
         data() {

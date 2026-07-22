@@ -1,6 +1,5 @@
 import dayjs from "dayjs";
 import timezones from "timezones-list";
-import { localeDirection, currentLocale } from "./i18n";
 import { POSITION } from "vue-toastification";
 
 /**
@@ -57,16 +56,6 @@ export function timezoneList() {
     });
 
     return result;
-}
-
-/**
- * Set the locale of the HTML page
- * @returns {void}
- */
-export function setPageLocale() {
-    const html = document.documentElement;
-    html.setAttribute("lang", currentLocale() );
-    html.setAttribute("dir", localeDirection() );
 }
 
 /**
@@ -185,4 +174,3 @@ export function getToastErrorTimeout() {
 
     return errorTimeout;
 }
-
