@@ -51,12 +51,6 @@
 
                                 <!-- Functions -->
 
-                                <!--<li>
-                                <router-link to="/registry" class="dropdown-item" :class="{ active: $route.path.includes('settings') }">
-                                    <app-icon icon="warehouse" /> {{ $t("registry") }}
-                                </router-link>
-                            </li>-->
-
                                 <li>
                                     <button class="dropdown-item" @click="scanFolder">
                                         <app-icon icon="arrows-rotate" /> {{ $t("scanFolder") }}

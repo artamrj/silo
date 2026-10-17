@@ -193,17 +193,6 @@ export default defineComponent({
                 }
             });
 
-            socket.on("stackStatusList", (res) => {
-                if (res.ok) {
-                    for (let stackName in res.stackStatusList) {
-                        const stackObj = this.stackList[stackName];
-                        if (stackObj) {
-                            stackObj.status = res.stackStatusList[stackName];
-                        }
-                    }
-                }
-            });
-
             socket.on("refresh", () => {
                 location.reload();
             });
@@ -296,7 +285,6 @@ export default defineComponent({
          * @returns {void}
          */
         logout() {
-            socket.emit("logout", () => { });
             this.storage().removeItem("token");
             this.socketIO.token = null;
             this.loggedIn = false;

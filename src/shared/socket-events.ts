@@ -23,7 +23,6 @@ export interface ServerToClientEvents {
     terminalWrite: (terminalName: string, data: string) => void;
     terminalExit: (terminalName: string, exitCode: number) => void;
     stackList: (result: SocketResult & { stackList: Record<string, unknown> }) => void;
-    stackStatusList: (result: SocketResult & { stackStatusList: Record<string, unknown> }) => void;
     deploymentEvent: (event: { stackName: string; operation: string; status: string; message: string; at: string }) => void;
 }
 

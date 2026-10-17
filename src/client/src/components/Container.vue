@@ -58,7 +58,6 @@
                 <app-icon icon="edit" />
                 {{ $t("Edit") }}
             </button>
-            <button v-if="false" class="btn btn-normal me-2">Rename</button>
             <button class="btn btn-danger me-2" @click="remove">
                 <app-icon icon="trash" />
                 {{ $t("deleteContainer") }}
@@ -102,14 +101,9 @@
                         <input
                             v-model="service.image"
                             class="form-control"
-                            list="image-datalist"
                         />
                     </div>
 
-                    <!-- TODO: Search online: https://hub.docker.com/api/content/v1/products/search?q=louislam%2Fuptime&source=community&page=1&page_size=4 -->
-                    <datalist id="image-datalist">
-                        <option value="louislam/uptime-kuma:1" />
-                    </datalist>
                     <div class="form-text"></div>
                 </div>
 
@@ -148,20 +142,6 @@
                         {{ $t("environmentVariable", 2) }}
                     </label>
                     <ArrayInput name="environment" :display-name="$t('environmentVariable')" placeholder="KEY=VALUE" />
-                </div>
-
-                <!-- Container Name -->
-                <div v-if="false" class="mb-4">
-                    <label class="form-label">
-                        {{ $t("containerName") }}
-                    </label>
-                    <div class="input-group mb-3">
-                        <input
-                            v-model="service.container_name"
-                            class="form-control"
-                        />
-                    </div>
-                    <div class="form-text"></div>
                 </div>
 
                 <!-- Network -->

@@ -13,12 +13,7 @@ import { sleep } from "../shared/utils";
 import { paths } from "./paths";
 
 interface DBConfig {
-    type?: "sqlite" | "mysql";
-    hostname?: string;
-    port?: string;
-    database?: string;
-    username?: string;
-    password?: string;
+    type?: "sqlite";
 }
 
 export class Database {
@@ -55,8 +50,7 @@ export class Database {
     /**
      * Read the database config
      * @throws {Error} If the config is invalid
-     * @typedef {string|undefined} envString
-     * @returns {{type: "sqlite"} | {type:envString, hostname:envString, port:envString, database:envString, username:envString, password:envString}} Database config
+     * @returns {{type: "sqlite"}} Database config
      */
     static readDBConfig() : DBConfig {
         const dbConfigString = fs.readFileSync(path.join(this.server.config.dataDir, "db-config.json")).toString("utf-8");
@@ -69,11 +63,14 @@ export class Database {
         if (typeof dbConfig.type !== "string") {
             throw new Error("Invalid db-config.json, type must be a string");
         }
+
+        if (dbConfig.type !== "sqlite") {
+            throw new Error("Unsupported database type: " + dbConfig.type + " (only sqlite is supported)");
+        }
         return dbConfig;
     }
 
     /**
-     * @typedef {string|undefined} envString
      * @param dbConfig the database configuration that should be written
      * @returns {void}
      */
@@ -94,47 +91,47 @@ export class Database {
             dbConfig = this.readDBConfig();
             Database.dbConfig = dbConfig;
         } catch (err) {
-            if (err instanceof Error) {
-                log.warn("db", err.message);
+            // Only create a default config when it is genuinely missing.
+            // Any other error (malformed or unsupported config) must fail loudly.
+            if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
+                log.warn("db", "No db-config.json found, creating a default SQLite configuration");
+                dbConfig = {
+                    type: "sqlite",
+                };
+                this.writeDBConfig(dbConfig);
+                Database.dbConfig = dbConfig;
+            } else {
+                throw err;
             }
-
-            dbConfig = {
-                type: "sqlite",
-            };
-            this.writeDBConfig(dbConfig);
         }
 
         let config : object;
 
         log.info("db", `Database Type: ${dbConfig.type}`);
 
-        if (dbConfig.type === "sqlite") {
-            this.sqlitePath = path.join(this.server.config.dataDir, "silo.db");
-            const legacySQLitePath = path.join(this.server.config.dataDir, "dockge.db");
-            if (!fs.existsSync(this.sqlitePath) && fs.existsSync(legacySQLitePath)) {
-                fs.renameSync(legacySQLitePath, this.sqlitePath);
-                log.info("db", "Migrated the legacy database file to silo.db");
-            }
-            Dialect.prototype._driver = () => sqlite;
-
-            config = {
-                client: Dialect,
-                connection: {
-                    filename: Database.sqlitePath,
-                    acquireConnectionTimeout: acquireConnectionTimeout,
-                },
-                useNullAsDefault: true,
-                pool: {
-                    min: 1,
-                    max: 1,
-                    idleTimeoutMillis: 120 * 1000,
-                    propagateCreateError: false,
-                    acquireTimeoutMillis: acquireConnectionTimeout,
-                }
-            };
-        } else {
-            throw new Error("Unknown Database type: " + dbConfig.type);
+        this.sqlitePath = path.join(this.server.config.dataDir, "silo.db");
+        const legacySQLitePath = path.join(this.server.config.dataDir, "dockge.db");
+        if (!fs.existsSync(this.sqlitePath) && fs.existsSync(legacySQLitePath)) {
+            fs.renameSync(legacySQLitePath, this.sqlitePath);
+            log.info("db", "Migrated the legacy database file to silo.db");
         }
+        Dialect.prototype._driver = () => sqlite;
+
+        config = {
+            client: Dialect,
+            connection: {
+                filename: Database.sqlitePath,
+                acquireConnectionTimeout: acquireConnectionTimeout,
+            },
+            useNullAsDefault: true,
+            pool: {
+                min: 1,
+                max: 1,
+                idleTimeoutMillis: 120 * 1000,
+                propagateCreateError: false,
+                acquireTimeoutMillis: acquireConnectionTimeout,
+            }
+        };
 
         const knexInstance = knex(config);
 
@@ -152,9 +149,7 @@ export class Database {
             R.autoloadModels(paths.modelsDir, "ts");
         }
 
-        if (dbConfig.type === "sqlite") {
-            await this.initSQLite();
-        }
+        await this.initSQLite();
     }
 
     /**
@@ -217,9 +212,7 @@ export class Database {
         log.info("db", "Closing the database");
 
         // Flush WAL to main database
-        if (Database.dbConfig.type === "sqlite") {
-            await R.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-        }
+        await R.exec("PRAGMA wal_checkpoint(TRUNCATE)");
 
         while (true) {
             Database.noReject = true;
@@ -238,17 +231,14 @@ export class Database {
     }
 
     /**
-     * Get the size of the database (SQLite only)
+     * Get the size of the database
      * @returns {number} Size of database
      */
     static getSize() {
-        if (Database.dbConfig.type === "sqlite") {
-            log.debug("db", "Database.getSize()");
-            const stats = fs.statSync(Database.sqlitePath);
-            log.debug("db", stats);
-            return stats.size;
-        }
-        return 0;
+        log.debug("db", "Database.getSize()");
+        const stats = fs.statSync(Database.sqlitePath);
+        log.debug("db", stats);
+        return stats.size;
     }
 
     /**
@@ -256,9 +246,7 @@ export class Database {
      * @returns {Promise<void>}
      */
     static async shrink() {
-        if (Database.dbConfig.type === "sqlite") {
-            await R.exec("VACUUM");
-        }
+        await R.exec("VACUUM");
     }
 
 }

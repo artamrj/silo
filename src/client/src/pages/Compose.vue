@@ -197,13 +197,6 @@
                     </div>
 
                     <div v-if="isEditMode">
-                        <!-- Volumes -->
-                        <div v-if="false">
-                            <h4 class="mb-3">{{ $t("volume", 2) }}</h4>
-                            <div class="shadow-box big-padding mb-3">
-                            </div>
-                        </div>
-
                         <!-- Networks -->
                         <h4 class="mb-3">{{ $t("network", 2) }}</h4>
                         <div class="shadow-box big-padding mb-3">
