@@ -3,9 +3,7 @@
  */
 import yaml, { Document, Pair, Scalar } from "yaml";
 import { DotenvParseOutput } from "dotenv";
-
-// @ts-ignore
-import { replaceVariablesSync } from "@inventage/envsubst";
+import { replaceVariablesSync } from "./envsubst";
 
 export interface LooseObject {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -350,7 +348,7 @@ export function parseDockerPort(input : string, hostname : string) {
 }
 
 export function envsubst(string : string, variables : LooseObject) : string {
-    return replaceVariablesSync(string, variables)[0];
+    return replaceVariablesSync(string, variables).string;
 }
 
 /**

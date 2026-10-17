@@ -22,7 +22,6 @@
     },
     "dependencies": {
         "@homebridge/node-pty-prebuilt-multiarch": "0.13.1",
-        "@inventage/envsubst": "^0.17.0",
         "@trpc/client": "^11.18.0",
         "@trpc/server": "^11.18.0",
         "bcryptjs": "~3.0.3",
@@ -76,7 +75,7 @@
         "typescript": "~6.0.3",
         "vite": "~8.1.5",
         "vite-plugin-compression": "~0.5.1",
-        "vitest": "^4.1.10",
+        "vitest": "^4.1.12",
         "vue": "~3.5.40",
         "vue-codemirror6": "^1.6.1",
         "vue-eslint-parser": "~10.4.1",
@@ -86,8 +85,7 @@
     },
     "overrides": {
         "glob": "13.0.6",
-        "lodash": "4.18.1",
-        "shell-quote": "1.10.0"
+        "lodash": "4.18.1"
     },
     "allowScripts": {
         "@homebridge/node-pty-prebuilt-multiarch@0.13.1": true,
