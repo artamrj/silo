@@ -91,6 +91,10 @@ export default {
                     title: this.$t("GlobalEnv"),
                     icon: "file-code",
                 },
+                maintenance: {
+                    title: "Maintenance",
+                    icon: "wrench",
+                },
                 about: {
                     title: this.$t("About"),
                     icon: "home",

@@ -3,6 +3,8 @@
         <Uptime :stack="stack" :fixed-width="true" class="me-2" />
         <div class="title">
             <span>{{ stackName }}</span>
+            <span v-if="updateCount > 0" class="update-badge">{{ updateCount }} update{{ updateCount === 1 ? "" : "s" }}</span>
+            <span v-for="tag in stack.tags" :key="`${tag.name}:${tag.value}`" class="tag-badge">{{ tag.value ? `${tag.name}:${tag.value}` : tag.name }}</span>
         </div>
     </router-link>
 </template>
@@ -62,6 +64,9 @@ export default {
         },
         stackName() {
             return this.stack.name;
+        },
+        updateCount() {
+            return this.stack.updatesAvailable?.length ?? 0;
         }
     },
     watch: {
@@ -141,6 +146,10 @@ export default {
     }
     .title {
         margin-top: -4px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
     }
     .endpoint {
         font-size: 12px;
@@ -168,6 +177,24 @@ export default {
 
 .dim {
     opacity: 0.5;
+}
+
+.update-badge,
+.tag-badge {
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+}
+
+.update-badge {
+    background: #fff3cd;
+    color: #8a6d00;
+}
+
+.tag-badge {
+    background: var(--surface-muted);
+    color: var(--text-muted);
 }
 
 </style>

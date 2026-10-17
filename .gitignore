@@ -9,3 +9,4 @@ tmp
 
 # Git only
 dist
+.DS_Store

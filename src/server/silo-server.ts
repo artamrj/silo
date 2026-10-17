@@ -34,6 +34,7 @@ import { Terminal } from "./terminal";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter, createTrpcContext } from "./trpc";
 import { httpRequestDuration, metricsRegistry, socketConnectionErrors, socketConnections } from "./metrics";
+import { MaintenanceManager } from "./maintenance";
 
 const envFile = process.env.SILO_ENV_FILE ?? (process.env.NODE_ENV === "development" ? ".local/.env" : ".env");
 dotenv.config({
@@ -76,6 +77,8 @@ export class SiloServer {
     jwtSecret : string = "";
 
     stacksDir : string = "";
+
+    maintenance : MaintenanceManager;
 
     /**
      *
@@ -153,6 +156,7 @@ export class SiloServer {
         this.config.stacksDir = args.stacksDir || process.env.SILO_STACKS_DIR || defaultStacksDir;
         this.config.enableConsole = args.enableConsole || process.env.SILO_ENABLE_CONSOLE === "true" || false;
         this.stacksDir = this.config.stacksDir;
+        this.maintenance = new MaintenanceManager(this);
 
         log.debug("server", this.config);
 
@@ -372,6 +376,8 @@ export class SiloServer {
             log.info("server", "No user, need setup");
             this.needSetup = true;
         }
+
+        await this.maintenance.start();
 
         // Listen
         this.httpServer.listen(this.config.port, this.config.hostname, () => {

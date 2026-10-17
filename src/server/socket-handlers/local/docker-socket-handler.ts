@@ -2,7 +2,7 @@ import { SocketHandler } from "../../socket-handler";
 import { SiloServer } from "../../silo-server";
 import { callbackError, callbackResult, checkLogin, SiloSocket, ValidationError } from "../../utils/socket";
 import { Stack } from "../../stack";
-import { stackDeleteSchema, stackSaveSchema } from "../../../shared/schemas";
+import { maintenanceSettingsSchema, selectedServiceUpdateSchema, stackDeleteSchema, stackMetadataSchema, stackSaveSchema } from "../../../shared/schemas";
 import { validate } from "../../utils/socket";
 
 export class DockerSocketHandler extends SocketHandler {
@@ -81,10 +81,9 @@ export class DockerSocketHandler extends SocketHandler {
                     throw new ValidationError("Stack name must be a string");
                 }
 
-                const stack = await Stack.getStack(server, stackName);
                 callbackResult({
                     ok: true,
-                    data: stack.exportFiles(),
+                    data: await server.maintenance.exportStack(stackName),
                 }, callback);
             } catch (e) {
                 callbackError(e, callback);
@@ -217,6 +216,85 @@ export class DockerSocketHandler extends SocketHandler {
                     msgi18n: true,
                 }, callback);
                 server.sendStackList();
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("checkStackUpdates", async (stackName : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                if (typeof stackName !== "string") {
+                    throw new ValidationError("Stack name must be a string");
+                }
+                const stack = await Stack.getStack(server, stackName);
+                const updatesAvailable = await stack.checkImageUpdates();
+                callbackResult({ ok: true,
+                    updatesAvailable }, callback);
+                server.sendStackList();
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("updateSelectedServices", async (data : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                const input = validate(selectedServiceUpdateSchema, data);
+                const stack = await Stack.getStack(server, input.name);
+                await stack.updateServices(socket, input.services);
+                callbackResult({ ok: true,
+                    msg: "Updated selected services" }, callback);
+                server.sendStackList();
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("saveStackMetadata", async (data : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                const input = validate(stackMetadataSchema, data);
+                const stack = await Stack.getStack(server, input.name);
+                const metadata = await stack.getMetadata();
+                await stack.saveMetadata({ ...metadata,
+                    tags: input.tags,
+                    template: input.template });
+                callbackResult({ ok: true,
+                    msg: "Saved stack metadata" }, callback);
+                server.sendStackList();
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("getMaintenanceSettings", async (callback) => {
+            try {
+                checkLogin(socket);
+                callbackResult({ ok: true,
+                    settings: await server.maintenance.getSettings() }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("saveMaintenanceSettings", async (data : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                const settings = validate(maintenanceSettingsSchema, data);
+                await server.maintenance.saveSettings(settings);
+                callbackResult({ ok: true,
+                    msg: "Saved maintenance settings" }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("templateCatalog", async (callback) => {
+            try {
+                checkLogin(socket);
+                callbackResult({ ok: true,
+                    templates: await server.maintenance.templates() }, callback);
             } catch (e) {
                 callbackError(e, callback);
             }

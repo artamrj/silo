@@ -23,6 +23,10 @@
                                 <h3>{{ $t("inactive") }}</h3>
                                 <span class="num inactive">{{ inactiveNum }}</span>
                             </div>
+                            <div class="col">
+                                <h3>Updates</h3>
+                                <span class="num updates">{{ updateNum }}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -33,6 +37,17 @@
                     </div>
 
                     <button class="btn-normal btn mb-4" @click="convertDockerRun">{{ $t("Convert to Compose") }}</button>
+
+                    <h2 class="mb-3">Maintenance</h2>
+                    <div class="shadow-box mb-4 maintenance-card">
+                        <div class="maintenance-actions">
+                            <button class="btn-normal btn" :disabled="checkingUpdates" @click="checkAllUpdates">
+                                {{ checkingUpdates ? "Checking..." : "Check image updates" }}
+                            </button>
+                            <router-link class="btn btn-outline-normal" to="/settings">Configure schedule & notifications</router-link>
+                        </div>
+                        <p class="mb-0 text-muted">Track image updates, use stack tags for filtering, and wire backup hooks plus ntfy, Gotify, Telegram, Discord, or generic webhooks from settings.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -66,6 +81,7 @@ export default {
             importantHeartBeatListLength: 0,
             displayedRecords: [],
             dockerRunCommand: "",
+            checkingUpdates: false,
         };
     },
 
@@ -78,6 +94,9 @@ export default {
         },
         exitedNum() {
             return this.getStatusNum("exited");
+        },
+        updateNum() {
+            return Object.values(this.$root.completeStackList).filter(stack => (stack.updatesAvailable?.length ?? 0) > 0).length;
         },
     },
 
@@ -116,6 +135,21 @@ export default {
                 }
             }
             return num;
+        },
+
+        async checkAllUpdates() {
+            this.checkingUpdates = true;
+            try {
+                const stacks = Object.values(this.$root.completeStackList).filter(stack => stack.isManagedBySilo);
+                for (const stack of stacks) {
+                    await new Promise((resolve) => {
+                        this.$root.getSocket().emit("checkStackUpdates", stack.name, () => resolve());
+                    });
+                }
+                this.$root.toastSuccess("Update check complete");
+            } finally {
+                this.checkingUpdates = false;
+            }
         },
 
         async convertDockerRun() {
@@ -196,6 +230,13 @@ export default {
 
 <style scoped>
 
+.maintenance-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
 .num {
     font-size: 30px;
 
@@ -208,6 +249,9 @@ export default {
 
     &.exited {
         color: #dc3545;
+    }
+    &.updates {
+        color: #ffc107;
     }
 }
 

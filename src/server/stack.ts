@@ -19,6 +19,7 @@ import {
 import { InteractiveTerminal, Terminal } from "./terminal";
 import * as childProcessAsync from "promisify-child-process";
 import { Settings } from "./settings";
+import type { StackMetadata } from "./maintenance";
 
 export class Stack {
 
@@ -83,7 +84,9 @@ export class Stack {
         return {
             name: this.name,
             status: this._status,
-            tags: [],
+            tags: this.getMetadataSync().tags,
+            updatesAvailable: this.getMetadataSync().updatesAvailable ?? [],
+            lastUpdateCheck: this.getMetadataSync().lastUpdateCheck,
             isManagedBySilo: this.isManagedBySilo,
             composeFileName: this._composeFileName,
             endpoint,
@@ -314,6 +317,82 @@ export class Stack {
         } finally {
             Stack.deploymentLocks.delete(this.name);
         }
+    }
+
+    get metadataPath() : string {
+        return path.join(this.path, ".silo.json");
+    }
+
+    getMetadataSync() : StackMetadata {
+        try {
+            return { tags: [],
+                ...JSON.parse(fs.readFileSync(this.metadataPath, "utf-8")) };
+        } catch {
+            return { tags: [] };
+        }
+    }
+
+    async getMetadata() : Promise<StackMetadata> {
+        try {
+            return { tags: [],
+                ...JSON.parse(await fsAsync.readFile(this.metadataPath, "utf-8")) };
+        } catch {
+            return { tags: [] };
+        }
+    }
+
+    async saveMetadata(metadata: StackMetadata) {
+        await fsAsync.writeFile(this.metadataPath, JSON.stringify({ ...metadata,
+            tags: metadata.tags ?? [] }, null, 2));
+    }
+
+    getServiceImages() : Array<{ service: string; image: string }> {
+        const doc = yaml.parse(this.composeYAML);
+        return Object.entries(doc?.services ?? {}).flatMap(([ service, value ]) => {
+            const image = (value as { image?: unknown })?.image;
+            return typeof image === "string" ? [{ service,
+                image }] : [];
+        });
+    }
+
+    async checkImageUpdates() : Promise<string[]> {
+        const output = await childProcessAsync.spawn("docker", this.getComposeOptions("pull", "--dry-run"), {
+            cwd: this.path,
+            encoding: "utf-8",
+        });
+        const text = `${output.stdout?.toString() ?? ""}\n${output.stderr?.toString() ?? ""}`;
+        const services = this.getServiceImages().map(({ service }) => service);
+        const updatesAvailable = services.filter(service => new RegExp(`(^|\\s)${service}(:|\\s)`, "i").test(text) && /(pull|download|newer|updated)/i.test(text));
+        const metadata = await this.getMetadata();
+        metadata.lastUpdateCheck = new Date().toISOString();
+        metadata.updatesAvailable = updatesAvailable;
+        await this.saveMetadata(metadata);
+        return updatesAvailable;
+    }
+
+    async updateServices(socket : SiloSocket, services: string[]) {
+        return this.withDeploymentLock("update", async () => {
+            await this.server.maintenance.runBackupHook("beforeUpdate", this);
+            const terminalName = getComposeTerminalName("", this.name);
+            const safeServices = services.filter(service => /^[a-zA-Z0-9_.-]+$/.test(service));
+            if (safeServices.length === 0) {
+                throw new ValidationError("Select at least one service to update");
+            }
+            let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("pull", ...safeServices), this.path);
+            if (exitCode !== 0) {
+                throw new Error("Failed to pull selected services.");
+            }
+            exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("up", "-d", "--remove-orphans", ...safeServices), this.path);
+            if (exitCode !== 0) {
+                throw new Error("Failed to recreate selected services.");
+            }
+            const metadata = await this.getMetadata();
+            metadata.updatesAvailable = (metadata.updatesAvailable ?? []).filter(service => !safeServices.includes(service));
+            await this.saveMetadata(metadata);
+            await this.server.maintenance.runBackupHook("afterUpdate", this);
+            await this.server.maintenance.notify("Silo updated services", `${this.name}: ${safeServices.join(", ")}`);
+            return exitCode;
+        });
     }
 
     exportFiles() {
