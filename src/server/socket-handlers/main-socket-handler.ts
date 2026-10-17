@@ -9,6 +9,7 @@ import { generatePasswordHash, needRehashPassword, shake256, SHAKE256_LENGTH, ve
 import { User } from "../models/user";
 import {
     callbackError,
+    callbackResult,
     checkLogin,
     SiloSocket,
     doubleCheckPassword,
@@ -20,8 +21,10 @@ import jwt from "jsonwebtoken";
 import { Settings } from "../settings";
 import fs, { promises as fsAsync } from "fs";
 import path from "path";
-import { loginSchema } from "../../shared/schemas";
+import { loginSchema, setupSchema, tokenSchema, changePasswordSchema, settingsSchema, composerizeSchema } from "../../shared/schemas";
 import { validate } from "../utils/socket";
+
+const PASSWORD_TOO_WEAK_MESSAGE = "Password is too weak. It must be at least 8 characters long and use at least two of: lowercase letters, uppercase letters, digits, symbols.";
 
 export class MainSocketHandler extends SocketHandler {
     create(socket : SiloSocket, server : SiloServer) {
@@ -30,11 +33,19 @@ export class MainSocketHandler extends SocketHandler {
         // Public Socket API
         // ***************************
 
+        // Report whether the first-run setup is still pending
+        socket.on("needSetup", async (callback) => {
+            callbackResult(server.needSetup, callback);
+        });
+
         // Setup
         socket.on("setup", async (username, password, callback) => {
             try {
-                if (isPasswordTooWeak(password)) {
-                    throw new Error("Password is too weak. It should contain alphabetic and numeric characters. It must be at least 6 characters in length.");
+                const input = validate(setupSchema, { username,
+                    password });
+
+                if (isPasswordTooWeak(input.password)) {
+                    throw new ValidationError(PASSWORD_TOO_WEAK_MESSAGE);
                 }
 
                 if ((await R.knex("user").count("id as count").first()).count !== 0) {
@@ -42,8 +53,8 @@ export class MainSocketHandler extends SocketHandler {
                 }
 
                 const user = R.dispense("user");
-                user.username = username;
-                user.password = generatePasswordHash(password);
+                user.username = input.username;
+                user.password = generatePasswordHash(input.password);
                 await R.store(user);
 
                 server.needSetup = false;
@@ -65,12 +76,13 @@ export class MainSocketHandler extends SocketHandler {
         });
 
         // Login by token
-        socket.on("loginByToken", async (token, callback) => {
+        socket.on("loginByToken", async (rawToken, callback) => {
             const clientIP = await server.getClientIP(socket);
 
             log.info("auth", `Login by token. IP=${clientIP}`);
 
             try {
+                const token = validate(tokenSchema, rawToken);
                 const decoded = jwt.verify(token, server.jwtSecret) as JWTDecoded;
 
                 log.info("auth", "Username from JWT: " + decoded.username);
@@ -130,8 +142,9 @@ export class MainSocketHandler extends SocketHandler {
 
         });
 
-        socket.on("refreshToken", async (token, callback) => {
+        socket.on("refreshToken", async (rawToken, callback) => {
             try {
+                const token = validate(tokenSchema, rawToken);
                 const decoded = jwt.verify(token, server.jwtSecret) as JWTDecoded;
                 const user = await R.findOne("user", " username = ? AND active = 1 ", [ decoded.username ]) as User;
                 if (!user || decoded.h !== shake256(user.password, SHAKE256_LENGTH)) {
@@ -195,16 +208,14 @@ export class MainSocketHandler extends SocketHandler {
         });
 
         // Change Password
-        socket.on("changePassword", async (password, callback) => {
+        socket.on("changePassword", async (rawPassword, callback) => {
             try {
                 checkLogin(socket);
 
-                if (! password.newPassword) {
-                    throw new Error("Invalid new password");
-                }
+                const password = validate(changePasswordSchema, rawPassword);
 
                 if (isPasswordTooWeak(password.newPassword)) {
-                    throw new Error("Password is too weak. It should contain alphabetic and numeric characters. It must be at least 6 characters in length.");
+                    throw new ValidationError(PASSWORD_TOO_WEAK_MESSAGE);
                 }
 
                 let user = await doubleCheckPassword(socket, password.currentPassword);
@@ -253,9 +264,11 @@ export class MainSocketHandler extends SocketHandler {
             }
         });
 
-        socket.on("setSettings", async (data, currentPassword, callback) => {
+        socket.on("setSettings", async (rawData, currentPassword, callback) => {
             try {
                 checkLogin(socket);
+
+                const data = validate(settingsSchema, rawData);
 
                 // If currently is disabled auth, don't need to check
                 // Disabled Auth + Want to Disable Auth => No Check
@@ -313,12 +326,10 @@ export class MainSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(dockerRunCommand) !== "string") {
-                    throw new ValidationError("dockerRunCommand must be a string");
-                }
+                const command = validate(composerizeSchema, dockerRunCommand);
 
                 // Option: 'latest' | 'v2x' | 'v3x'
-                let composeTemplate = composerize(dockerRunCommand, "", "latest");
+                let composeTemplate = composerize(command, "", "latest");
 
                 // Remove the first line "name: <your project name>"
                 composeTemplate = composeTemplate.split("\n").slice(1).join("\n");

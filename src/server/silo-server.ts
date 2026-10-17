@@ -30,6 +30,7 @@ import { spawnAsync } from "./utils/exec";
 import { Terminal } from "./terminal";
 import { httpRequestDuration, metricsRegistry, socketConnectionErrors, socketConnections } from "./metrics";
 import { serveClientAssets } from "./static";
+import { formatSchemaError, startupConfigSchema } from "../shared/schemas";
 
 interface PackageJson {
     version : string;
@@ -154,11 +155,30 @@ export class SiloServer {
         this.config.sslKey = args.sslKey || process.env.SILO_SSL_KEY || undefined;
         this.config.sslCert = args.sslCert || process.env.SILO_SSL_CERT || undefined;
         this.config.sslKeyPassphrase = args.sslKeyPassphrase || process.env.SILO_SSL_KEY_PASSPHRASE || undefined;
-        this.config.port = args.port || Number(process.env.SILO_PORT) || 5001;
+        this.config.port = args.port || (process.env.SILO_PORT ? Number(process.env.SILO_PORT) : undefined) || 5001;
         this.config.hostname = args.hostname || process.env.SILO_HOSTNAME || undefined;
         this.config.dataDir = args.dataDir || process.env.SILO_DATA_DIR || (isDev ? "./.local/data" : "./data");
         this.config.stacksDir = args.stacksDir || process.env.SILO_STACKS_DIR || defaultStacksDir;
         this.config.enableConsole = args.enableConsole || process.env.SILO_ENABLE_CONSOLE === "true" || false;
+
+        // Validate the fully resolved configuration before anything else uses it
+        const configResult = startupConfigSchema.safeParse({
+            sslKey: this.config.sslKey,
+            sslCert: this.config.sslCert,
+            sslKeyPassphrase: this.config.sslKeyPassphrase,
+            port: this.config.port,
+            hostname: this.config.hostname,
+            dataDir: this.config.dataDir,
+            stacksDir: this.config.stacksDir,
+            enableConsole: this.config.enableConsole,
+        });
+
+        if (!configResult.success) {
+            log.error("server", "Invalid configuration: " + formatSchemaError(configResult.error));
+            process.exit(1);
+        }
+
+        this.config = configResult.data;
         this.stacksDir = this.config.stacksDir;
 
         log.debug("server", this.config);

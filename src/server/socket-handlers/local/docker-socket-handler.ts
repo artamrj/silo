@@ -2,7 +2,7 @@ import { SocketHandler } from "../../socket-handler";
 import { SiloServer } from "../../silo-server";
 import { callbackError, callbackResult, checkLogin, SiloSocket, ValidationError } from "../../utils/socket";
 import { Stack } from "../../stack";
-import { stackDeleteSchema, stackSaveSchema } from "../../../shared/schemas";
+import { stackDeleteSchema, stackSaveSchema, stackNameSchema, serviceActionSchema } from "../../../shared/schemas";
 import { validate } from "../../utils/socket";
 
 export class DockerSocketHandler extends SocketHandler {
@@ -77,11 +77,9 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string");
-                }
+                const name = validate(stackNameSchema, stackName);
 
-                const stack = await Stack.getStack(server, stackName);
+                const stack = await Stack.getStack(server, name);
                 callbackResult({
                     ok: true,
                     data: stack.exportFiles(),
@@ -95,11 +93,9 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string");
-                }
+                const name = validate(stackNameSchema, stackName);
 
-                const stack = await Stack.getStack(server, stackName);
+                const stack = await Stack.getStack(server, name);
 
                 if (stack.isManagedBySilo) {
                     stack.joinCombinedTerminal(socket);
@@ -134,11 +130,9 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string");
-                }
+                const name = validate(stackNameSchema, stackName);
 
-                const stack = await Stack.getStack(server, stackName);
+                const stack = await Stack.getStack(server, name);
                 await stack.start(socket);
                 callbackResult({
                     ok: true,
@@ -159,11 +153,9 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string");
-                }
+                const name = validate(stackNameSchema, stackName);
 
-                const stack = await Stack.getStack(server, stackName);
+                const stack = await Stack.getStack(server, name);
                 await stack.stop(socket);
                 callbackResult({
                     ok: true,
@@ -183,11 +175,9 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string");
-                }
+                const name = validate(stackNameSchema, stackName);
 
-                const stack = await Stack.getStack(server, stackName);
+                const stack = await Stack.getStack(server, name);
                 await stack.restart(socket);
                 callbackResult({
                     ok: true,
@@ -205,11 +195,9 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string");
-                }
+                const name = validate(stackNameSchema, stackName);
 
-                const stack = await Stack.getStack(server, stackName);
+                const stack = await Stack.getStack(server, name);
                 await stack.update(socket);
                 callbackResult({
                     ok: true,
@@ -227,11 +215,9 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string");
-                }
+                const name = validate(stackNameSchema, stackName);
 
-                const stack = await Stack.getStack(server, stackName);
+                const stack = await Stack.getStack(server, name);
                 await stack.down(socket);
                 callbackResult({
                     ok: true,
@@ -249,11 +235,9 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string");
-                }
+                const name = validate(stackNameSchema, stackName);
 
-                const stack = await Stack.getStack(server, stackName, true);
+                const stack = await Stack.getStack(server, name, true);
                 const serviceStatusList = Object.fromEntries(await stack.getServiceStatusList());
                 callbackResult({
                     ok: true,
@@ -285,16 +269,15 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof (stackName) !== "string" || typeof (serviceName) !== "string") {
-                    throw new ValidationError("Stack name and service name must be strings");
-                }
+                const input = validate(serviceActionSchema, { stackName,
+                    serviceName });
 
-                const stack = await Stack.getStack(server, stackName);
-                await stack.startService(socket, serviceName);
+                const stack = await Stack.getStack(server, input.stackName);
+                await stack.startService(socket, input.serviceName);
                 stack.joinCombinedTerminal(socket); // Ensure the combined terminal is joined
                 callbackResult({
                     ok: true,
-                    msg: "Service " + serviceName + " started"
+                    msg: "Service " + input.serviceName + " started"
                 }, callback);
                 server.sendStackList();
             } catch (e) {
@@ -307,15 +290,14 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof (stackName) !== "string" || typeof (serviceName) !== "string") {
-                    throw new ValidationError("Stack name and service name must be strings");
-                }
+                const input = validate(serviceActionSchema, { stackName,
+                    serviceName });
 
-                const stack = await Stack.getStack(server, stackName);
-                await stack.stopService(socket, serviceName);
+                const stack = await Stack.getStack(server, input.stackName);
+                await stack.stopService(socket, input.serviceName);
                 callbackResult({
                     ok: true,
-                    msg: "Service " + serviceName + " stopped"
+                    msg: "Service " + input.serviceName + " stopped"
                 }, callback);
                 server.sendStackList();
             } catch (e) {
@@ -327,15 +309,14 @@ export class DockerSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof stackName !== "string" || typeof serviceName !== "string") {
-                    throw new Error("Invalid stackName or serviceName");
-                }
+                const input = validate(serviceActionSchema, { stackName,
+                    serviceName });
 
-                const stack = await Stack.getStack(server, stackName, true);
-                await stack.restartService(socket, serviceName);
+                const stack = await Stack.getStack(server, input.stackName, true);
+                await stack.restartService(socket, input.serviceName);
                 callbackResult({
                     ok: true,
-                    msg: "Service " + serviceName + " restarted"
+                    msg: "Service " + input.serviceName + " restarted"
                 }, callback);
             } catch (e) {
                 callbackError(e, callback);

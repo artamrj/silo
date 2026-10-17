@@ -4,7 +4,7 @@ import { log } from "../../log";
 import { InteractiveTerminal, MainTerminal, Terminal } from "../../terminal";
 import { Stack } from "../../stack";
 import { SocketHandler } from "../../socket-handler";
-import { terminalInputSchema, terminalResizeSchema } from "../../../shared/schemas";
+import { terminalInputSchema, terminalResizeSchema, interactiveTerminalSchema, nonEmptyString, stackNameSchema } from "../../../shared/schemas";
 import { validate } from "../../utils/socket";
 
 export class TerminalSocketHandler extends SocketHandler {
@@ -33,7 +33,7 @@ export class TerminalSocketHandler extends SocketHandler {
         });
 
         // Main Terminal
-        socket.on("mainTerminal", async (terminalName : unknown, callback) => {
+        socket.on("mainTerminal", async (_terminalName : unknown, callback) => {
             try {
                 checkLogin(socket);
 
@@ -43,11 +43,7 @@ export class TerminalSocketHandler extends SocketHandler {
                 }
 
                 // TODO: Reset the name here, force one main terminal for now
-                terminalName = "console";
-
-                if (typeof(terminalName) !== "string") {
-                    throw new ValidationError("Terminal name must be a string.");
-                }
+                const terminalName = "console";
 
                 log.debug("mainTerminal", "Terminal name: " + terminalName);
 
@@ -87,24 +83,18 @@ export class TerminalSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string.");
-                }
+                const input = validate(interactiveTerminalSchema, {
+                    stackName,
+                    serviceName,
+                    shell,
+                });
 
-                if (typeof(serviceName) !== "string") {
-                    throw new ValidationError("Service name must be a string.");
-                }
-
-                if (typeof(shell) !== "string") {
-                    throw new ValidationError("Shell must be a string.");
-                }
-
-                log.debug("interactiveTerminal", "Stack name: " + stackName);
-                log.debug("interactiveTerminal", "Service name: " + serviceName);
+                log.debug("interactiveTerminal", "Stack name: " + input.stackName);
+                log.debug("interactiveTerminal", "Service name: " + input.serviceName);
 
                 // Get stack
-                const stack = await Stack.getStack(server, stackName);
-                stack.joinContainerTerminal(socket, serviceName, shell);
+                const stack = await Stack.getStack(server, input.stackName);
+                stack.joinContainerTerminal(socket, input.serviceName, input.shell);
 
                 callbackResult({
                     ok: true,
@@ -123,11 +113,9 @@ export class TerminalSocketHandler extends SocketHandler {
 
             try {
                 checkLogin(socket);
-                if (typeof(terminalName) !== "string") {
-                    throw new ValidationError("Terminal name must be a string.");
-                }
+                const validatedName = validate(nonEmptyString, terminalName);
 
-                let buffer : string = Terminal.getTerminal(terminalName)?.getBuffer() ?? "";
+                let buffer : string = Terminal.getTerminal(validatedName)?.getBuffer() ?? "";
 
                 if (!buffer) {
                     log.debug("console", "No buffer found.");
@@ -147,13 +135,11 @@ export class TerminalSocketHandler extends SocketHandler {
             try {
                 checkLogin(socket);
 
-                log.debug("leaveCombinedTerminal", "Stack name: " + stackName);
+                const validatedName = validate(stackNameSchema, stackName);
 
-                if (typeof(stackName) !== "string") {
-                    throw new ValidationError("Stack name must be a string.");
-                }
+                log.debug("leaveCombinedTerminal", "Stack name: " + validatedName);
 
-                const stack = await Stack.getStack(server, stackName);
+                const stack = await Stack.getStack(server, validatedName);
                 await stack.leaveCombinedTerminal(socket);
 
                 callbackResult({

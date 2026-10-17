@@ -11,10 +11,7 @@ import Dialect from "knex/lib/dialects/sqlite3/index.js";
 import sqlite from "sqlite3";
 import { sleep } from "../shared/utils";
 import { paths } from "./paths";
-
-interface DBConfig {
-    type?: "sqlite";
-}
+import { dbConfigSchema, formatSchemaError, type DbConfig } from "../shared/schemas";
 
 export class Database {
     /**
@@ -25,7 +22,7 @@ export class Database {
 
     static noReject = true;
 
-    static dbConfig: DBConfig = {};
+    static dbConfig? : DbConfig;
 
     static knexMigrationsPath = paths.migrationsDir;
 
@@ -52,29 +49,28 @@ export class Database {
      * @throws {Error} If the config is invalid
      * @returns {{type: "sqlite"}} Database config
      */
-    static readDBConfig() : DBConfig {
+    static readDBConfig() : DbConfig {
         const dbConfigString = fs.readFileSync(path.join(this.server.config.dataDir, "db-config.json")).toString("utf-8");
-        const dbConfig = JSON.parse(dbConfigString);
 
-        if (typeof dbConfig !== "object") {
-            throw new Error("Invalid db-config.json, it must be an object");
+        let raw : unknown;
+        try {
+            raw = JSON.parse(dbConfigString);
+        } catch {
+            throw new Error("Invalid db-config.json: not valid JSON");
         }
 
-        if (typeof dbConfig.type !== "string") {
-            throw new Error("Invalid db-config.json, type must be a string");
+        const result = dbConfigSchema.safeParse(raw);
+        if (!result.success) {
+            throw new Error("Invalid db-config.json: " + formatSchemaError(result.error) + " (only sqlite is supported)");
         }
-
-        if (dbConfig.type !== "sqlite") {
-            throw new Error("Unsupported database type: " + dbConfig.type + " (only sqlite is supported)");
-        }
-        return dbConfig;
+        return result.data;
     }
 
     /**
      * @param dbConfig the database configuration that should be written
      * @returns {void}
      */
-    static writeDBConfig(dbConfig : DBConfig) {
+    static writeDBConfig(dbConfig : DbConfig) {
         fs.writeFileSync(path.join(this.server.config.dataDir, "db-config.json"), JSON.stringify(dbConfig, null, 4));
     }
 
@@ -86,7 +82,7 @@ export class Database {
      */
     static async connect(autoloadModels = true) {
         const acquireConnectionTimeout = 120 * 1000;
-        let dbConfig : DBConfig;
+        let dbConfig : DbConfig;
         try {
             dbConfig = this.readDBConfig();
             Database.dbConfig = dbConfig;

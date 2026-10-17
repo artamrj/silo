@@ -2,6 +2,20 @@ import { R } from "redbean-node";
 import { log } from "./log";
 import { LooseObject } from "../shared/utils";
 
+/**
+ * Known settings and their runtime types. Used to give `Settings.get` a typed
+ * return value instead of `unknown`, so callers cannot accidentally treat a
+ * setting as the wrong type.
+ */
+export interface SettingsKeyMap {
+    disableAuth: boolean;
+    trustProxy: boolean;
+    keepDataPeriodDays: number;
+    primaryHostname: string;
+}
+
+export type SettingsKey = keyof SettingsKeyMap;
+
 export class Settings {
 
     /**
@@ -28,7 +42,9 @@ export class Settings {
      * @param key Key of setting to retrieve
      * @returns Value
      */
-    static async get(key : string) {
+    static async get<K extends SettingsKey>(key : K) : Promise<SettingsKeyMap[K] | undefined>;
+    static async get(key : string) : Promise<unknown>;
+    static async get(key : string) : Promise<unknown> {
 
         // Start cache clear if not started yet
         if (!Settings.cacheCleaner) {

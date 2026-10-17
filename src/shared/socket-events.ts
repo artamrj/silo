@@ -40,5 +40,6 @@ export interface ClientToServerEvents {
     terminalResize: (terminalName: string, rows: number, columns: number) => void;
     terminalJoin: (terminalName: string, callback: SocketCallback<{ buffer?: string }>) => void;
     requestStackList: (callback: SocketCallback) => void;
+    needSetup: (callback: (needSetup: boolean) => void) => void;
     composerize: (command: string, callback: (result: SocketResult & { composeTemplate?: string }) => void) => void;
 }

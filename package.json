@@ -39,7 +39,8 @@
         "socket.io-client": "~4.8.3",
         "sqlite3": "~6.0.1",
         "tsx": "~4.23.1",
-        "yaml": "~2.9.0"
+        "yaml": "~2.9.0",
+        "zod": "~4.6.7"
     },
     "devDependencies": {
         "@codemirror/lang-python": "^6.2.1",
