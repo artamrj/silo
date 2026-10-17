@@ -85,6 +85,13 @@ export function statusColor(status : number) : string {
 }
 
 export const isDev = process.env.NODE_ENV === "development";
+
+/**
+ * Skip authentication for local development only.
+ * Enabled automatically by `npm run dev` (NODE_ENV=development) or explicitly
+ * with SILO_DEV_NO_AUTH=true. Never enabled by the production defaults.
+ */
+export const devNoAuth = isDev || process.env.SILO_DEV_NO_AUTH === "true";
 export const TERMINAL_COLS = 105;
 export const TERMINAL_ROWS = 10;
 export const PROGRESS_TERMINAL_ROWS = 8;

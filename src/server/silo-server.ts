@@ -17,7 +17,7 @@ import { SocketHandler } from "./socket-handler";
 import { Settings } from "./settings";
 import dayjs from "dayjs";
 import { R } from "redbean-node";
-import { genSecret, isDev } from "../shared/utils";
+import { devNoAuth, genSecret, isDev } from "../shared/utils";
 import { generatePasswordHash } from "./password-hash";
 import { Bean } from "redbean-node/dist/bean";
 import { Arguments, Config, SiloSocket } from "./utils/socket";
@@ -290,7 +290,7 @@ export class SiloServer {
             // ***************************
 
             log.debug("auth", "check auto login");
-            if (await Settings.get("disableAuth")) {
+            if (devNoAuth || await Settings.get("disableAuth")) {
                 log.info("auth", "Disabled Auth: auto login to admin");
                 this.afterLogin(siloSocket, await R.findOne("user") as User);
                 siloSocket.emit("autoLogin");
@@ -367,8 +367,18 @@ export class SiloServer {
 
         log.debug("server", "User count: " + userCount);
 
+        // In development, seed a predictable admin account so auth can be skipped
+        // without running the setup flow on every fresh database.
+        if (devNoAuth && userCount == 0) {
+            const devUser = R.dispense("user");
+            devUser.username = "admin";
+            devUser.password = generatePasswordHash("admin123");
+            await R.store(devUser);
+            log.info("server", "Dev no-auth: seeded user admin/admin123");
+        }
+
         // If there is no record in user table, it is a new Silo instance, need to setup
-        if (userCount == 0) {
+        if (userCount == 0 && !devNoAuth) {
             log.info("server", "No user, need setup");
             this.needSetup = true;
         }

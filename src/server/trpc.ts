@@ -9,6 +9,7 @@ import type { JWTDecoded } from "./utils/socket";
 import type { User } from "./models/user";
 import { nonEmptyString } from "../shared/schemas";
 import { shake256, SHAKE256_LENGTH } from "./password-hash";
+import { devNoAuth } from "../shared/utils";
 
 export interface TrpcContext {
     server: SiloServer;
@@ -20,7 +21,7 @@ export async function createTrpcContext(server: SiloServer, options: CreateExpre
     const token = authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined;
     if (!token) {
         return { server,
-            user: null };
+            user: await devUserFallback() };
     }
 
     try {
@@ -36,6 +37,18 @@ export async function createTrpcContext(server: SiloServer, options: CreateExpre
         return { server,
             user: null };
     }
+}
+
+/**
+ * In development, resolve the seeded admin user so token-less requests (the
+ * auto-login flow) can access protected procedures.
+ * @returns The dev user, or null outside development.
+ */
+async function devUserFallback(): Promise<User | null> {
+    if (!devNoAuth) {
+        return null;
+    }
+    return await R.findOne("user", " active = 1 ") as User ?? null;
 }
 
 const t = initTRPC.context<TrpcContext>().create();
