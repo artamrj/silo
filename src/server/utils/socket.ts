@@ -5,7 +5,7 @@ import { ERROR_TYPE_VALIDATION } from "../../shared/utils";
 import { R } from "redbean-node";
 import { verifyPassword } from "../password-hash";
 import fs from "fs";
-import { z } from "zod";
+import type { Schema } from "../../shared/schemas";
 import type { ClientToServerEvents, ServerToClientEvents } from "../../shared/socket-events";
 
 export interface JWTDecoded {
@@ -49,12 +49,12 @@ export class ValidationError extends Error {
     }
 }
 
-export function validate<T>(schema: z.ZodType<T>, value: unknown): T {
-    const result = schema.safeParse(value);
-    if (!result.success) {
-        throw new ValidationError(result.error.issues[0]?.message ?? "Invalid input");
+export function validate<T>(schema: Schema<T>, value: unknown): T {
+    try {
+        return schema.parse(value);
+    } catch (e) {
+        throw new ValidationError(e instanceof Error ? e.message : "Invalid input");
     }
-    return result.data;
 }
 
 export function callbackError(error : unknown, callback : unknown) {

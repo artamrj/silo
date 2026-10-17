@@ -1,9 +1,27 @@
 import { io } from "socket.io-client";
 import { Socket } from "socket.io-client";
 import { defineComponent } from "vue";
-import { jwtDecode } from "jwt-decode";
 import type { Terminal } from "@xterm/xterm";
 import type { ClientToServerEvents, ServerToClientEvents } from "../../../shared/socket-events";
+
+/**
+ * Decode a JWT payload without verifying it. Only used to read the username for
+ * display; the server remains the source of truth for authentication.
+ * @param token The JWT string
+ * @returns The decoded payload, or undefined when the token is malformed
+ */
+function jwtDecode(token : string) : { username? : string } | undefined {
+    try {
+        const payload = token.split(".")[1];
+        if (!payload) {
+            return undefined;
+        }
+        const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+        return JSON.parse(decoded);
+    } catch (e) {
+        return undefined;
+    }
+}
 
 let socket : Socket<ServerToClientEvents, ClientToServerEvents>;
 

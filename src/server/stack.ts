@@ -16,7 +16,7 @@ import {
     UNKNOWN
 } from "../shared/utils";
 import { InteractiveTerminal, Terminal } from "./terminal";
-import * as childProcessAsync from "promisify-child-process";
+import { spawnAsync } from "./utils/exec";
 import { Settings } from "./settings";
 
 export class Stack {
@@ -81,9 +81,8 @@ export class Stack {
      * Get the status of the stack from `docker compose ps --format json`
      */
     async ps() : Promise<object> {
-        let res = await childProcessAsync.spawn("docker", this.getComposeOptions("ps", "--format", "json"), {
+        let res = await spawnAsync("docker", this.getComposeOptions("ps", "--format", "json"), {
             cwd: this.path,
-            encoding: "utf-8",
         });
         if (!res.stdout) {
             return {};
@@ -263,9 +262,8 @@ export class Stack {
 
     async validateComposeConfig() {
         try {
-            await childProcessAsync.spawn("docker", this.getComposeOptions("config"), {
+            await spawnAsync("docker", this.getComposeOptions("config"), {
                 cwd: this.path,
-                encoding: "utf-8",
             });
         } catch (e) {
             const processError = e as { stderr?: { toString: () => string }; stdout?: { toString: () => string } };
@@ -414,9 +412,7 @@ export class Stack {
         }
 
         // Get status from docker compose ls
-        let res = await childProcessAsync.spawn("docker", [ "compose", "ls", "--all", "--format", "json" ], {
-            encoding: "utf-8",
-        });
+        let res = await spawnAsync("docker", [ "compose", "ls", "--all", "--format", "json" ]);
 
         if (!res.stdout) {
             return stackList;
@@ -451,9 +447,7 @@ export class Stack {
     static async getStatusList() : Promise<Map<string, number>> {
         let statusList = new Map<string, number>();
 
-        let res = await childProcessAsync.spawn("docker", [ "compose", "ls", "--all", "--format", "json" ], {
-            encoding: "utf-8",
-        });
+        let res = await spawnAsync("docker", [ "compose", "ls", "--all", "--format", "json" ]);
 
         if (!res.stdout) {
             return statusList;
@@ -625,9 +619,8 @@ export class Stack {
         let statusList = new Map<string, Array<object>>();
 
         try {
-            let res = await childProcessAsync.spawn("docker", this.getComposeOptions("ps", "--format", "json"), {
+            let res = await spawnAsync("docker", this.getComposeOptions("ps", "--format", "json"), {
                 cwd: this.path,
-                encoding: "utf-8",
             });
 
             if (!res.stdout) {

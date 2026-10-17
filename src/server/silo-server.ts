@@ -1,13 +1,12 @@
 import dotenv from "dotenv";
 import { MainRouter } from "./routers/main-router";
 import * as fs from "node:fs";
-import { PackageJson } from "type-fest";
 import { Database } from "./database";
 import packageJSON from "../../package.json";
 import { log } from "./log";
 import * as socketIO from "socket.io";
 import express, { Express } from "express";
-import { parse } from "ts-command-line-args";
+import { parseArgs } from "node:util";
 import https from "https";
 import http from "http";
 import { Router } from "./router";
@@ -21,19 +20,21 @@ import { generatePasswordHash } from "./password-hash";
 import { Bean } from "redbean-node/dist/bean";
 import { Arguments, Config, SiloSocket } from "./utils/socket";
 import { DockerSocketHandler } from "./socket-handlers/local/docker-socket-handler";
-import expressStaticGzip from "express-static-gzip";
 import { paths } from "./paths";
 import path from "path";
 import { TerminalSocketHandler } from "./socket-handlers/local/terminal-socket-handler";
 import { Stack } from "./stack";
-import { Cron } from "croner";
 import gracefulShutdown from "http-graceful-shutdown";
 import User from "./models/user";
-import * as childProcessAsync from "promisify-child-process";
+import { spawnAsync } from "./utils/exec";
 import { Terminal } from "./terminal";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { appRouter, createTrpcContext } from "./trpc";
 import { httpRequestDuration, metricsRegistry, socketConnectionErrors, socketConnections } from "./metrics";
+import { serveClientAssets } from "./static";
+
+interface PackageJson {
+    version : string;
+    [key : string] : unknown;
+}
 
 const envFile = process.env.SILO_ENV_FILE ?? (process.env.NODE_ENV === "development" ? ".local/.env" : ".env");
 dotenv.config({
@@ -105,41 +106,47 @@ export class SiloServer {
         }
 
         // Define all possible arguments
-        let args = parse<Arguments>({
-            sslKey: {
-                type: String,
-                optional: true,
+        const { values } = parseArgs({
+            options: {
+                sslKey: {
+                    type: "string",
+                },
+                sslCert: {
+                    type: "string",
+                },
+                sslKeyPassphrase: {
+                    type: "string",
+                },
+                port: {
+                    type: "string",
+                },
+                hostname: {
+                    type: "string",
+                },
+                dataDir: {
+                    type: "string",
+                },
+                stacksDir: {
+                    type: "string",
+                },
+                enableConsole: {
+                    type: "boolean",
+                    default: false,
+                },
             },
-            sslCert: {
-                type: String,
-                optional: true,
-            },
-            sslKeyPassphrase: {
-                type: String,
-                optional: true,
-            },
-            port: {
-                type: Number,
-                optional: true,
-            },
-            hostname: {
-                type: String,
-                optional: true,
-            },
-            dataDir: {
-                type: String,
-                optional: true,
-            },
-            stacksDir: {
-                type: String,
-                optional: true,
-            },
-            enableConsole: {
-                type: Boolean,
-                optional: true,
-                defaultValue: false,
-            }
+            strict: false,
         });
+
+        const args : Arguments = {
+            sslKey: typeof values.sslKey === "string" ? values.sslKey : undefined,
+            sslCert: typeof values.sslCert === "string" ? values.sslCert : undefined,
+            sslKeyPassphrase: typeof values.sslKeyPassphrase === "string" ? values.sslKeyPassphrase : undefined,
+            port: typeof values.port === "string" ? Number(values.port) : undefined,
+            hostname: typeof values.hostname === "string" ? values.hostname : undefined,
+            dataDir: typeof values.dataDir === "string" ? values.dataDir : undefined,
+            stacksDir: typeof values.stacksDir === "string" ? values.stacksDir : undefined,
+            enableConsole: values.enableConsole === true,
+        };
 
         this.config = args as Config;
 
@@ -199,21 +206,13 @@ export class SiloServer {
             this.app.use(router.create(this.app, this));
         }
 
-        this.app.use("/trpc", createExpressMiddleware({
-            router: appRouter,
-            createContext: (options) => createTrpcContext(this, options),
-        }));
-
         this.app.get("/metrics", async (_request, response) => {
             response.setHeader("Content-Type", metricsRegistry.contentType);
             response.send(await metricsRegistry.metrics());
         });
 
-        // Static files
-        this.app.use("/", expressStaticGzip(paths.clientDist, {
-            enableBrotli: true,
-            orderPreference: [ "br", "gzip" ],
-        }));
+        // Static files (serves pre-compressed .br/.gz siblings produced by the client build)
+        serveClientAssets(this.app, paths.clientDist);
 
         // Universal Route Handler, must be at the end of all express routes.
         this.app.get("/{*splat}", async (_request, response) => {
@@ -392,13 +391,21 @@ export class SiloServer {
                 log.info("server", `Listening on ${this.config.port}`);
             }
 
-            // Run every 10 seconds
-            new Cron("*/10 * * * * *", {
-                protect: true,  // Enabled over-run protection.
-            }, () => {
-                //log.debug("server", "Cron job running");
-                this.sendStackList(true);
-            });
+            // Run every 10 seconds, guarding against overlapping runs.
+            let stackListBusy = false;
+            setInterval(async () => {
+                if (stackListBusy) {
+                    return;
+                }
+                stackListBusy = true;
+                try {
+                    await this.sendStackList(true);
+                } catch (e) {
+                    log.error("server", e);
+                } finally {
+                    stackListBusy = false;
+                }
+            }, 10 * 1000);
 
         });
 
@@ -535,9 +542,7 @@ export class SiloServer {
     }
 
     async getDockerNetworkList() : Promise<string[]> {
-        let res = await childProcessAsync.spawn("docker", [ "network", "ls", "--format", "{{.Name}}" ], {
-            encoding: "utf-8",
-        });
+        let res = await spawnAsync("docker", [ "network", "ls", "--format", "{{.Name}}" ]);
 
         if (!res.stdout) {
             return [];
@@ -559,15 +564,13 @@ export class SiloServer {
         let stats = new Map<string, object>();
 
         try {
-            let res = await childProcessAsync.spawn("docker", [ "stats", "--format", "json", "--no-stream" ], {
-                encoding: "utf-8",
-            });
+            let res = await spawnAsync("docker", [ "stats", "--format", "json", "--no-stream" ]);
 
             if (!res.stdout) {
                 return stats;
             }
 
-            let lines = res.stdout?.toString().split("\n");
+            let lines = res.stdout.toString().split("\n");
 
             for (let line of lines) {
                 try {

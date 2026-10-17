@@ -15,7 +15,7 @@ import {
     JWTDecoded,
     ValidationError
 } from "../utils/socket";
-import { passwordStrength } from "check-password-strength";
+import { isPasswordTooWeak } from "../utils/password-strength";
 import jwt from "jsonwebtoken";
 import { Settings } from "../settings";
 import fs, { promises as fsAsync } from "fs";
@@ -33,7 +33,7 @@ export class MainSocketHandler extends SocketHandler {
         // Setup
         socket.on("setup", async (username, password, callback) => {
             try {
-                if (passwordStrength(password).value === "Too weak") {
+                if (isPasswordTooWeak(password)) {
                     throw new Error("Password is too weak. It should contain alphabetic and numeric characters. It must be at least 6 characters in length.");
                 }
 
@@ -203,7 +203,7 @@ export class MainSocketHandler extends SocketHandler {
                     throw new Error("Invalid new password");
                 }
 
-                if (passwordStrength(password.newPassword).value === "Too weak") {
+                if (isPasswordTooWeak(password.newPassword)) {
                     throw new Error("Password is too weak. It should contain alphabetic and numeric characters. It must be at least 6 characters in length.");
                 }
 

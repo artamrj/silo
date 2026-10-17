@@ -27,8 +27,8 @@ export interface ServerToClientEvents {
 }
 
 /**
- * Socket.IO is retained for streaming and push events. Request/response APIs are
- * moving to tRPC; this map documents the events that remain on the socket.
+ * Socket.IO carries all client/server communication: streaming output, push
+ * events and request/response calls.
  */
 export interface ClientToServerEvents {
     // Socket.IO requires a catch-all signature while legacy events are migrated.
@@ -40,4 +40,5 @@ export interface ClientToServerEvents {
     terminalResize: (terminalName: string, rows: number, columns: number) => void;
     terminalJoin: (terminalName: string, callback: SocketCallback<{ buffer?: string }>) => void;
     requestStackList: (callback: SocketCallback) => void;
+    composerize: (command: string, callback: (result: SocketResult & { composeTemplate?: string }) => void) => void;
 }

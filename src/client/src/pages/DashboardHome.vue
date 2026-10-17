@@ -42,7 +42,6 @@
 
 <script>
 import { statusNameShort } from "../../../shared/utils";
-import { trpc } from "../trpc";
 
 export default {
     components: {
@@ -91,13 +90,14 @@ export default {
                 throw new Error("Please enter a docker run command");
             }
 
-            try {
-                const result = await trpc.compose.fromDockerRun.mutate({ command: this.dockerRunCommand });
-                this.$root.composeTemplate = result.composeTemplate;
-                this.$router.push("/compose");
-            } catch (error) {
-                this.$root.toastError(error instanceof Error ? error.message : "Conversion failed");
-            }
+            this.$root.getSocket().emit("composerize", this.dockerRunCommand, (res) => {
+                if (res.ok) {
+                    this.$root.composeTemplate = res.composeTemplate;
+                    this.$router.push("/compose");
+                } else {
+                    this.$root.toastError(res.msg ?? "Conversion failed");
+                }
+            });
         },
     }
 };
