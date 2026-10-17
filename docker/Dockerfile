@@ -25,7 +25,6 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list \
     && apt-get update \
     && apt-get install --yes --no-install-recommends docker-ce-cli docker-compose-plugin \
-    && npm install --global tsx \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -43,4 +42,5 @@ VOLUME ["/app/data"]
 EXPOSE 5001
 HEALTHCHECK --interval=60s --timeout=30s --start-period=60s --retries=5 CMD ["/app/bin/healthcheck"]
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["tsx", "./src/server/index.ts"]
+# Use the locally installed tsx (a production dependency) instead of a global install.
+CMD ["node", "./node_modules/.bin/tsx", "./src/server/index.ts"]

@@ -2,7 +2,7 @@ import { io } from "socket.io-client";
 import { Socket } from "socket.io-client";
 import { defineComponent } from "vue";
 import { jwtDecode } from "jwt-decode";
-import { Terminal } from "@xterm/xterm";
+import type { Terminal } from "@xterm/xterm";
 import type { ClientToServerEvents, ServerToClientEvents } from "../../../shared/socket-events";
 
 let socket : Socket<ServerToClientEvents, ClientToServerEvents>;

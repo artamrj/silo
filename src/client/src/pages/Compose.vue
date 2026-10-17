@@ -253,12 +253,12 @@ import { AppIcon } from "../icon";
 import {
     COMBINED_TERMINAL_COLS,
     COMBINED_TERMINAL_ROWS,
-    copyYAMLComments, envsubstYAML,
     getCombinedTerminalName,
     getComposeTerminalName,
     PROGRESS_TERMINAL_ROWS,
     RUNNING
 } from "../../../shared/utils";
+import { copyYAMLComments, envsubstYAML } from "../../../shared/yaml";
 import NetworkInput from "../components/NetworkInput.vue";
 import ArrayInput from "../components/ArrayInput.vue";
 import Container from "../components/Container.vue";

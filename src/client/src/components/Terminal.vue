@@ -8,6 +8,8 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { TERMINAL_COLS, TERMINAL_ROWS } from "../../../shared/utils";
+import "@xterm/xterm/lib/xterm.js";
+import "@xterm/xterm/css/xterm.css";
 
 export default {
     /**

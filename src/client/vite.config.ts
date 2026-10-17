@@ -1,10 +1,78 @@
-import { defineConfig } from "vite";
+import { readFileSync } from "node:fs";
+import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { constants, brotliCompress, gzip } from "node:zlib";
+import { promisify } from "node:util";
+import { defineConfig, type Plugin } from "vite";
 import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
-import viteCompression from "vite-plugin-compression";
 import "vue";
 
-const viteCompressionFilter = /\.(js|mjs|json|css|html|svg)$/i;
+const gzipAsync = promisify(gzip);
+const brotliAsync = promisify(brotliCompress);
+
+const packageJSON = JSON.parse(
+    readFileSync(new URL("../../package.json", import.meta.url), "utf-8"),
+);
+
+const compressible = /\.(js|mjs|json|css|html|svg)$/i;
+const COMPRESSION_THRESHOLD = 1024;
+
+async function collectFiles(dir : string) : Promise<string[]> {
+    const entries = await readdir(dir, { withFileTypes: true });
+    const files = await Promise.all(entries.map(async (entry) => {
+        const full = join(dir, entry.name);
+        return entry.isDirectory() ? collectFiles(full) : [ full ];
+    }));
+    return files.flat();
+}
+
+/**
+ * Emit pre-compressed `.gz` and `.br` siblings for text assets.
+ * Implemented inline because running two instances of a compression plugin
+ * makes the second skip every file (shared mtime cache).
+ */
+function precompress() : Plugin {
+    let outDir = "";
+    return {
+        name: "silo-precompress",
+        apply: "build",
+        enforce: "post",
+        configResolved(config) {
+            outDir = isAbsolute(config.build.outDir)
+                ? config.build.outDir
+                : resolve(config.root, config.build.outDir);
+        },
+        async closeBundle() {
+            const files = (await collectFiles(outDir)).filter((file) => compressible.test(file));
+
+            await Promise.all(files.map(async (file) => {
+                const { size } = await stat(file);
+                if (size < COMPRESSION_THRESHOLD) {
+                    return;
+                }
+
+                const content = await readFile(file);
+                const [ gz, br ] = await Promise.all([
+                    gzipAsync(content, { level: constants.Z_BEST_COMPRESSION }),
+                    brotliAsync(content, {
+                        params: {
+                            [constants.BROTLI_PARAM_QUALITY]: constants.BROTLI_MAX_QUALITY,
+                            [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
+                        },
+                    }),
+                ]);
+
+                await Promise.all([
+                    writeFile(`${file}.gz`, gz),
+                    writeFile(`${file}.br`, br),
+                ]);
+
+                console.log(`precompressed ${relative(process.cwd(), file)}`);
+            }));
+        },
+    };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -25,19 +93,42 @@ export default defineConfig({
         },
     },
     define: {
-        "FRONTEND_VERSION": JSON.stringify(process.env.npm_package_version),
+        "FRONTEND_VERSION": JSON.stringify(packageJSON.version),
     },
     root: "./src/client",
     build: {
         outDir: "../../dist/client",
         emptyOutDir: true,
+        target: "es2022",
+        reportCompressedSize: true,
+        rolldownOptions: {
+            output: {
+                codeSplitting: {
+                    groups: [
+                        {
+                            name: "vendor-vue",
+                            test: /node_modules[\\/](vue|@vue|vue-router|vue-i18n|@intlify)[\\/]/,
+                        },
+                        {
+                            name: "vendor-xterm",
+                            test: /node_modules[\\/](@xterm|@homebridge)[\\/]/,
+                        },
+                        {
+                            name: "vendor-editor",
+                            test: /node_modules[\\/](@codemirror|@lezer|vue-codemirror6|codemirror)[\\/]/,
+                        },
+                        {
+                            name: "vendor-socket",
+                            test: /node_modules[\\/](socket\.io-client|engine\.io-client|@socket\.io)[\\/]/,
+                        },
+                    ],
+                },
+            },
+        },
     },
     plugins: [
         vue(),
         tailwindcss(),
-        viteCompression({
-            algorithm: "gzip",
-            filter: viteCompressionFilter,
-        }),
+        precompress(),
     ],
 });

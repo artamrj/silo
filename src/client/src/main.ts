@@ -1,5 +1,3 @@
-import "../../shared/dayjs";
-
 import { createApp, defineComponent, h } from "vue";
 import App from "./App.vue";
 import { router } from "./router";
@@ -8,10 +6,8 @@ import { i18n } from "./i18n";
 
 // Dependencies
 import { toast } from "./toast";
-import "@xterm/xterm/lib/xterm.js";
 
 // CSS
-import "@xterm/xterm/css/xterm.css";
 import "./styles/main.css";
 
 // Minxins

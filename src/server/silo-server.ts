@@ -23,6 +23,7 @@ import { Bean } from "redbean-node/dist/bean";
 import { Arguments, Config, SiloSocket } from "./utils/socket";
 import { DockerSocketHandler } from "./socket-handlers/local/docker-socket-handler";
 import expressStaticGzip from "express-static-gzip";
+import { paths } from "./paths";
 import path from "path";
 import { TerminalSocketHandler } from "./socket-handlers/local/terminal-socket-handler";
 import { Stack } from "./stack";
@@ -159,9 +160,9 @@ export class SiloServer {
         this.packageJSON = packageJSON as PackageJson;
 
         try {
-            this.indexHTML = fs.readFileSync("./dist/client/index.html").toString();
+            this.indexHTML = fs.readFileSync(paths.clientIndexHTML).toString();
         } catch (e) {
-            // "dist/index.html" is not necessary for development
+            // "dist/client/index.html" is not necessary for development
             if (process.env.NODE_ENV !== "development") {
                 log.error("server", "Error: Cannot find 'dist/client/index.html'. Run npm run build:client first.");
                 process.exit(1);
@@ -210,8 +211,9 @@ export class SiloServer {
         });
 
         // Static files
-        this.app.use("/", expressStaticGzip("dist/client", {
-            enableBrotli: false,
+        this.app.use("/", expressStaticGzip(paths.clientDist, {
+            enableBrotli: true,
+            orderPreference: [ "br", "gzip" ],
         }));
 
         // Universal Route Handler, must be at the end of all express routes.

@@ -16,6 +16,7 @@
         "dev:server": "cross-env NODE_ENV=development tsx watch --inspect ./src/server/index.ts",
         "dev:client": "cross-env NODE_ENV=development vite --host --config ./src/client/vite.config.ts",
         "build:client": "vite build --config ./src/client/vite.config.ts",
+        "check-size": "node ./scripts/check-bundle-size.mjs",
         "build:docker": "docker build -t ghcr.io/artamrj/silo:latest -f ./docker/Dockerfile .",
         "start-docker": "docker run --rm -p 5001:5001 --name silo ghcr.io/artamrj/silo:latest",
         "reset-password": "tsx ./scripts/reset-password.ts"
@@ -74,7 +75,6 @@
         "tailwindcss": "^4.3.3",
         "typescript": "~6.0.3",
         "vite": "~8.1.5",
-        "vite-plugin-compression": "~0.5.1",
         "vitest": "^4.1.12",
         "vue": "~3.5.40",
         "vue-codemirror6": "^1.6.1",

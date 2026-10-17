@@ -10,6 +10,7 @@ import Dialect from "knex/lib/dialects/sqlite3/index.js";
 
 import sqlite from "sqlite3";
 import { sleep } from "../shared/utils";
+import { paths } from "./paths";
 
 interface DBConfig {
     type?: "sqlite" | "mysql";
@@ -31,7 +32,7 @@ export class Database {
 
     static dbConfig: DBConfig = {};
 
-    static knexMigrationsPath = "./src/server/migrations";
+    static knexMigrationsPath = paths.migrationsDir;
 
     private static server : SiloServer;
 
@@ -148,7 +149,7 @@ export class Database {
         R.freeze(true);
 
         if (autoloadModels) {
-            R.autoloadModels("./src/server/models", "ts");
+            R.autoloadModels(paths.modelsDir, "ts");
         }
 
         if (dbConfig.type === "sqlite") {

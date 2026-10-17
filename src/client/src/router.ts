@@ -1,21 +1,22 @@
 import { createRouter, createWebHistory } from "vue-router";
 
+// Only the shell is loaded eagerly; every page is code-split.
 import Layout from "./layouts/Layout.vue";
-import Setup from "./pages/Setup.vue";
-import Dashboard from "./pages/Dashboard.vue";
-import DashboardHome from "./pages/DashboardHome.vue";
-import Console from "./pages/Console.vue";
-import Compose from "./pages/Compose.vue";
-import ContainerTerminal from "./pages/ContainerTerminal.vue";
 
+const Dashboard = () => import("./pages/Dashboard.vue");
+const DashboardHome = () => import("./pages/DashboardHome.vue");
+const Setup = () => import("./pages/Setup.vue");
+const Console = () => import("./pages/Console.vue");
+const Compose = () => import("./pages/Compose.vue");
+const ContainerTerminal = () => import("./pages/ContainerTerminal.vue");
 const Settings = () => import("./pages/Settings.vue");
 
 // Settings - Sub Pages
-import Appearance from "./components/settings/Appearance.vue";
-import General from "./components/settings/General.vue";
+const Appearance = () => import("./components/settings/Appearance.vue");
+const General = () => import("./components/settings/General.vue");
 const Security = () => import("./components/settings/Security.vue");
 const GlobalEnv = () => import("./components/settings/GlobalEnv.vue");
-import About from "./components/settings/About.vue";
+const About = () => import("./components/settings/About.vue");
 
 const routes = [
     {
