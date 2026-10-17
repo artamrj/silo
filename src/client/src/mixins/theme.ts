@@ -5,8 +5,7 @@ export default defineComponent({
         return {
             system: (window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light",
             userTheme: localStorage.theme,
-            statusPageTheme: "light",
-            forceStatusPageTheme: false,
+            isMobile: window.matchMedia("(max-width: 768px)").matches,
             path: "",
         };
     },
@@ -33,24 +32,11 @@ export default defineComponent({
             localStorage.theme = to;
         },
 
-        styleElapsedTime(to, from) {
-            localStorage.styleElapsedTime = to;
-        },
-
         theme(to, from) {
             document.body.classList.remove(from);
             document.body.classList.add(this.theme);
             this.updateThemeColorMeta();
         },
-
-        userHeartbeatBar(to, from) {
-            localStorage.heartbeatBarTheme = to;
-        },
-
-        heartbeatBarTheme(to, from) {
-            document.body.classList.remove(from);
-            document.body.classList.add(this.heartbeatBarTheme);
-        }
     },
 
     mounted() {
@@ -61,9 +47,25 @@ export default defineComponent({
 
         document.body.classList.add(this.theme);
         this.updateThemeColorMeta();
+
+        this.mobileQuery = window.matchMedia("(max-width: 768px)");
+        this.mobileQuery.addEventListener("change", this.onMobileChange);
+    },
+
+    beforeUnmount() {
+        this.mobileQuery?.removeEventListener("change", this.onMobileChange);
     },
 
     methods: {
+        /**
+         * Track viewport width to switch between mobile and desktop layouts.
+         * @param {MediaQueryListEvent} event Media query change event
+         * @returns {void}
+         */
+        onMobileChange(event) {
+            this.isMobile = event.matches;
+        },
+
         /**
          * Update the theme color meta tag
          * @returns {void}

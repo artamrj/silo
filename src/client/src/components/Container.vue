@@ -254,30 +254,14 @@ export default defineComponent({
         },
 
         terminalRouteLink() {
-            if (this.endpoint) {
-                return {
-                    name: "containerTerminalEndpoint",
-                    params: {
-                        endpoint: this.endpoint,
-                        stackName: this.stackName,
-                        serviceName: this.name,
-                        type: "bash",
-                    },
-                };
-            } else {
-                return {
-                    name: "containerTerminal",
-                    params: {
-                        stackName: this.stackName,
-                        serviceName: this.name,
-                        type: "bash",
-                    },
-                };
-            }
-        },
-
-        endpoint() {
-            return this.$parent.$parent.endpoint;
+            return {
+                name: "containerTerminal",
+                params: {
+                    stackName: this.stackName,
+                    serviceName: this.name,
+                    type: "bash",
+                },
+            };
         },
 
         stack() {
@@ -359,12 +343,8 @@ export default defineComponent({
     },
     methods: {
         parsePort(port) {
-            if (this.stack.endpoint) {
-                return parseDockerPort(port, this.stack.primaryHostname);
-            } else {
-                let hostname = this.$root.info.primaryHostname || location.hostname;
-                return parseDockerPort(port, hostname);
-            }
+            let hostname = this.$root.info.primaryHostname || location.hostname;
+            return parseDockerPort(port, hostname);
         },
         remove() {
             delete this.jsonObject.services[this.name];

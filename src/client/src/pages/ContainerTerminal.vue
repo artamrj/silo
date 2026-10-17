@@ -7,7 +7,7 @@
                 <router-link :to="sh" class="btn btn-normal me-2">{{ $t("Switch to sh") }}</router-link>
             </div>
 
-            <Terminal :key="terminalName" class="terminal" :rows="20" mode="interactive" :name="terminalName" :stack-name="stackName" :service-name="serviceName" :shell="shell" :endpoint="endpoint"></Terminal>
+            <Terminal :key="terminalName" class="terminal" :rows="20" mode="interactive" :name="terminalName" :stack-name="stackName" :service-name="serviceName" :shell="shell"></Terminal>
         </div>
     </transition>
 </template>
@@ -29,9 +29,6 @@ export default {
         stackName() {
             return this.$route.params.stackName;
         },
-        endpoint() {
-            return this.$route.params.endpoint || "";
-        },
         shell() {
             return this.$route.params.type;
         },
@@ -39,12 +36,10 @@ export default {
             return this.$route.params.serviceName;
         },
         terminalName() {
-            return getContainerExecTerminalName(this.endpoint, this.stackName, this.serviceName, 0, this.shell);
+            return getContainerExecTerminalName(this.stackName, this.serviceName, 0, this.shell);
         },
         sh() {
-            let endpoint = this.$route.params.endpoint;
-
-            let data = {
+            return {
                 name: "containerTerminal",
                 params: {
                     stackName: this.stackName,
@@ -52,13 +47,6 @@ export default {
                     type: "sh",
                 },
             };
-
-            if (endpoint) {
-                data.name = "containerTerminalEndpoint";
-                data.params.endpoint = endpoint;
-            }
-
-            return data;
         },
     },
     mounted() {

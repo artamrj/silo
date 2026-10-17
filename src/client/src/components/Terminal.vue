@@ -23,11 +23,6 @@ export default {
             required: true,
         },
 
-        endpoint: {
-            type: String,
-            required: true,
-        },
-
         // Require if mode is interactive
         stackName: {
             type: String,
@@ -153,7 +148,7 @@ export default {
     },
 
     methods: {
-        bind(endpoint, name) {
+        bind(name) {
             // Workaround: normally this.name should be set, but it is not sometimes, so we use the parameter, but eventually this.name and name must be the same name
             if (name) {
                 this.$root.unbindTerminal(name);

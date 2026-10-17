@@ -107,7 +107,7 @@ export class DockerSocketHandler extends SocketHandler {
 
                 callbackResult({
                     ok: true,
-                    stack: await stack.toJSON(""),
+                    stack: await stack.toJSON(),
                 }, callback);
             } catch (e) {
                 callbackError(e, callback);

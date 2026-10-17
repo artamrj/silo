@@ -75,7 +75,6 @@
                     ref="progressTerminal"
                     class="mb-3 terminal"
                     :name="terminalName"
-                    :endpoint="endpoint"
                     :rows="progressTerminalRows"
                     @has-data="showProgressTerminal = true; submitted = true;"
                 ></Terminal>
@@ -150,7 +149,6 @@
                             ref="combinedTerminal"
                             class="mb-3 terminal"
                             :name="combinedTerminalName"
-                            :endpoint="endpoint"
                             :rows="combinedTerminalRows"
                             :cols="combinedTerminalCols"
                             style="height: 315px;"
@@ -402,30 +400,22 @@ export default {
             if (!this.stack.name) {
                 return "";
             }
-            return getComposeTerminalName(this.endpoint, this.stack.name);
+            return getComposeTerminalName(this.stack.name);
         },
 
         combinedTerminalName() {
             if (!this.stack.name) {
                 return "";
             }
-            return getCombinedTerminalName(this.endpoint, this.stack.name);
+            return getCombinedTerminalName(this.stack.name);
         },
 
         networks() {
             return this.jsonConfig.networks;
         },
 
-        endpoint() {
-            return this.stack.endpoint || this.$route.params.endpoint || "";
-        },
-
         url() {
-            if (this.stack.endpoint) {
-                return `/compose/${this.stack.name}/${this.stack.endpoint}`;
-            } else {
-                return `/compose/${this.stack.name}`;
-            }
+            return `/compose/${this.stack.name}`;
         },
 
         deleteConfirmationText() {
@@ -503,7 +493,6 @@ export default {
                 composeYAML,
                 composeENV,
                 isManagedBySilo: true,
-                endpoint: "",
             };
 
             this.yamlCodeChange();
@@ -583,12 +572,12 @@ export default {
             clearTimeout(dockerStatsTimeout);
 
             // Leave Combined Terminal
-            console.debug("leaveCombinedTerminal", this.endpoint, this.stack.name);
+            console.debug("leaveCombinedTerminal", this.stack.name);
             this.$root.emitServer("leaveCombinedTerminal", this.stack.name, () => {});
         },
 
         bindTerminal() {
-            this.$refs.progressTerminal?.bind?.(this.endpoint, this.terminalName);
+            this.$refs.progressTerminal?.bind?.(this.terminalName);
         },
 
         loadStack() {

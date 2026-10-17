@@ -34,8 +34,6 @@ async function initRandomBytes() {
     }
 }
 
-export const ALL_ENDPOINTS = "##ALL_SILO_ENDPOINTS##";
-
 // Stack Status
 export const UNKNOWN = 0;
 export const CREATED_FILE = 1;
@@ -106,21 +104,6 @@ export const acceptedComposeFileNames = [
 ];
 
 /**
- * Generate a decimal integer number from a string
- * @param str Input
- * @param length Default is 10 which means 0 - 9
- */
-export function intHash(str : string, length = 10) : number {
-    // A simple hashing function (you can use more complex hash functions if needed)
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash += str.charCodeAt(i);
-    }
-    // Normalize the hash to the range [0, 10]
-    return (hash % length + length) % length; // Ensure the result is non-negative
-}
-
-/**
  * Delays for specified number of seconds
  * @param ms Number of milliseconds to sleep for
  */
@@ -188,20 +171,16 @@ export function getCryptoRandomInt(min: number, max: number):number {
     }
 }
 
-export function getComposeTerminalName(endpoint : string, stack : string) {
-    return "compose-" + endpoint + "-" + stack;
+export function getComposeTerminalName(stack : string) {
+    return "compose-" + stack;
 }
 
-export function getCombinedTerminalName(endpoint : string, stack : string) {
-    return "combined-" + endpoint + "-" + stack;
+export function getCombinedTerminalName(stack : string) {
+    return "combined-" + stack;
 }
 
-export function getContainerTerminalName(endpoint : string, container : string) {
-    return "container-" + endpoint + "-" + container;
-}
-
-export function getContainerExecTerminalName(endpoint : string, stackName : string, container : string, index : number, shell = "sh") {
-    return "container-exec-" + endpoint + "-" + stackName + "-" + container + "-" + index + "-" + shell;
+export function getContainerExecTerminalName(stackName : string, container : string, index : number, shell = "sh") {
+    return "container-exec-" + stackName + "-" + container + "-" + index + "-" + shell;
 }
 
 export function copyYAMLComments(doc : Document, src : Document) {

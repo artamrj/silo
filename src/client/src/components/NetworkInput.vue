@@ -65,10 +65,6 @@ export default {
         editorFocus() {
             return this.$parent.$parent.editorFocus;
         },
-
-        endpoint() {
-            return this.$parent.$parent.endpoint;
-        },
     },
     watch: {
         "jsonConfig.networks": {

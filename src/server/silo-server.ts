@@ -586,7 +586,7 @@ export class SiloServer {
                 let map : Map<string, object> = new Map();
 
                 for (let [ stackName, stack ] of stackList) {
-                    map.set(stackName, stack.toSimpleJSON(""));
+                    map.set(stackName, stack.toSimpleJSON());
                 }
 
                 log.debug("server", "Send stack list to user: " + siloSocket.id);
