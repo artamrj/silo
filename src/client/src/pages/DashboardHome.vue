@@ -2,7 +2,7 @@
     <transition name="slide-fade" appear>
         <div v-if="$route.name === 'DashboardHome'">
             <h1 class="mb-3 tracking-tight">
-                {{ $t("home") }}
+                {{ $t("Dashboard") }}
             </h1>
 
             <!-- Stats -->

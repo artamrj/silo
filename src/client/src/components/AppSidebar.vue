@@ -8,7 +8,7 @@
             <router-link
                 to="/"
                 class="flex size-11 shrink-0 items-center justify-center rounded-xl no-underline transition-transform duration-200 hover:scale-105 active:scale-95"
-                :aria-label="$t('home')"
+                :aria-label="$t('Dashboard')"
             >
                 <object width="40" height="40" data="/icon.svg" class="rounded-xl" />
             </router-link>
@@ -90,8 +90,8 @@ export default {
             return [
                 {
                     to: "/",
-                    icon: "home",
-                    label: "home",
+                    icon: "dashboard",
+                    label: "Dashboard",
                 },
                 {
                     to: "/console",

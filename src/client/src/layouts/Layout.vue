@@ -29,8 +29,8 @@
             :aria-label="$t('Main navigation')"
         >
             <router-link to="/" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-ink-muted no-underline aria-[current=page]:font-semibold aria-[current=page]:text-primary">
-                <app-icon icon="home" size="lg" />
-                {{ $t("home") }}
+                <app-icon icon="dashboard" size="lg" />
+                {{ $t("Dashboard") }}
             </router-link>
 
             <router-link to="/console" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-ink-muted no-underline aria-[current=page]:font-semibold aria-[current=page]:text-primary">
