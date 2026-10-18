@@ -12,21 +12,28 @@ export interface BaseRes {
     msg?: string;
 }
 
-let randomBytes : (numBytes: number) => Uint8Array;
-initRandomBytes();
+/**
+ * `crypto.getRandomValues` refuses to fill more than 64 KiB at once, so larger
+ * requests are filled in chunks.
+ */
+const RANDOM_BYTES_CHUNK = 65536;
 
-async function initRandomBytes() {
-    if (typeof window !== "undefined" && window.crypto) {
-        randomBytes = function randomBytes(numBytes: number) {
-            const bytes = new Uint8Array(numBytes);
-            for (let i = 0; i < numBytes; i += 65536) {
-                window.crypto.getRandomValues(bytes.subarray(i, i + Math.min(numBytes - i, 65536)));
-            }
-            return bytes;
-        };
-    } else {
-        randomBytes = (await import("node:crypto")).randomBytes;
+/**
+ * Fill a buffer with cryptographically secure random bytes.
+ *
+ * `globalThis.crypto` exists in both browsers and Node.js (>= 19), so this can
+ * stay synchronous. The previous dynamic `import("node:crypto")` left
+ * `randomBytes` undefined until the first microtask, which raced with anything
+ * that needed randomness during synchronous startup.
+ * @param numBytes Number of bytes to generate
+ * @returns The random bytes
+ */
+function randomBytes(numBytes : number) : Uint8Array {
+    const bytes = new Uint8Array(numBytes);
+    for (let i = 0; i < numBytes; i += RANDOM_BYTES_CHUNK) {
+        globalThis.crypto.getRandomValues(bytes.subarray(i, i + Math.min(numBytes - i, RANDOM_BYTES_CHUNK)));
     }
+    return bytes;
 }
 
 // Stack Status

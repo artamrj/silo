@@ -56,6 +56,40 @@ Silo uses tRPC for typed request/response APIs and Socket.IO for real-time push
 events and terminal streams. Prometheus metrics are available at `/metrics` and
 runtime logs are emitted as structured JSON.
 
+## Database
+
+Silo stores its data in a single SQLite file, `silo.db`, inside the data
+directory (`.local/data` in development, `/app/data` in the container). It uses
+Node's built-in `node:sqlite` driver, so no native addon needs to be compiled.
+
+The schema is versioned with `PRAGMA user_version` and applied on startup by the
+migrations in `src/server/db/migrations.ts`. Every migration runs in its own
+transaction, so a failure leaves the database at the previous version rather
+than half-applied.
+
+### Upgrading from the old Knex/RedBean database
+
+The first start after upgrading adopts the existing database in place: rows in
+`user` and `setting` are preserved, and the old `knex_migrations` bookkeeping
+tables are dropped. Before any change is made, a byte-for-byte snapshot is
+written to `silo.pre-migrate.db` next to `silo.db`.
+
+### Rollback
+
+If an upgrade has to be undone:
+
+1. Stop Silo (`docker compose down`, or stop the dev server).
+2. Replace the current database with the snapshot:
+
+   ```bash
+   cd /path/to/data          # /app/data in the container, .local/data in dev
+   mv silo.pre-migrate.db silo.db
+   rm -f silo.db-wal silo.db-shm
+   ```
+
+3. Pin an older image tag (for example `ghcr.io/artamrj/silo:v0.1.0`) and start
+   Silo again.
+
 ## Project structure
 
 ```text

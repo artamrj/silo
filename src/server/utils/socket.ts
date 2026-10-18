@@ -2,7 +2,9 @@ import { Socket } from "socket.io";
 import { Terminal } from "../terminal";
 import { log } from "../log";
 import { ERROR_TYPE_VALIDATION } from "../../shared/utils";
-import { R } from "redbean-node";
+import { Database } from "../database";
+import { findUserById } from "../db/repositories/users";
+import { User } from "../models/user";
 import { verifyPassword } from "../password-hash";
 import fs from "fs";
 import { formatSchemaError, type Schema } from "../../shared/schemas";
@@ -95,20 +97,18 @@ export function callbackResult(result : unknown, callback : unknown) {
     callback(result);
 }
 
-export async function doubleCheckPassword(socket : SiloSocket, currentPassword : unknown) {
+export async function doubleCheckPassword(socket : SiloSocket, currentPassword : unknown) : Promise<User> {
     if (typeof currentPassword !== "string") {
         throw new Error("Wrong data type?");
     }
 
-    let user = await R.findOne("user", " id = ? AND active = 1 ", [
-        socket.userID,
-    ]);
+    const row = findUserById(Database.getDb(), socket.userID);
 
-    if (!user || !verifyPassword(currentPassword, user.password)) {
+    if (!row || row.active !== 1 || !verifyPassword(currentPassword, row.password ?? "")) {
         throw new Error("Incorrect current password");
     }
 
-    return user;
+    return new User(row);
 }
 
 export function fileExists(file : string) {

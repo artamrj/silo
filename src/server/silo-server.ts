@@ -14,10 +14,10 @@ import { Socket } from "socket.io";
 import { MainSocketHandler } from "./socket-handlers/main-socket-handler";
 import { SocketHandler } from "./socket-handler";
 import { Settings } from "./settings";
-import { R } from "redbean-node";
+import { countUsers, createUser, findFirstUser } from "./db/repositories/users";
+import { getSetting, setSetting } from "./db/repositories/settings";
 import { devNoAuth, genSecret, isDev } from "../shared/utils";
 import { generatePasswordHash } from "./password-hash";
-import { Bean } from "redbean-node/dist/bean";
 import { Arguments, Config, SiloSocket } from "./utils/socket";
 import { DockerSocketHandler } from "./socket-handlers/local/docker-socket-handler";
 import { paths } from "./paths";
@@ -312,7 +312,10 @@ export class SiloServer {
             log.debug("auth", "check auto login");
             if (devNoAuth || await Settings.get("disableAuth")) {
                 log.info("auth", "Disabled Auth: auto login to admin");
-                this.afterLogin(siloSocket, await R.findOne("user") as User);
+                const firstUser = findFirstUser(Database.getDb());
+                if (firstUser) {
+                    this.afterLogin(siloSocket, new User(firstUser));
+                }
                 siloSocket.emit("autoLogin");
             } else {
                 log.debug("auth", "need auth");
@@ -369,31 +372,28 @@ export class SiloServer {
         }
 
         // First time setup if needed
-        let jwtSecretBean = await R.findOne("setting", " `key` = ? ", [
-            "jwtSecret",
-        ]);
+        const existingSecret = getSetting(Database.getDb(), "jwtSecret");
 
-        if (! jwtSecretBean) {
+        if (!existingSecret) {
             log.info("server", "JWT secret is not found, generate one.");
-            jwtSecretBean = await this.initJWTSecret();
+            this.jwtSecret = await this.initJWTSecret();
             log.info("server", "Stored JWT secret into database");
         } else {
             log.debug("server", "Load JWT secret from database.");
+            this.jwtSecret = existingSecret;
         }
 
-        this.jwtSecret = jwtSecretBean.value;
-
-        const userCount = (await R.knex("user").count("id as count").first()).count;
+        const userCount = countUsers(Database.getDb());
 
         log.debug("server", "User count: " + userCount);
 
         // In development, seed a predictable admin account so auth can be skipped
         // without running the setup flow on every fresh database.
         if (devNoAuth && userCount == 0) {
-            const devUser = R.dispense("user");
-            devUser.username = "admin";
-            devUser.password = generatePasswordHash("admin123");
-            await R.store(devUser);
+            createUser(Database.getDb(), {
+                username: "admin",
+                password: generatePasswordHash("admin123"),
+            });
             log.info("server", "Dev no-auth: seeded user admin/admin123");
         }
 
@@ -509,21 +509,12 @@ export class SiloServer {
 
     /**
      * Init or reset JWT secret
-     * @returns  JWT secret
+     * @returns The new JWT secret
      */
-    async initJWTSecret() : Promise<Bean> {
-        let jwtSecretBean = await R.findOne("setting", " `key` = ? ", [
-            "jwtSecret",
-        ]);
-
-        if (!jwtSecretBean) {
-            jwtSecretBean = R.dispense("setting");
-            jwtSecretBean.key = "jwtSecret";
-        }
-
-        jwtSecretBean.value = generatePasswordHash(genSecret());
-        await R.store(jwtSecretBean);
-        return jwtSecretBean;
+    async initJWTSecret() : Promise<string> {
+        const secret = generatePasswordHash(genSecret());
+        setSetting(Database.getDb(), "jwtSecret", secret, null);
+        return secret;
     }
 
     /**

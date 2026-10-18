@@ -1,248 +1,181 @@
+import type { DatabaseSync } from "node:sqlite";
 import { log } from "./log";
-import { R } from "redbean-node";
-import { SiloServer } from "./silo-server";
 import fs from "fs";
 import path from "path";
-import knex from "knex";
-
-// @ts-ignore
-import Dialect from "knex/lib/dialects/sqlite3/index.js";
-
-import sqlite from "sqlite3";
-import { sleep } from "../shared/utils";
-import { paths } from "./paths";
+import { checkpoint, openDatabase } from "./db/driver";
+import { migrate } from "./db/migrations";
 import { dbConfigSchema, formatSchemaError, type DbConfig } from "../shared/schemas";
 
+/**
+ * Owns the single SQLite connection.
+ *
+ * The previous implementation wrapped Knex + RedBean and deferred the real work
+ * to models that autoloaded themselves from disk. Silo only ever needs one
+ * connection to two small tables, so the whole layer is now a synchronous
+ * handle plus a handful of helpers.
+ */
 export class Database {
     /**
      * SQLite file path (development default: ./.local/data/silo.db)
-     * @type {string}
      */
     static sqlitePath : string;
 
-    static noReject = true;
-
     static dbConfig? : DbConfig;
 
-    static knexMigrationsPath = paths.migrationsDir;
+    private static dataDir : string;
 
-    private static server : SiloServer;
+    private static db? : DatabaseSync;
 
     /**
-     * Use for decode the auth object
+     * Connect to the database using the server's configured data directory.
+     * @param server Server whose `config.dataDir` holds `silo.db`
      */
-    jwtSecret? : string;
-
-    static async init(server : SiloServer) {
-        this.server = server;
-
+    static async init(server : { config : { dataDir : string } }) {
         log.debug("server", "Connecting to the database");
-        await Database.connect();
+        Database.connect(server.config.dataDir);
         log.info("server", "Connected to the database");
-
-        // Patch the database
-        await Database.patch();
     }
 
     /**
-     * Read the database config
-     * @throws {Error} If the config is invalid
-     * @returns {{type: "sqlite"}} Database config
+     * Open the database, adopting whatever schema is already on disk.
+     *
+     * Safe to call once per process. Reopening closes the previous handle so
+     * tests can point a fresh `dataDir` at an already loaded module.
+     * @param dataDir Directory holding `silo.db`; falls back to the previous
+     * value, then `SILO_DATA_DIR`, then `./data`
+     * @returns The connected handle
      */
-    static readDBConfig() : DbConfig {
-        const dbConfigString = fs.readFileSync(path.join(this.server.config.dataDir, "db-config.json")).toString("utf-8");
+    static connect(dataDir? : string) : DatabaseSync {
+        if (dataDir) {
+            Database.dataDir = dataDir;
+        } else if (!Database.dataDir) {
+            Database.dataDir = process.env.SILO_DATA_DIR ?? "./data";
+        }
+
+        if (Database.db) {
+            Database.close();
+        }
+
+        fs.mkdirSync(Database.dataDir, { recursive: true });
+
+        Database.dbConfig = Database.loadDBConfig();
+
+        Database.sqlitePath = path.join(Database.dataDir, "silo.db");
+
+        // Silo used to be called Dockge; adopt the old file when it is the only one present.
+        const legacySQLitePath = path.join(Database.dataDir, "dockge.db");
+        if (!fs.existsSync(Database.sqlitePath) && fs.existsSync(legacySQLitePath)) {
+            fs.renameSync(legacySQLitePath, Database.sqlitePath);
+            log.info("db", "Migrated the legacy database file to silo.db");
+        }
+
+        const db = openDatabase(Database.sqlitePath);
+
+        const result = migrate(db, {
+            backupPath: path.join(Database.dataDir, "silo.pre-migrate.db"),
+        });
+
+        if (result.applied.length > 0 && result.from > 0) {
+            log.info("db", "Your existing database was upgraded. A pre-upgrade copy is at silo.pre-migrate.db");
+        }
+
+        Database.db = db;
+
+        log.debug("db", "SQLite version: " + (db.prepare("SELECT sqlite_version() AS version").get() as { version : string }).version);
+
+        return db;
+    }
+
+    /**
+     * Read and validate `db-config.json`, creating a default one when absent.
+     * @returns Parsed database config
+     * @throws {Error} If the file exists but is malformed or unsupported
+     */
+    static loadDBConfig() : DbConfig {
+        const configPath = path.join(Database.dataDir, "db-config.json");
 
         let raw : unknown;
         try {
-            raw = JSON.parse(dbConfigString);
-        } catch {
-            throw new Error("Invalid db-config.json: not valid JSON");
+            raw = JSON.parse(fs.readFileSync(configPath).toString("utf-8"));
+        } catch (err) {
+            if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
+                log.warn("db", "No db-config.json found, creating a default SQLite configuration");
+                const defaultConfig : DbConfig = { type: "sqlite" };
+                Database.writeDBConfig(defaultConfig);
+                return defaultConfig;
+            }
+            if (err instanceof SyntaxError) {
+                throw new Error("Invalid db-config.json: not valid JSON", { cause: err });
+            }
+            throw err;
         }
 
         const result = dbConfigSchema.safeParse(raw);
         if (!result.success) {
             throw new Error("Invalid db-config.json: " + formatSchemaError(result.error) + " (only sqlite is supported)");
         }
+
+        log.info("db", `Database Type: ${result.data.type}`);
         return result.data;
     }
 
     /**
-     * @param dbConfig the database configuration that should be written
-     * @returns {void}
+     * @param dbConfig Database configuration to persist
      */
     static writeDBConfig(dbConfig : DbConfig) {
-        fs.writeFileSync(path.join(this.server.config.dataDir, "db-config.json"), JSON.stringify(dbConfig, null, 4));
+        fs.writeFileSync(path.join(Database.dataDir, "db-config.json"), JSON.stringify(dbConfig, null, 4));
     }
 
     /**
-     * Connect to the database
-     * @param {boolean} autoloadModels Should models be automatically loaded?
-     * @param {boolean} noLog Should logs not be output?
-     * @returns {Promise<void>}
+     * @returns The connected handle
+     * @throws {Error} If `connect` has not been called yet
      */
-    static async connect(autoloadModels = true) {
-        const acquireConnectionTimeout = 120 * 1000;
-        let dbConfig : DbConfig;
-        try {
-            dbConfig = this.readDBConfig();
-            Database.dbConfig = dbConfig;
-        } catch (err) {
-            // Only create a default config when it is genuinely missing.
-            // Any other error (malformed or unsupported config) must fail loudly.
-            if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-                log.warn("db", "No db-config.json found, creating a default SQLite configuration");
-                dbConfig = {
-                    type: "sqlite",
-                };
-                this.writeDBConfig(dbConfig);
-                Database.dbConfig = dbConfig;
-            } else {
-                throw err;
-            }
+    static getDb() : DatabaseSync {
+        if (!Database.db) {
+            throw new Error("Database is not connected. Call Database.connect() first.");
         }
-
-        let config : object;
-
-        log.info("db", `Database Type: ${dbConfig.type}`);
-
-        this.sqlitePath = path.join(this.server.config.dataDir, "silo.db");
-        const legacySQLitePath = path.join(this.server.config.dataDir, "dockge.db");
-        if (!fs.existsSync(this.sqlitePath) && fs.existsSync(legacySQLitePath)) {
-            fs.renameSync(legacySQLitePath, this.sqlitePath);
-            log.info("db", "Migrated the legacy database file to silo.db");
-        }
-        Dialect.prototype._driver = () => sqlite;
-
-        config = {
-            client: Dialect,
-            connection: {
-                filename: Database.sqlitePath,
-                acquireConnectionTimeout: acquireConnectionTimeout,
-            },
-            useNullAsDefault: true,
-            pool: {
-                min: 1,
-                max: 1,
-                idleTimeoutMillis: 120 * 1000,
-                propagateCreateError: false,
-                acquireTimeoutMillis: acquireConnectionTimeout,
-            }
-        };
-
-        const knexInstance = knex(config);
-
-        // @ts-ignore
-        R.setup(knexInstance);
-
-        if (process.env.SQL_LOG === "1") {
-            R.debug(true);
-        }
-
-        // Auto map the model to a bean object
-        R.freeze(true);
-
-        if (autoloadModels) {
-            R.autoloadModels(paths.modelsDir, "ts");
-        }
-
-        await this.initSQLite();
+        return Database.db;
     }
 
     /**
-     @returns {Promise<void>}
+     * @returns Whether a connection is currently open
      */
-    static async initSQLite() {
-        await R.exec("PRAGMA foreign_keys = ON");
-        // Change to WAL
-        await R.exec("PRAGMA journal_mode = WAL");
-        await R.exec("PRAGMA cache_size = -12000");
-        await R.exec("PRAGMA auto_vacuum = INCREMENTAL");
-
-        // This ensures that an operating system crash or power failure will not corrupt the database.
-        // FULL synchronous is very safe, but it is also slower.
-        // Read more: https://sqlite.org/pragma.html#pragma_synchronous
-        await R.exec("PRAGMA synchronous = NORMAL");
-
-        log.debug("db", "SQLite config:");
-        log.debug("db", await R.getAll("PRAGMA journal_mode"));
-        log.debug("db", await R.getAll("PRAGMA cache_size"));
-        log.debug("db", "SQLite Version: " + await R.getCell("SELECT sqlite_version()"));
+    static isConnected() : boolean {
+        return Database.db !== undefined;
     }
 
     /**
-     * Patch the database
-     * @returns {void}
+     * Flush the write-ahead log and release the connection.
      */
-    static async patch() {
-        // Using knex migrations
-        // https://knexjs.org/guide/migrations.html
-        // https://gist.github.com/NigelEarle/70db130cc040cc2868555b29a0278261
-        try {
-            await R.knex.migrate.latest({
-                directory: Database.knexMigrationsPath,
-            });
-        } catch (e) {
-            if (e instanceof Error) {
-                // Allow missing patch files for downgrade or testing pr.
-                if (e.message.includes("the following files are missing:")) {
-                    log.warn("db", e.message);
-                    log.warn("db", "Database migration failed, you may be downgrading Silo.");
-                } else {
-                    log.error("db", "Database migration failed");
-                    throw e;
-                }
-            }
+    static close() {
+        if (!Database.db) {
+            return;
         }
-    }
-
-    /**
-     * Special handle, because tarn.js throw a promise reject that cannot be caught
-     * @returns {Promise<void>}
-     */
-    static async close() {
-        const listener = () => {
-            Database.noReject = false;
-        };
-        process.addListener("unhandledRejection", listener);
 
         log.info("db", "Closing the database");
 
-        // Flush WAL to main database
-        await R.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-
-        while (true) {
-            Database.noReject = true;
-            await R.close();
-            await sleep(2000);
-
-            if (Database.noReject) {
-                break;
-            } else {
-                log.info("db", "Waiting to close the database");
-            }
+        try {
+            checkpoint(Database.db);
+        } finally {
+            Database.db.close();
+            Database.db = undefined;
         }
-        log.info("db", "Database closed");
 
-        process.removeListener("unhandledRejection", listener);
+        log.info("db", "Database closed");
     }
 
     /**
-     * Get the size of the database
-     * @returns {number} Size of database
+     * @returns Size of the database file in bytes
      */
-    static getSize() {
-        log.debug("db", "Database.getSize()");
+    static getSize() : number {
         const stats = fs.statSync(Database.sqlitePath);
-        log.debug("db", stats);
         return stats.size;
     }
 
     /**
-     * Shrink the database
-     * @returns {Promise<void>}
+     * Reclaim free pages without a full rewrite.
      */
-    static async shrink() {
-        await R.exec("VACUUM");
+    static shrink() {
+        Database.getDb().exec("PRAGMA incremental_vacuum");
     }
-
 }

@@ -1,7 +1,7 @@
 import { Database } from "../src/server/database";
-import { R } from "redbean-node";
 import readline from "readline";
 import { User } from "../src/server/models/user";
+import { findFirstUser } from "../src/server/db/repositories/users";
 import { SiloServer } from "../src/server/silo-server";
 import { log } from "../src/server/log";
 import { io } from "socket.io-client";
@@ -31,7 +31,7 @@ export const main = async () => {
     try {
         // No need to actually reset the password for testing, just make sure no connection problem. It is ok for now.
         if (!process.env.TEST_BACKEND) {
-            const user = await R.findOne("user");
+            const user = findFirstUser(Database.getDb());
             if (! user) {
                 throw new Error("user not found, have you installed?");
             }

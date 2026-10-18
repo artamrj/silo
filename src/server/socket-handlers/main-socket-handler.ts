@@ -3,7 +3,8 @@ import composerize from "composerize";
 import { SocketHandler } from "../socket-handler.js";
 import { SiloServer } from "../silo-server";
 import { log } from "../log";
-import { R } from "redbean-node";
+import { Database } from "../database";
+import { countUsers, createUser, findActiveUserByUsername, updateUserPassword } from "../db/repositories/users";
 import { loginRateLimiter } from "../rate-limiter";
 import { generatePasswordHash, needRehashPassword, shake256, SHAKE256_LENGTH, verifyPassword } from "../password-hash";
 import { User } from "../models/user";
@@ -48,14 +49,14 @@ export class MainSocketHandler extends SocketHandler {
                     throw new ValidationError(PASSWORD_TOO_WEAK_MESSAGE);
                 }
 
-                if ((await R.knex("user").count("id as count").first()).count !== 0) {
+                if (countUsers(Database.getDb()) !== 0) {
                     throw new Error("Silo has been initialized. If you want to run setup again, please delete the database.");
                 }
 
-                const user = R.dispense("user");
-                user.username = input.username;
-                user.password = generatePasswordHash(input.password);
-                await R.store(user);
+                createUser(Database.getDb(), {
+                    username: input.username,
+                    password: generatePasswordHash(input.password),
+                });
 
                 server.needSetup = false;
 
@@ -87,9 +88,8 @@ export class MainSocketHandler extends SocketHandler {
 
                 log.info("auth", "Username from JWT: " + decoded.username);
 
-                const user = await R.findOne("user", " username = ? AND active = 1 ", [
-                    decoded.username,
-                ]) as User;
+                const row = findActiveUserByUsername(Database.getDb(), decoded.username);
+                const user = row ? new User(row) : undefined;
 
                 if (user) {
                     // Check if the password changed
@@ -146,7 +146,8 @@ export class MainSocketHandler extends SocketHandler {
             try {
                 const token = validate(tokenSchema, rawToken);
                 const decoded = jwt.verify(token, server.jwtSecret) as JWTDecoded;
-                const user = await R.findOne("user", " username = ? AND active = 1 ", [ decoded.username ]) as User;
+                const row = findActiveUserByUsername(Database.getDb(), decoded.username);
+                const user = row ? new User(row) : undefined;
                 if (!user || decoded.h !== shake256(user.password, SHAKE256_LENGTH)) {
                     throw new Error("The token is invalid due to password change or old token");
                 }
@@ -218,7 +219,7 @@ export class MainSocketHandler extends SocketHandler {
                     throw new ValidationError(PASSWORD_TOO_WEAK_MESSAGE);
                 }
 
-                let user = await doubleCheckPassword(socket, password.currentPassword);
+                const user = await doubleCheckPassword(socket, password.currentPassword);
                 await user.resetPassword(password.newPassword);
 
                 server.disconnectAllSocketClients(user.id, socket.id);
@@ -349,17 +350,13 @@ export class MainSocketHandler extends SocketHandler {
             return null;
         }
 
-        const user = await R.findOne("user", " username = ? AND active = 1 ", [
-            username,
-        ]) as User;
+        const row = findActiveUserByUsername(Database.getDb(), username);
+        const user = row ? new User(row) : undefined;
 
         if (user && verifyPassword(password, user.password)) {
             // Upgrade the hash to bcrypt
             if (needRehashPassword(user.password)) {
-                await R.exec("UPDATE `user` SET password = ? WHERE id = ? ", [
-                    generatePasswordHash(password),
-                    user.id,
-                ]);
+                updateUserPassword(Database.getDb(), user.id, generatePasswordHash(password));
             }
             return user;
         }

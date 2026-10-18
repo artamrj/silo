@@ -26,13 +26,8 @@ function findProjectRoot() : string {
 
 export const projectRoot = findProjectRoot();
 
-/** Directory that holds the compiled/transpiled server sources. */
-const serverDir = resolve(projectRoot, "src/server");
-
 export const paths = {
     projectRoot,
     clientDist: resolve(projectRoot, "dist/client"),
     clientIndexHTML: resolve(projectRoot, "dist/client/index.html"),
-    migrationsDir: resolve(serverDir, "migrations"),
-    modelsDir: resolve(serverDir, "models"),
 };

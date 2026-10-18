@@ -1,6 +1,12 @@
-import { R } from "redbean-node";
 import { log } from "./log";
 import { LooseObject } from "../shared/utils";
+import { Database } from "./database";
+import {
+    findSetting,
+    getSettingsByType,
+    setSetting,
+    setSettingsByType,
+} from "./db/repositories/settings";
 
 /**
  * Known settings and their runtime types. Used to give `Settings.get` a typed
@@ -16,6 +22,16 @@ export interface SettingsKeyMap {
 
 export type SettingsKey = keyof SettingsKeyMap;
 
+/** How long a cached value stays valid before the cleaner drops it. */
+const CACHE_TTL_MS = 60 * 1000;
+
+/**
+ * Typed, cached access to the `setting` table.
+ *
+ * Values are stored JSON-encoded in SQLite. This facade owns the parse and
+ * stringify so repositories can stay dumb, and keeps a short-lived cache so the
+ * settings UI does not hit the database on every render.
+ */
 export class Settings {
 
     /**
@@ -49,15 +65,13 @@ export class Settings {
         // Start cache clear if not started yet
         if (!Settings.cacheCleaner) {
             Settings.cacheCleaner = setInterval(() => {
-                log.debug("settings", "Cache Cleaner is just started.");
-                for (key in Settings.cacheList) {
-                    if (Date.now() - Settings.cacheList[key].timestamp > 60 * 1000) {
-                        log.debug("settings", "Cache Cleaner deleted: " + key);
-                        delete Settings.cacheList[key];
+                for (const cachedKey in Settings.cacheList) {
+                    if (Date.now() - Settings.cacheList[cachedKey].timestamp > CACHE_TTL_MS) {
+                        delete Settings.cacheList[cachedKey];
                     }
                 }
 
-            }, 60 * 1000);
+            }, CACHE_TTL_MS);
         }
 
         // Query from cache
@@ -67,23 +81,26 @@ export class Settings {
             return v;
         }
 
-        const value = await R.getCell("SELECT `value` FROM setting WHERE `key` = ? ", [
-            key,
-        ]);
-
-        try {
-            const v = JSON.parse(value);
-            log.debug("settings", `Get Setting: ${key}: ${v}`);
-
-            Settings.cacheList[key] = {
-                value: v,
-                timestamp: Date.now()
-            };
-
-            return v;
-        } catch (e) {
-            return value;
+        const raw = findSetting(Database.getDb(), key);
+        if (raw === undefined) {
+            return undefined;
         }
+
+        let value : unknown;
+        try {
+            value = JSON.parse(raw.value ?? "null");
+        } catch {
+            value = raw.value;
+        }
+
+        log.debug("settings", `Get Setting: ${key}: ${value}`);
+
+        Settings.cacheList[key] = {
+            value,
+            timestamp: Date.now()
+        };
+
+        return value;
     }
 
     /**
@@ -94,18 +111,7 @@ export class Settings {
      * @returns {Promise<void>}
      */
     static async set(key : string, value : object | string | number | boolean, type : string | null = null) {
-
-        let bean = await R.findOne("setting", " `key` = ? ", [
-            key,
-        ]);
-        if (!bean) {
-            bean = R.dispense("setting");
-            bean.key = key;
-        }
-        bean.type = type;
-        bean.value = JSON.stringify(value);
-        await R.store(bean);
-
+        setSetting(Database.getDb(), key, JSON.stringify(value), type);
         Settings.deleteCache([ key ]);
     }
 
@@ -115,16 +121,14 @@ export class Settings {
      * @returns Settings
      */
     static async getSettings(type : string) {
-        const list = await R.getAll("SELECT `key`, `value` FROM setting WHERE `type` = ? ", [
-            type,
-        ]);
+        const list = getSettingsByType(Database.getDb(), type);
 
         const result : LooseObject = {};
 
         for (const row of list) {
             try {
-                result[row.key] = JSON.parse(row.value);
-            } catch (e) {
+                result[row.key] = JSON.parse(row.value ?? "null");
+            } catch {
                 result[row.key] = row.value;
             }
         }
@@ -134,35 +138,36 @@ export class Settings {
 
     /**
      * Set settings based on type
+     *
+     * Only keys that are new or already belong to `type` are written, so a
+     * settings form scoped to `general` cannot clobber untagged rows such as the
+     * JWT secret.
      * @param type Type of settings to set
      * @param data Values of settings
      * @returns {Promise<void>}
      */
     static async setSettings(type : string, data : LooseObject) {
-        const keyList = Object.keys(data);
+        const db = Database.getDb();
+        const entries : { key : string, value : string }[] = [];
 
-        const promiseList = [];
+        for (const key of Object.keys(data)) {
+            const existing = findSetting(db, key);
 
-        for (const key of keyList) {
-            let bean = await R.findOne("setting", " `key` = ? ", [
-                key
-            ]);
-
-            if (bean == null) {
-                bean = R.dispense("setting");
-                bean.type = type;
-                bean.key = key;
+            if (existing && existing.type !== type) {
+                continue;
             }
 
-            if (bean.type === type) {
-                bean.value = JSON.stringify(data[key]);
-                promiseList.push(R.store(bean));
-            }
+            entries.push({
+                key,
+                value: JSON.stringify(data[key]),
+            });
         }
 
-        await Promise.all(promiseList);
+        if (entries.length > 0) {
+            setSettingsByType(db, type, entries);
+        }
 
-        Settings.deleteCache(keyList);
+        Settings.deleteCache(Object.keys(data));
     }
 
     /**
@@ -187,4 +192,3 @@ export class Settings {
         }
     }
 }
-
