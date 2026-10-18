@@ -1,5 +1,5 @@
 <template>
-    <span :class="className">{{ statusName }}</span>
+    <span class="pill" :class="[ colorClass, fixedWidth ? 'w-16 truncate' : 'min-w-16' ]">{{ statusName }}</span>
 </template>
 
 <script>
@@ -22,35 +22,26 @@ export default {
             return this.$t("notAvailableShort");
         },
 
-        color() {
-            return statusColor(this.stack?.status);
+        /**
+         * Map the shared status colour name onto a utility class.
+         * @returns {string} Tailwind background/text classes
+         */
+        colorClass() {
+            switch (statusColor(this.stack?.status)) {
+                case "primary":
+                    return "bg-primary-fill text-white";
+                case "danger":
+                    return "bg-danger-fill text-white";
+                case "dark":
+                    return "bg-slate-700 text-white";
+                default:
+                    return "bg-slate-500 text-white";
+            }
         },
 
         statusName() {
             return this.$t(statusNameShort(this.stack?.status));
         },
-
-        className() {
-            let className = `badge rounded-pill bg-${this.color}`;
-
-            if (this.fixedWidth) {
-                className += " fixed-width";
-            }
-            return className;
-        },
     },
 };
 </script>
-
-<style scoped>
-.badge {
-    min-width: 62px;
-
-}
-
-.fixed-width {
-    width: 62px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-</style>

@@ -1,81 +1,83 @@
 <template>
     <div>
-        <div v-if="settingsLoaded" class="my-4">
+        <div v-if="settingsLoaded">
             <!-- Change Password -->
             <template v-if="!settings.disableAuth">
-                <p>
-                    {{ $t("Current User") }}: <strong>{{ $root.username }}</strong>
-                    <button v-if="! settings.disableAuth" id="logout-btn" class="btn btn-danger ms-4 me-2 mb-2" @click="$root.logout">{{ $t("Logout") }}</button>
+                <p class="mb-3 flex flex-wrap items-center gap-3">
+                    <span>{{ $t("Current User") }}: <strong>{{ $root.username }}</strong></span>
+                    <button v-if="! settings.disableAuth" id="logout-btn" class="button button-danger button-sm" @click="$root.logout">{{ $t("Logout") }}</button>
                 </p>
 
-                <h5 class="my-4 settings-subheading">{{ $t("Change Password") }}</h5>
+                <h5 class="mb-3">{{ $t("Change Password") }}</h5>
                 <form class="mb-3" @submit.prevent="savePassword">
                     <div class="mb-3">
-                        <label for="current-password" class="form-label">
+                        <label for="current-password" class="field-label">
                             {{ $t("Current Password") }}
                         </label>
                         <input
                             id="current-password"
                             v-model="password.currentPassword"
                             type="password"
-                            class="form-control"
+                            class="field"
                             autocomplete="current-password"
                             required
                         />
                     </div>
 
                     <div class="mb-3">
-                        <label for="new-password" class="form-label">
+                        <label for="new-password" class="field-label">
                             {{ $t("New Password") }}
                         </label>
                         <input
                             id="new-password"
                             v-model="password.newPassword"
                             type="password"
-                            class="form-control"
+                            class="field"
                             autocomplete="new-password"
                             required
                         />
                     </div>
 
                     <div class="mb-3">
-                        <label for="repeat-new-password" class="form-label">
+                        <label for="repeat-new-password" class="field-label">
                             {{ $t("Repeat New Password") }}
                         </label>
                         <input
                             id="repeat-new-password"
                             v-model="password.repeatNewPassword"
                             type="password"
-                            class="form-control"
-                            :class="{ 'is-invalid': invalidPassword }"
+                            class="field"
+                            :class="{ 'border-danger': invalidPassword }"
+                            :aria-invalid="invalidPassword"
+                            aria-describedby="password-mismatch"
                             autocomplete="new-password"
                             required
                         />
-                        <div class="invalid-feedback">
+                        <div v-if="invalidPassword" id="password-mismatch" class="field-hint text-danger">
                             {{ $t("passwordNotMatchMsg") }}
                         </div>
                     </div>
 
                     <div>
-                        <button class="btn btn-primary" type="submit">
+                        <button class="button button-primary" type="submit">
                             {{ $t("Update Password") }}
                         </button>
                     </div>
                 </form>
             </template>
 
-            <div class="my-4">
+            <div class="mt-4">
                 <!-- Advanced -->
-                <h5 class="my-4 settings-subheading">{{ $t("Advanced") }}</h5>
+                <h5 class="mb-3">{{ $t("Advanced") }}</h5>
 
                 <div class="mb-4">
-                    <button v-if="settings.disableAuth" id="enableAuth-btn" class="btn btn-outline-primary me-2 mb-2" @click="enableAuth">{{ $t("Enable Auth") }}</button>
-                    <button v-if="! settings.disableAuth" id="disableAuth-btn" class="btn btn-primary me-2 mb-2" @click="confirmDisableAuth">{{ $t("Disable Auth") }}</button>
+                    <button v-if="settings.disableAuth" id="enableAuth-btn" class="button button-outline" @click="enableAuth">{{ $t("Enable Auth") }}</button>
+                    <button v-if="! settings.disableAuth" id="disableAuth-btn" class="button button-primary" @click="confirmDisableAuth">{{ $t("Disable Auth") }}</button>
                 </div>
             </div>
         </div>
 
-        <Confirm ref="confirmDisableAuth" btn-style="btn-danger" :yes-text="$t('I understand, please disable')" :no-text="$t('Leave')" @yes="disableAuth">
+        <Confirm ref="confirmDisableAuth" btn-style="button-danger" :yes-text="$t('I understand, please disable')" :no-text="$t('Leave')" @yes="disableAuth">
             <i18n-t keypath="disableauth.message1" tag="p">
                 <template #disableAuth>
                     <strong>{{ $t('disableAuth') }}</strong>
@@ -91,14 +93,14 @@
             <p>{{ $t("Please use this option carefully!") }}</p>
 
             <div class="mb-3">
-                <label for="current-password2" class="form-label">
+                <label for="current-password2" class="field-label">
                     {{ $t("Current Password") }}
                 </label>
                 <input
                     id="current-password2"
                     v-model="password.currentPassword"
                     type="password"
-                    class="form-control"
+                    class="field"
                     required
                 />
             </div>
@@ -108,10 +110,18 @@
 
 <script>
 import Confirm from "../../components/Confirm.vue";
+import { settingsContextKey } from "../../context";
 
 export default {
     components: {
         Confirm,
+    },
+
+    inject: {
+        settingsContext: {
+            from: settingsContextKey,
+            default: null,
+        },
     },
 
     data() {
@@ -127,14 +137,11 @@ export default {
 
     computed: {
         settings() {
-            return this.$parent.$parent.$parent.settings;
-        },
-        saveSettings() {
-            return this.$parent.$parent.$parent.saveSettings;
+            return this.settingsContext?.getSettings() ?? {};
         },
         settingsLoaded() {
-            return this.$parent.$parent.$parent.settingsLoaded;
-        }
+            return this.settingsContext?.isSettingsLoaded() ?? false;
+        },
     },
 
     watch: {
@@ -168,7 +175,7 @@ export default {
 
             // Need current password to disable auth
             // Set it to empty if done
-            this.saveSettings(() => {
+            this.settingsContext?.saveSettings(() => {
                 this.password.currentPassword = "";
                 this.$root.username = null;
                 this.$root.socketIO.token = "autoLogin";
@@ -178,7 +185,7 @@ export default {
         /** Enable authentication for web app access */
         enableAuth() {
             this.settings.disableAuth = false;
-            this.saveSettings();
+            this.settingsContext?.saveSettings();
             this.$root.storage().removeItem("token");
             location.reload();
         },

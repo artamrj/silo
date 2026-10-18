@@ -1,10 +1,10 @@
 <template>
-    <div class="input-group mb-3">
+    <div class="mb-3 flex items-stretch gap-2">
         <input
             ref="input"
             v-model="model"
             :type="visibility"
-            class="form-control"
+            class="field"
             :placeholder="placeholder"
             :maxlength="maxlength"
             :autocomplete="autocomplete"
@@ -12,17 +12,19 @@
             :readonly="readonly"
         >
 
-        <a v-if="visibility == 'password'" class="btn btn-outline-primary" @click="showInput()">
-            <app-icon icon="eye" />
-        </a>
-        <a v-if="visibility == 'text'" class="btn btn-outline-primary" @click="hideInput()">
-            <app-icon icon="eye-slash" />
-        </a>
+        <button type="button" class="button button-normal" :aria-label="visibility === 'password' ? $t('Show') : $t('Hide')" @click="toggleVisibility">
+            <app-icon :icon="visibility === 'password' ? 'eye' : 'eye-slash'" />
+        </button>
     </div>
 </template>
 
 <script>
+import { AppIcon } from "../icon";
+
 export default {
+    components: {
+        AppIcon,
+    },
     props: {
         /** The value of the input */
         modelValue: {
@@ -70,17 +72,10 @@ export default {
             }
         }
     },
-    created() {
-
-    },
     methods: {
-        /** Show users input in plain text */
-        showInput() {
-            this.visibility = "text";
-        },
-        /** Censor users input */
-        hideInput() {
-            this.visibility = "password";
+        /** Toggle between plain text and censored input */
+        toggleVisibility() {
+            this.visibility = this.visibility === "password" ? "text" : "password";
         },
     }
 };

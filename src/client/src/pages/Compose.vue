@@ -1,70 +1,70 @@
 <template>
     <transition name="slide-fade" appear>
-        <div class="compose-page">
+        <div>
             <h1 v-if="isAdd" class="mb-3">{{ $t("compose") }}</h1>
-            <h1 v-else class="mb-3">
-                <Uptime :stack="globalStack" :pill="true" /> {{ stack.name }}
+            <h1 v-else class="mb-3 flex items-center gap-2">
+                <Uptime :stack="globalStack" /> {{ stack.name }}
             </h1>
 
             <div v-if="stack.isManagedBySilo" class="stack-toolbar mb-3">
-                <div class="btn-group me-2" role="group">
-                    <button v-if="isEditMode" class="btn btn-primary" :disabled="processing" @click="deployStack">
-                        <app-icon icon="rocket" class="me-1" />
+                <div class="flex flex-wrap items-center gap-2">
+                    <button v-if="isEditMode" class="button button-primary" :disabled="processing" @click="deployStack">
+                        <app-icon icon="rocket" />
                         {{ $t("deployStack") }}
                     </button>
 
-                    <button v-if="isEditMode" class="btn btn-normal" :disabled="processing" @click="saveStack">
-                        <app-icon icon="save" class="me-1" />
+                    <button v-if="isEditMode" class="button button-normal" :disabled="processing" @click="saveStack">
+                        <app-icon icon="save" />
                         {{ $t("saveStackDraft") }}
                     </button>
 
-                    <button v-if="!isEditMode" class="btn btn-secondary" :disabled="processing" @click="enableEditMode">
-                        <app-icon icon="pen" class="me-1" />
+                    <button v-if="!isEditMode" class="button button-secondary" :disabled="processing" @click="enableEditMode">
+                        <app-icon icon="pen" />
                         {{ $t("editStack") }}
                     </button>
 
-                    <button v-if="!isEditMode && !active" class="btn btn-primary" :disabled="processing" @click="startStack">
-                        <app-icon icon="play" class="me-1" />
+                    <button v-if="!isEditMode && !active" class="button button-primary" :disabled="processing" @click="startStack">
+                        <app-icon icon="play" />
                         {{ $t("startStack") }}
                     </button>
 
-                    <button v-if="!isEditMode && active" class="btn btn-normal " :disabled="processing" @click="restartStack">
-                        <app-icon icon="rotate" class="me-1" />
+                    <button v-if="!isEditMode && active" class="button button-normal" :disabled="processing" @click="restartStack">
+                        <app-icon icon="rotate" />
                         {{ $t("restartStack") }}
                     </button>
 
-                    <button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="updateStack">
-                        <app-icon icon="cloud-arrow-down" class="me-1" />
+                    <button v-if="!isEditMode" class="button button-normal" :disabled="processing" @click="updateStack">
+                        <app-icon icon="cloud-arrow-down" />
                         {{ $t("updateStack") }}
                     </button>
 
-                    <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="stopStack">
-                        <app-icon icon="stop" class="me-1" />
+                    <button v-if="!isEditMode && active" class="button button-normal" :disabled="processing" @click="stopStack">
+                        <app-icon icon="stop" />
                         {{ $t("stopStack") }}
                     </button>
 
-                    <details class="action-menu">
-                        <summary class="btn btn-normal" aria-label="More stack actions">•••</summary>
-                        <div class="dropdown-menu">
-                            <button class="dropdown-item" type="button" @click="downStack">
-                                <app-icon icon="stop" class="me-1" />
+                    <details class="relative">
+                        <summary class="button button-normal list-none [&::-webkit-details-marker]:hidden" :aria-label="$t('More stack actions')">•••</summary>
+                        <div class="menu absolute top-[calc(100%+8px)] right-0 z-20">
+                            <button class="menu-item" type="button" @click="downStack">
+                                <app-icon icon="stop" />
                                 {{ $t("downStack") }}
                             </button>
                         </div>
                     </details>
-                </div>
 
-                <button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
-                <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="openDeleteDialog">
-                    <app-icon icon="trash" class="me-1" />
-                    {{ $t("deleteStack") }}
-                </button>
+                    <button v-if="isEditMode && !isAdd" class="button button-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                    <button v-if="!isEditMode" class="button button-danger" :disabled="processing" @click="openDeleteDialog">
+                        <app-icon icon="trash" />
+                        {{ $t("deleteStack") }}
+                    </button>
+                </div>
             </div>
 
             <!-- URLs -->
-            <div v-if="urls.length > 0" class="mb-3">
-                <a v-for="(urlItem, index) in urls" :key="index" target="_blank" :href="urlItem.url">
-                    <span class="badge bg-secondary me-2">{{ urlItem.display }}</span>
+            <div v-if="urls.length > 0" class="mb-3 flex flex-wrap gap-2">
+                <a v-for="(urlItem, index) in urls" :key="index" target="_blank" :href="urlItem.url" class="no-underline">
+                    <span class="pill bg-slate-500 text-white">{{ urlItem.display }}</span>
                 </a>
             </div>
 
@@ -73,45 +73,55 @@
                 <Terminal
                     v-show="showProgressTerminal"
                     ref="progressTerminal"
-                    class="mb-3 terminal"
+                    class="mb-3 h-[200px]"
                     :name="terminalName"
                     :rows="progressTerminalRows"
                     @has-data="showProgressTerminal = true; submitted = true;"
                 ></Terminal>
             </transition>
 
-            <div v-if="stack.isManagedBySilo" class="row compose-grid">
-                <div class="col-lg-6">
+            <div v-if="loadingStack" class="grid grid-cols-1 items-start gap-6 lg:grid-cols-2" aria-busy="true">
+                <div class="min-w-0">
+                    <div class="skeleton mb-3 h-6 w-40" />
+                    <div v-for="n in 3" :key="n" class="skeleton mb-3 h-24 w-full" />
+                </div>
+                <div class="min-w-0">
+                    <div class="skeleton mb-3 h-6 w-40" />
+                    <div class="skeleton h-[315px] w-full" />
+                </div>
+            </div>
+
+            <div v-else-if="stack.isManagedBySilo" class="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+                <div class="min-w-0">
                     <!-- General -->
                     <div v-if="isAdd">
                         <h4 class="mb-3">{{ $t("general") }}</h4>
-                        <div class="shadow-box big-padding mb-3">
+                        <div class="card mb-3">
                             <!-- Stack Name -->
                             <div>
-                                <label for="name" class="form-label">{{ $t("stackName") }}</label>
-                                <input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase">
-                                <div class="form-text">{{ $t("Lowercase only") }}</div>
+                                <label for="name" class="field-label">{{ $t("stackName") }}</label>
+                                <input id="name" v-model="stack.name" type="text" class="field" required @blur="stackNameToLowercase">
+                                <div class="field-hint">{{ $t("Lowercase only") }}</div>
                             </div>
-
                         </div>
                     </div>
 
                     <!-- Containers -->
                     <h4 class="mb-3">{{ $t("container", 2) }}</h4>
 
-                    <div v-if="isEditMode" class="input-group mb-3">
+                    <div v-if="isEditMode" class="mb-3 flex items-stretch gap-2">
                         <input
                             v-model="newContainerName"
                             :placeholder="$t(`New Container Name...`)"
-                            class="form-control"
+                            class="field"
                             @keyup.enter="addContainer"
                         />
-                        <button class="btn btn-primary" @click="addContainer">
+                        <button class="button button-primary" @click="addContainer">
                             {{ $t("addContainer") }}
                         </button>
                     </div>
 
-                    <div ref="containerList">
+                    <div ref="containerList" class="flex flex-col gap-3">
                         <Container
                             v-for="(service, name) in jsonConfig.services"
                             :key="name"
@@ -126,15 +136,13 @@
                         />
                     </div>
 
-                    <button v-if="false && isEditMode && jsonConfig.services && Object.keys(jsonConfig.services).length > 0" class="btn btn-normal mb-3" @click="addContainer">{{ $t("addContainer") }}</button>
-
                     <!-- General -->
                     <div v-if="isEditMode">
-                        <h4 class="mb-3">{{ $t("extra") }}</h4>
-                        <div class="shadow-box big-padding mb-3">
+                        <h4 class="mt-4 mb-3">{{ $t("extra") }}</h4>
+                        <div class="card mb-3">
                             <!-- URLs -->
-                            <div class="mb-4">
-                                <label class="form-label">
+                            <div>
+                                <label class="field-label">
                                     {{ $t("url", 2) }}
                                 </label>
                                 <ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-silo" />
@@ -147,19 +155,19 @@
                         <h4 class="mb-3">{{ $t("terminal") }}</h4>
                         <Terminal
                             ref="combinedTerminal"
-                            class="mb-3 terminal"
+                            class="mb-3 h-[315px]"
                             :name="combinedTerminalName"
                             :rows="combinedTerminalRows"
                             :cols="combinedTerminalCols"
-                            style="height: 315px;"
                         ></Terminal>
                     </div>
                 </div>
-                <div class="col-lg-6">
+
+                <div class="min-w-0">
                     <h4 class="mb-3">{{ stack.composeFileName }}</h4>
 
                     <!-- YAML editor -->
-                    <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
+                    <div class="editor mb-3">
                         <code-mirror
                             ref="editor"
                             v-model="stack.composeYAML"
@@ -173,16 +181,16 @@
                             @change="yamlCodeChange"
                         />
                     </div>
-                    <div v-if="isEditMode" class="mb-3">
+                    <div v-if="isEditMode" class="mb-3 text-sm text-danger">
                         {{ yamlError }}
                     </div>
 
                     <!-- ENV editor -->
                     <div v-if="isEditMode">
                         <h4 class="mb-3">.env</h4>
-                        <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
+                        <div class="editor mb-3">
                             <code-mirror
-                                ref="editor"
+                                ref="envEditor"
                                 v-model="stack.composeENV"
                                 :extensions="extensionsEnv"
                                 minimal
@@ -199,37 +207,51 @@
                     <div v-if="isEditMode">
                         <!-- Networks -->
                         <h4 class="mb-3">{{ $t("network", 2) }}</h4>
-                        <div class="shadow-box big-padding mb-3">
+                        <div class="card mb-3">
                             <NetworkInput />
                         </div>
                     </div>
-
                 </div>
             </div>
 
-            <div v-if="!stack.isManagedBySilo && !processing">
+            <div v-if="!stack.isManagedBySilo && !processing" class="text-sm text-ink-muted">
                 {{ $t("stackNotManagedBySiloMsg") }}
             </div>
 
             <!-- Delete Dialog -->
-            <div v-if="showDeleteDialog" class="modal" role="dialog" aria-modal="true" @click.self="showDeleteDialog = false">
-                <div class="modal-dialog"><div class="modal-content">
-                    <div class="modal-header"><h5 class="modal-title">{{ $t("deleteStack") }}</h5><button class="btn-close" aria-label="Close" @click="showDeleteDialog = false" /></div>
-                    <div class="modal-body">
-                        <p>{{ $t("deleteStackMsg") }}</p>
-                        <label for="delete-confirmation" class="form-label">
-                            {{ $t("deleteStackConfirmation", { confirmation: deleteConfirmationText }) }}
-                        </label>
-                        <input
-                            id="delete-confirmation"
-                            v-model="deleteConfirmation"
-                            class="form-control"
-                            :placeholder="deleteConfirmationText"
-                            autocomplete="off"
-                        />
+            <div
+                v-if="showDeleteDialog"
+                class="modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="delete-stack-title"
+                @click.self="showDeleteDialog = false"
+            >
+                <div ref="deleteDialog" class="modal-dialog" @keydown.esc="showDeleteDialog = false" @keydown.tab="onDialogKeydown">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 id="delete-stack-title" class="modal-title">{{ $t("deleteStack") }}</h5>
+                            <button class="btn-close" :aria-label="$t('Close')" @click="showDeleteDialog = false" />
+                        </div>
+                        <div class="modal-body">
+                            <p>{{ $t("deleteStackMsg") }}</p>
+                            <label for="delete-confirmation" class="field-label">
+                                {{ $t("deleteStackConfirmation", { confirmation: deleteConfirmationText }) }}
+                            </label>
+                            <input
+                                id="delete-confirmation"
+                                v-model="deleteConfirmation"
+                                class="field"
+                                :placeholder="deleteConfirmationText"
+                                autocomplete="off"
+                            />
+                        </div>
+                        <div class="modal-footer">
+                            <button class="button button-normal" @click="showDeleteDialog = false">{{ $t("cancel") }}</button>
+                            <button class="button button-danger" :disabled="deleteConfirmation !== deleteConfirmationText || processing" @click="deleteDialog">{{ $t("deleteStack") }}</button>
+                        </div>
                     </div>
-                    <div class="modal-footer"><button class="btn btn-normal" @click="showDeleteDialog = false">{{ $t("cancel") }}</button><button class="btn btn-danger" :disabled="deleteConfirmation !== deleteConfirmationText || processing" @click="deleteDialog">{{ $t("deleteStack") }}</button></div>
-                </div></div>
+                </div>
             </div>
         </div>
     </transition>
@@ -252,6 +274,7 @@ import {
     RUNNING
 } from "../../../shared/utils";
 import { copyYAMLComments, envsubstYAML } from "../../../shared/yaml";
+import { trapFocus } from "../focusTrap";
 import NetworkInput from "../components/NetworkInput.vue";
 import ArrayInput from "../components/ArrayInput.vue";
 import Container from "../components/Container.vue";
@@ -259,6 +282,7 @@ import Terminal from "../components/Terminal.vue";
 import Uptime from "../components/Uptime.vue";
 import dotenv from "dotenv";
 import { ref } from "vue";
+import { composeContextKey } from "../context";
 
 const template = `
 services:
@@ -284,6 +308,16 @@ export default {
         CodeMirror,
         Terminal,
         Uptime,
+    },
+    provide() {
+        return {
+            [composeContextKey]: {
+                getStack: () => this.stack,
+                getJsonConfig: () => this.jsonConfig,
+                getEnvsubstJSONConfig: () => this.envsubstJSONConfig,
+                isEditorFocused: () => this.editorFocus,
+            },
+        };
     },
     beforeRouteUpdate(to, from, next) {
         this.exitConfirm(next);
@@ -333,8 +367,10 @@ export default {
             dockerStats: {},
             isEditMode: false,
             submitted: false,
+            stackLoaded: false,
             showDeleteDialog: false,
             deleteConfirmation: "",
+            previouslyFocused: null,
             newContainerName: "",
             stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
@@ -371,6 +407,11 @@ export default {
 
         isAdd() {
             return this.$route.path === "/compose" && !this.submitted;
+        },
+
+        /** True while an existing stack is still being fetched. */
+        loadingStack() {
+            return !this.isAdd && !this.stackLoaded;
         },
 
         /**
@@ -455,9 +496,17 @@ export default {
             deep: true,
         },
 
-        $route(to, from) {
-
-        }
+        showDeleteDialog(value) {
+            if (value) {
+                this.previouslyFocused = document.activeElement;
+                this.$nextTick(() => {
+                    this.$refs.containerList?.closest(".modal")?.querySelector("input")?.focus();
+                });
+            } else {
+                this.previouslyFocused?.focus?.();
+                this.previouslyFocused = null;
+            }
+        },
     },
     mounted() {
         if (this.isAdd) {
@@ -487,6 +536,7 @@ export default {
                 composeENV,
                 isManagedBySilo: true,
             };
+            this.stackLoaded = true;
 
             this.yamlCodeChange();
 
@@ -497,11 +547,19 @@ export default {
 
         this.requestServiceStatus();
         this.requestDockerStats();
+
+        document.addEventListener("keydown", this.onKeydown);
     },
     unmounted() {
-
+        document.removeEventListener("keydown", this.onKeydown);
     },
     methods: {
+        onKeydown(e) {
+            if (e.key === "Escape" && this.showDeleteDialog) {
+                this.showDeleteDialog = false;
+            }
+        },
+
         startServiceStatusTimeout() {
             clearTimeout(serviceStatusTimeout);
             serviceStatusTimeout = setTimeout(async () => {
@@ -580,6 +638,7 @@ export default {
                     this.stack = res.stack;
                     this.yamlCodeChange();
                     this.processing = false;
+                    this.stackLoaded = true;
                     this.bindTerminal();
                 } else {
                     this.$root.toastRes(res);
@@ -694,6 +753,15 @@ export default {
             this.showDeleteDialog = true;
         },
 
+        /**
+         * Keep Tab navigation inside the open delete dialog.
+         * @param {KeyboardEvent} event Tab keydown event
+         * @returns {void}
+         */
+        onDialogKeydown(event) {
+            trapFocus(this.$refs.deleteDialog, event);
+        },
+
         deleteDialog() {
             this.processing = true;
             this.$root.emitServer("deleteStack", this.stack.name, {
@@ -710,6 +778,7 @@ export default {
         },
 
         discardStack() {
+            this.stackLoaded = false;
             this.loadStack();
             this.isEditMode = false;
         },
@@ -769,13 +838,7 @@ export default {
             this.isEditMode = true;
         },
 
-        checkYAML() {
-
-        },
-
         addContainer() {
-            this.checkYAML();
-
             if (this.jsonConfig.services[this.newContainerName]) {
                 this.$root.toastError("Container name already exists");
                 return;
@@ -842,64 +905,3 @@ export default {
     }
 };
 </script>
-
-<style scoped>
-
-.terminal {
-    height: 200px;
-}
-
-.editor-box {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 14px;
-}
-
-.compose-page > h1 {
-    letter-spacing: -0.025em;
-}
-
-.stack-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: var(--surface);
-    box-shadow: var(--shadow-sm);
-}
-
-.stack-toolbar .btn-group {
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.stack-toolbar .btn-group > .btn {
-    margin: 0;
-    border-radius: 10px;
-}
-
-.compose-grid {
-    row-gap: 24px;
-}
-
-.editor-box {
-    overflow: hidden;
-    border-radius: 14px;
-}
-
-@media (max-width: 760px) {
-    .stack-toolbar,
-    .stack-toolbar .btn-group {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .stack-toolbar .btn,
-    .stack-toolbar .action-menu,
-    .stack-toolbar .action-menu summary {
-        width: 100%;
-    }
-}
-</style>

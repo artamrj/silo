@@ -1,27 +1,41 @@
 <template>
     <div>
         <div v-if="valid">
-            <ul v-if="isArrayInited" class="list-group">
-                <li v-for="(value, index) in array" :key="index" class="list-group-item">
-                    <select v-model="array[index]" class="no-bg domain-input">
+            <ul v-if="isArrayInited" class="flex list-none flex-col gap-2 p-0">
+                <li v-for="(value, index) in array" :key="index" class="flex items-center gap-2">
+                    <select v-model="array[index]" class="field">
                         <option value="">{{ $t(`Select a network...`) }}</option>
                         <option v-for="option in options" :key="option" :value="option">{{ option }}</option>
                     </select>
 
-                    <app-icon icon="times" class="action remove ms-2 me-3 text-danger" @click="remove(index)" />
+                    <button type="button" class="button button-sm button-danger" :aria-label="$t('delete')" @click="remove(index)">
+                        <app-icon icon="times" />
+                    </button>
                 </li>
             </ul>
 
-            <button class="btn btn-normal btn-sm mt-3" @click="addField">{{ $t("addListItem", [ displayName ]) }}</button>
+            <button class="button button-normal button-sm mt-3" @click="addField">{{ $t("addListItem", [ displayName ]) }}</button>
         </div>
-        <div v-else>
-            Long syntax is not supported here. Please use the YAML editor.
+        <div v-else class="text-ink-muted">
+            {{ $t("LongSyntaxNotSupported") }}
         </div>
     </div>
 </template>
 
 <script>
+import { AppIcon } from "../icon";
+import { serviceContextKey } from "../context";
+
 export default {
+    components: {
+        AppIcon,
+    },
+    inject: {
+        serviceContext: {
+            from: serviceContextKey,
+            default: null,
+        },
+    },
     props: {
         name: {
             type: String,
@@ -39,11 +53,6 @@ export default {
             type: Array,
             required: true,
         },
-    },
-    data() {
-        return {
-
-        };
     },
     computed: {
         array() {
@@ -64,7 +73,7 @@ export default {
         },
 
         service() {
-            return this.$parent.$parent.service;
+            return this.serviceContext?.getService() ?? {};
         },
 
         valid() {
@@ -83,9 +92,6 @@ export default {
         }
 
     },
-    created() {
-
-    },
     methods: {
         addField() {
             // Create the array if not exists.
@@ -100,28 +106,3 @@ export default {
     }
 };
 </script>
-
-<style scoped>
-
-.list-group {
-    background-color: #070a10;
-
-    li {
-        display: flex;
-        align-items: center;
-        padding: 10px 0 10px 10px;
-
-        .domain-input {
-            flex-grow: 1;
-            background-color: #070a10;
-            border: none;
-            color: #b1b8c0;
-            outline: none;
-
-            &::placeholder {
-                color: #1d2634;
-            }
-        }
-    }
-}
-</style>

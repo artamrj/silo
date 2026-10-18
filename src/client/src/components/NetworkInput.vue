@@ -1,25 +1,32 @@
 <template>
     <div>
         <h5>{{ $t("Internal Networks") }}</h5>
-        <ul class="list-group">
-            <li v-for="(networkRow, index) in networkList" :key="index" class="list-group-item">
-                <input v-model="networkRow.key" type="text" class="no-bg domain-input" :placeholder="$t(`Network name...`)" />
-                <app-icon icon="times" class="action remove ms-2 me-3 text-danger" @click="remove(index)" />
+        <ul class="flex list-none flex-col gap-2 p-0">
+            <li v-for="(networkRow, index) in networkList" :key="index" class="flex items-center gap-2">
+                <input v-model="networkRow.key" type="text" class="field" :placeholder="$t(`Network name...`)" :aria-label="$t(`Network name...`)" />
+                <button type="button" class="button button-sm button-danger" :aria-label="$t('delete')" @click="remove(index)">
+                    <app-icon icon="times" />
+                </button>
             </li>
         </ul>
 
-        <button class="btn btn-normal btn-sm mt-3 me-2" @click="addField">{{ $t("addInternalNetwork") }}</button>
+        <button class="button button-normal button-sm mt-3" @click="addField">{{ $t("addInternalNetwork") }}</button>
 
-        <h5 class="mt-3">{{ $t("External Networks") }}</h5>
+        <h5 class="mt-4">{{ $t("External Networks") }}</h5>
 
-        <div v-if="externalNetworkList.length === 0">
+        <div v-if="externalNetworkList.length === 0" class="text-sm text-ink-muted">
             {{ $t("No External Networks") }}
         </div>
 
-        <div v-for="(networkName, index) in externalNetworkList" :key="networkName" class="form-check form-switch my-3">
-            <input :id=" 'external-network' + index" v-model="selectedExternalList[networkName]" class="form-check-input" type="checkbox">
+        <div v-for="(networkName, index) in externalNetworkList" :key="networkName" class="mt-3 flex items-center gap-2">
+            <input
+                :id=" 'external-network' + index"
+                v-model="selectedExternalList[networkName]"
+                class="size-4 accent-primary"
+                type="checkbox"
+            >
 
-            <label class="form-check-label" :for=" 'external-network' +index">
+            <label class="text-sm" :for=" 'external-network' + index">
                 {{ networkName }}
             </label>
         </div>
@@ -27,7 +34,19 @@
 </template>
 
 <script>
+import { AppIcon } from "../icon";
+import { composeContextKey } from "../context";
+
 export default {
+    components: {
+        AppIcon,
+    },
+    inject: {
+        composeContext: {
+            from: composeContextKey,
+            default: null,
+        },
+    },
     data() {
         return {
             networkList: [],
@@ -38,15 +57,15 @@ export default {
     },
     computed: {
         jsonConfig() {
-            return this.$parent.$parent.jsonConfig;
+            return this.composeContext?.getJsonConfig() ?? {};
         },
 
         stack() {
-            return this.$parent.$parent.stack;
+            return this.composeContext?.getStack() ?? {};
         },
 
         editorFocus() {
-            return this.$parent.$parent.editorFocus;
+            return this.composeContext?.isEditorFocused() ?? false;
         },
     },
     watch: {
@@ -172,28 +191,3 @@ export default {
     },
 };
 </script>
-
-<style scoped>
-
-.list-group {
-    background-color: #070a10;
-
-    li {
-        display: flex;
-        align-items: center;
-        padding: 10px 0 10px 10px;
-
-        .domain-input {
-            flex-grow: 1;
-            background-color: #070a10;
-            border: none;
-            color: #b1b8c0;
-            outline: none;
-
-            &::placeholder {
-                color: #1d2634;
-            }
-        }
-    }
-}
-</style>

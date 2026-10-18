@@ -1,28 +1,44 @@
 <template>
-    <div class="shadow-box stack-panel mb-3">
-        <div class="list-header">
-            <div class="header-top">
-                <div class="placeholder"></div>
-                <div class="search-wrapper">
-                    <a v-if="searchText == ''" class="search-icon">
-                        <app-icon icon="search" />
-                    </a>
-                    <a v-if="searchText != ''" class="search-icon" style="cursor: pointer" @click="clearSearchText">
-                        <app-icon icon="times" />
-                    </a>
-                    <form>
-                        <input v-model="searchText" class="form-control search-input" autocomplete="off" />
-                    </form>
-                </div>
+    <div class="card flex max-h-[900px] min-h-[420px] flex-col overflow-hidden p-0 lg:sticky lg:top-24 lg:h-[calc(100vh-155px)]">
+        <div class="border-b border-line p-2.5">
+            <div class="flex items-center gap-1">
+                <button
+                    v-if="searchText === ''"
+                    class="grid size-10 shrink-0 place-items-center text-ink-muted"
+                    :aria-label="$t('Search')"
+                    type="button"
+                >
+                    <app-icon icon="search" />
+                </button>
+                <button
+                    v-else
+                    class="grid size-10 shrink-0 place-items-center text-ink-muted hover:opacity-60"
+                    :aria-label="$t('Clear')"
+                    type="button"
+                    @click="clearSearchText"
+                >
+                    <app-icon icon="times" />
+                </button>
+
+                <input v-model="searchText" class="field min-w-0 flex-1" autocomplete="off" :aria-label="$t('Search')" />
             </div>
         </div>
-        <div ref="stackList" class="stack-list" :class="{ scrollbar: scrollbar }" :style="stackListStyle">
-            <div v-if="filteredStackList.length === 0" class="empty-stacks">
-                <div class="empty-stacks-icon"><app-icon icon="warehouse" /></div>
+
+        <div class="min-h-0 flex-1 overflow-y-auto" :aria-busy="!loaded">
+            <!-- Skeleton while the first stack list arrives -->
+            <div v-if="!loaded" class="flex flex-col gap-2.5 p-3" aria-hidden="true">
+                <div v-for="n in 6" :key="n" class="skeleton h-9 w-full" />
+            </div>
+
+            <div v-else-if="filteredStackList.length === 0" class="flex min-h-[220px] flex-col items-center justify-center gap-2.5 p-6 text-center text-ink-muted">
+                <div class="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary">
+                    <app-icon icon="warehouse" size="lg" />
+                </div>
                 <strong>{{ $t("No Stacks") }}</strong>
                 <router-link to="/compose">{{ $t("addFirstStackMsg") }}</router-link>
             </div>
-            <div class="stack-list-inner">
+
+            <div class="flex flex-col">
                 <StackListItem
                     v-for="(item, index) in filteredStackList"
                     :key="index" :stack="item"
@@ -52,6 +68,11 @@ export default {
         };
     },
     computed: {
+        /** Has the first stack list payload arrived from the server? */
+        loaded() {
+            return this.$root.stackListLoaded;
+        },
+
         /**
          * Returns a sorted list of stacks based on the applied filters and search text.
          * @returns {Array} The sorted list of stacks.
@@ -106,18 +127,6 @@ export default {
 
             return result;
         },
-
-        stackListStyle() {
-            let listHeaderHeight = 60;
-
-            return {
-                "height": `calc(100% - ${listHeaderHeight}px)`
-            };
-        },
-    },
-    mounted() {
-    },
-    beforeUnmount() {
     },
     methods: {
         /**
@@ -130,130 +139,3 @@ export default {
     },
 };
 </script>
-
-<style scoped>
-
-.stack-panel {
-    height: calc(100vh - 155px);
-    min-height: 420px;
-    max-height: 900px;
-    position: sticky;
-    top: 96px;
-    overflow: hidden;
-}
-
-.small-padding {
-    padding-left: 5px !important;
-    padding-right: 5px !important;
-}
-
-.list-header {
-    border-bottom: 1px solid var(--border);
-    border-radius: 10px 10px 0 0;
-    margin: -10px;
-    margin-bottom: 10px;
-    padding: 10px;
-
-    .dark & {
-        background-color: #161b22;
-        border-bottom: 0;
-    }
-}
-
-.header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.header-filter {
-    display: flex;
-    align-items: center;
-}
-
-@media (max-width: 770px) {
-    .list-header {
-        margin: -20px;
-        margin-bottom: 10px;
-        padding: 5px;
-    }
-}
-
-.search-wrapper {
-    display: flex;
-    flex: 1;
-    align-items: center;
-}
-
-.search-icon {
-    padding: 10px;
-    color: var(--text-muted);
-
-    /* Clear filter button */
-    svg[data-icon="times"] {
-        cursor: pointer;
-        transition: all ease-in-out 0.1s;
-
-        &:hover {
-            opacity: 0.5;
-        }
-    }
-}
-
-.search-input {
-    width: 100%;
-    min-width: 0;
-}
-
-.search-wrapper form {
-    flex: 1;
-}
-
-.stack-item {
-    width: 100%;
-}
-
-.empty-stacks {
-    min-height: 220px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 24px;
-    color: var(--text-muted);
-    text-align: center;
-}
-
-.empty-stacks-icon {
-    width: 48px;
-    height: 48px;
-    display: grid;
-    place-items: center;
-    border-radius: 14px;
-    background: var(--primary-soft);
-    color: var(--primary);
-    font-size: 22px;
-}
-
-.tags {
-    margin-top: 4px;
-    padding-left: 67px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0;
-}
-
-.bottom-style {
-    padding-left: 67px;
-    margin-top: 5px;
-}
-
-.selection-controls {
-    margin-top: 5px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-</style>

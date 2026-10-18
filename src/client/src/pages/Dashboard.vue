@@ -1,15 +1,15 @@
 <template>
-    <div class="dashboard-shell">
-        <aside v-if="!$root.isMobile" class="dashboard-sidebar">
-            <div>
-                <router-link to="/compose" class="btn btn-primary mb-3"><app-icon icon="plus" /> {{ $t("compose") }}</router-link>
-            </div>
+    <div class="grid w-full grid-cols-1 items-start gap-6 px-4 py-6 md:px-6 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+        <aside v-if="!$root.isMobile" class="min-w-0">
+            <router-link to="/compose" class="button button-primary mb-3 w-full">
+                <app-icon icon="plus" /> {{ $t("compose") }}
+            </router-link>
             <StackList :scrollbar="true" />
         </aside>
 
-        <section ref="container" class="dashboard-content">
+        <section ref="container" class="min-w-0">
             <!-- Add :key to disable vue router re-use the same component -->
-            <router-view :key="$route.fullPath" :calculatedHeight="height" />
+            <router-view :key="$route.fullPath" />
         </section>
     </div>
 </template>
@@ -22,45 +22,5 @@ export default {
     components: {
         StackList,
     },
-    data() {
-        return {
-            height: 0
-        };
-    },
-    mounted() {
-        this.height = this.$refs.container.offsetHeight;
-    },
 };
 </script>
-
-<style scoped>
-.dashboard-shell {
-    width: 100%;
-    padding: 24px clamp(16px, 2vw, 32px) 40px;
-    display: grid;
-    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-    align-items: start;
-    gap: 28px;
-}
-
-.dashboard-sidebar {
-    min-width: 0;
-}
-
-.dashboard-content {
-    min-width: 0;
-}
-
-@media (max-width: 900px) {
-    .dashboard-shell {
-        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-        gap: 18px;
-    }
-}
-
-:global(.mobile) .dashboard-shell {
-    display: block;
-    width: 100%;
-    padding: 16px 12px 80px;
-}
-</style>

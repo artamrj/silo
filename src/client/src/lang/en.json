@@ -130,5 +130,22 @@
     "rmCode": "rm",
     "rmRfCode": "rm -rf",
     "envVarCode": "SILO_ENABLE_CONSOLE=true",
-    "confirmLeaveStack": "You are currently editing a stack. Are you sure you want to leave?"
+    "confirmLeaveStack": "You are currently editing a stack. Are you sure you want to leave?",
+    "delete": "Delete",
+    "Show": "Show",
+    "Hide": "Hide",
+    "Confirm": "Confirm",
+    "Token": "Token",
+    "Light": "Light",
+    "Dark": "Dark",
+    "Auto": "Auto",
+    "Version": "Version",
+    "No Stacks": "No Stacks",
+    "Yes": "Yes",
+    "No": "No",
+    "Close": "Close",
+    "More stack actions": "More stack actions",
+    "skipToContent": "Skip to content",
+    "Main navigation": "Main navigation",
+    "Open user menu": "Open user menu"
 }

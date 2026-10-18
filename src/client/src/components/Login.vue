@@ -1,43 +1,42 @@
 <template>
-    <div class="form-container">
-        <div class="form">
+    <div class="flex min-h-[calc(100vh-72px)] items-center py-10">
+        <div class="m-auto w-full max-w-[420px] rounded-2xl border border-line bg-surface p-8 shadow-lg">
             <form @submit.prevent="submit">
-                <div class="login-brand">
+                <div class="mb-7 flex items-center gap-3.5">
                     <object width="52" height="52" data="/icon.svg" />
-                    <div><h1>Silo</h1><p>{{ $t("Login") }}</p></div>
-                </div>
-
-                <div v-if="!tokenRequired" class="form-floating">
-                    <input id="floatingInput" v-model="username" type="text" class="form-control" placeholder="Username" autocomplete="username" required>
-                    <label for="floatingInput">{{ $t("Username") }}</label>
-                </div>
-
-                <div v-if="!tokenRequired" class="form-floating mt-3">
-                    <input id="floatingPassword" v-model="password" type="password" class="form-control" placeholder="Password" autocomplete="current-password" required>
-                    <label for="floatingPassword">{{ $t("Password") }}</label>
-                </div>
-
-                <div v-if="tokenRequired">
-                    <div class="form-floating mt-3">
-                        <input id="otp" v-model="token" type="text" maxlength="6" class="form-control" placeholder="123456" autocomplete="one-time-code" required>
-                        <label for="otp">{{ $t("Token") }}</label>
+                    <div>
+                        <h1 class="mb-0">Silo</h1>
+                        <p class="mt-0.5 mb-0 text-ink-muted">{{ $t("Login") }}</p>
                     </div>
                 </div>
 
-                <div class="form-check mb-3 mt-3 d-flex justify-content-center pe-4">
-                    <div class="form-check">
-                        <input id="remember" v-model="$root.remember" type="checkbox" value="remember-me" class="form-check-input">
-
-                        <label class="form-check-label" for="remember">
-                            {{ $t("Remember me") }}
-                        </label>
-                    </div>
+                <div v-if="!tokenRequired" class="mb-3">
+                    <label class="field-label" for="floatingInput">{{ $t("Username") }}</label>
+                    <input id="floatingInput" v-model="username" type="text" class="field" placeholder="Username" autocomplete="username" required>
                 </div>
-                <button class="w-100 btn btn-primary" type="submit" :disabled="processing">
+
+                <div v-if="!tokenRequired" class="mb-3">
+                    <label class="field-label" for="floatingPassword">{{ $t("Password") }}</label>
+                    <input id="floatingPassword" v-model="password" type="password" class="field" placeholder="Password" autocomplete="current-password" required>
+                </div>
+
+                <div v-if="tokenRequired" class="mb-3">
+                    <label class="field-label" for="otp">{{ $t("Token") }}</label>
+                    <input id="otp" v-model="token" type="text" maxlength="6" class="field" placeholder="123456" autocomplete="one-time-code" required>
+                </div>
+
+                <div class="mt-3 mb-3 flex items-center justify-center gap-2">
+                    <input id="remember" v-model="$root.remember" type="checkbox" class="size-4 accent-primary">
+                    <label class="text-sm text-ink" for="remember">
+                        {{ $t("Remember me") }}
+                    </label>
+                </div>
+
+                <button class="button button-primary w-full" type="submit" :disabled="processing">
                     {{ $t("Login") }}
                 </button>
 
-                <div v-if="res && !res.ok" class="alert alert-danger mt-3" role="alert">
+                <div v-if="res && !res.ok" class="mt-3 rounded-lg border border-danger bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
                     {{ $t(res.msg) }}
                 </div>
             </form>
@@ -88,51 +87,3 @@ export default {
     },
 };
 </script>
-
-<style scoped>
-.form-container {
-    min-height: calc(100vh - 72px);
-    display: flex;
-    align-items: center;
-    padding-top: 40px;
-    padding-bottom: 40px;
-}
-
-.form-floating {
-    > label {
-        padding-left: 1.3rem;
-    }
-
-    > .form-control {
-        padding-left: 1.3rem;
-    }
-}
-
-.form {
-    width: 100%;
-    max-width: 420px;
-    padding: 32px;
-    margin: auto;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    background: var(--surface);
-    box-shadow: var(--shadow-lg);
-}
-
-.login-brand {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 28px;
-}
-
-.login-brand h1 {
-    margin: 0;
-    font-size: 24px;
-}
-
-.login-brand p {
-    margin: 2px 0 0;
-    color: var(--text-muted);
-}
-</style>

@@ -50,6 +50,7 @@ export default defineComponent({
             composeTemplate: "",
 
             stackList: {},
+            stackListLoaded: false,
         };
     },
     computed: {
@@ -209,6 +210,7 @@ export default defineComponent({
                 if (res.ok) {
                     this.stackList = res.stackList;
                 }
+                this.stackListLoaded = true;
             });
 
             socket.on("refresh", () => {

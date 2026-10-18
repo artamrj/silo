@@ -1,10 +1,10 @@
 <template>
-    <div class="form-container" data-cy="setup-form">
-        <div class="form">
+    <div class="flex min-h-screen items-center py-10" data-cy="setup-form">
+        <div class="m-auto w-full max-w-[440px] rounded-2xl border border-line bg-surface p-9 text-center shadow-lg">
             <form @submit.prevent="submit">
                 <div>
                     <object width="64" height="64" data="/icon.svg" />
-                    <div style="font-size: 28px; font-weight: bold; margin-top: 5px;">
+                    <div class="mt-1.5 text-2xl font-bold">
                         Silo
                     </div>
                 </div>
@@ -13,22 +13,22 @@
                     {{ $t("Create your admin account") }}
                 </p>
 
-                <div class="form-floating mt-3">
-                    <input id="floatingInput" v-model="username" type="text" class="form-control" :placeholder="$t('Username')" required data-cy="username-input">
-                    <label for="floatingInput">{{ $t("Username") }}</label>
+                <div class="mt-3 text-left">
+                    <label class="field-label" for="floatingInput">{{ $t("Username") }}</label>
+                    <input id="floatingInput" v-model="username" type="text" class="field" :placeholder="$t('Username')" required data-cy="username-input">
                 </div>
 
-                <div class="form-floating mt-3">
-                    <input id="floatingPassword" v-model="password" type="password" class="form-control" :placeholder="$t('Password')" required data-cy="password-input">
-                    <label for="floatingPassword">{{ $t("Password") }}</label>
+                <div class="mt-3 text-left">
+                    <label class="field-label" for="floatingPassword">{{ $t("Password") }}</label>
+                    <input id="floatingPassword" v-model="password" type="password" class="field" :placeholder="$t('Password')" required data-cy="password-input">
                 </div>
 
-                <div class="form-floating mt-3">
-                    <input id="repeat" v-model="repeatPassword" type="password" class="form-control" :placeholder="$t('Repeat Password')" required data-cy="password-repeat-input">
-                    <label for="repeat">{{ $t("Repeat Password") }}</label>
+                <div class="mt-3 text-left">
+                    <label class="field-label" for="repeat">{{ $t("Repeat Password") }}</label>
+                    <input id="repeat" v-model="repeatPassword" type="password" class="field" :placeholder="$t('Repeat Password')" required data-cy="password-repeat-input">
                 </div>
 
-                <button class="w-100 btn btn-primary mt-3" type="submit" :disabled="processing" data-cy="submit-setup-form">
+                <button class="button button-primary mt-3 w-full" type="submit" :disabled="processing" data-cy="submit-setup-form">
                     {{ $t("Create") }}
                 </button>
             </form>
@@ -45,9 +45,6 @@ export default {
             password: "",
             repeatPassword: "",
         };
-    },
-    watch: {
-
     },
     mounted() {
         // TODO: Check if it is a database setup
@@ -89,46 +86,3 @@ export default {
     },
 };
 </script>
-
-<style scoped>
-.form-container {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    padding-top: 40px;
-    padding-bottom: 40px;
-}
-
-.form-floating {
-    > .form-select {
-        padding-left: 1.3rem;
-        padding-top: 1.525rem;
-        line-height: 1.35;
-
-        ~ label {
-            padding-left: 1.3rem;
-        }
-    }
-
-    > label {
-        padding-left: 1.3rem;
-    }
-
-    > .form-control {
-        padding-left: 1.3rem;
-    }
-}
-
-.form {
-
-    width: 100%;
-    max-width: 440px;
-    padding: 36px;
-    margin: auto;
-    text-align: center;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    background: var(--surface);
-    box-shadow: var(--shadow-lg);
-}
-</style>

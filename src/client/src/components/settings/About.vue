@@ -1,30 +1,14 @@
 <template>
-    <div class="d-flex justify-content-center align-items-center">
-        <div class="logo d-flex flex-column justify-content-center align-items-center">
+    <div class="flex flex-col items-center justify-center">
+        <div class="m-8 flex flex-col items-center">
             <object class="my-4" width="200" height="200" data="/icon.svg" />
-            <div class="fs-4 fw-bold">Silo</div>
+            <div class="text-xl font-bold">Silo</div>
             <div>{{ $t("Version") }}: {{ $root.info.version }}</div>
-            <div class="frontend-version">{{ $t("Frontend Version") }}: {{ $root.frontendVersion }}</div>
+            <div class="text-sm text-ink-muted">{{ $t("Frontend Version") }}: {{ $root.frontendVersion }}</div>
 
-            <div v-if="!$root.isFrontendBackendVersionMatched" class="alert alert-warning mt-4" role="alert">
+            <div v-if="!$root.isFrontendBackendVersionMatched" class="mt-4 rounded-lg border border-warning bg-warning/10 px-4 py-2 text-sm text-warning" role="alert">
                 ⚠️ {{ $t("Frontend Version do not match backend version!") }}
             </div>
         </div>
     </div>
 </template>
-
-<style scoped>
-.logo {
-    margin: 4em 1em;
-}
-
-.frontend-version {
-    font-size: 0.9em;
-    color: #cccccc;
-
-    .dark & {
-        color: #333333;
-    }
-}
-
-</style>

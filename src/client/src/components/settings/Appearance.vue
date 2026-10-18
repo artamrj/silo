@@ -1,52 +1,23 @@
 <template>
     <div>
-        <div v-show="true" class="my-4">
-            <label for="timezone" class="form-label">{{ $t("Theme") }}</label>
-            <div>
-                <div
-                    class="btn-group"
-                    role="group"
-                    aria-label="Basic checkbox toggle button group"
+        <div class="mb-4">
+            <span class="field-label">{{ $t("Theme") }}</span>
+            <div class="inline-flex overflow-hidden rounded-lg border border-line" role="radiogroup" :aria-label="$t('Theme')">
+                <label
+                    v-for="option in themeOptions"
+                    :key="option.value"
+                    class="cursor-pointer border-l border-line px-4 py-2 text-sm first:border-l-0"
+                    :class="$root.userTheme === option.value ? 'bg-primary-fill text-white' : 'bg-surface text-ink hover:bg-subtle'"
                 >
                     <input
-                        id="btncheck1"
                         v-model="$root.userTheme"
                         type="radio"
-                        class="btn-check"
+                        class="sr-only"
                         name="theme"
-                        autocomplete="off"
-                        value="light"
+                        :value="option.value"
                     />
-                    <label class="btn btn-outline-primary" for="btncheck1">
-                        {{ $t("Light") }}
-                    </label>
-
-                    <input
-                        id="btncheck2"
-                        v-model="$root.userTheme"
-                        type="radio"
-                        class="btn-check"
-                        name="theme"
-                        autocomplete="off"
-                        value="dark"
-                    />
-                    <label class="btn btn-outline-primary" for="btncheck2">
-                        {{ $t("Dark") }}
-                    </label>
-
-                    <input
-                        id="btncheck3"
-                        v-model="$root.userTheme"
-                        type="radio"
-                        class="btn-check"
-                        name="theme"
-                        autocomplete="off"
-                        value="auto"
-                    />
-                    <label class="btn btn-outline-primary" for="btncheck3">
-                        {{ $t("Auto") }}
-                    </label>
-                </div>
+                    {{ $t(option.label) }}
+                </label>
             </div>
         </div>
     </div>
@@ -54,26 +25,20 @@
 
 <script>
 export default {
-
+    computed: {
+        themeOptions() {
+            return [
+                {
+                    value: "light",
+                    label: "Light" },
+                {
+                    value: "dark",
+                    label: "Dark" },
+                {
+                    value: "auto",
+                    label: "Auto" },
+            ];
+        },
+    },
 };
 </script>
-
-<style scoped>
-
-.btn-check:active + .btn-outline-primary,
-.btn-check:checked + .btn-outline-primary,
-.btn-check:hover + .btn-outline-primary {
-    color: #fff;
-
-    .dark & {
-        color: #000;
-    }
-}
-
-.dark {
-    .list-group-item {
-        background-color: #070a10;
-        color: #b1b8c0;
-    }
-}
-</style>

@@ -1,8 +1,8 @@
 <template>
     <div>
-        <div v-if="settingsLoaded" class="my-4">
-            <form class="my-4" autocomplete="off" @submit.prevent="saveGeneral">
-                <div class="shadow-box mb-3 editor-box edit-mode">
+        <div v-if="settingsLoaded">
+            <form autocomplete="off" @submit.prevent="saveGeneral">
+                <div class="editor mb-3">
                     <code-mirror
                         ref="editor"
                         v-model="settings.globalENV"
@@ -16,10 +16,10 @@
                     />
                 </div>
 
-                <div class="my-4">
+                <div class="mt-4">
                     <!-- Save Button -->
                     <div>
-                        <button class="btn btn-primary" type="submit">
+                        <button class="button button-primary" type="submit">
                             {{ $t("Save") }}
                         </button>
                     </div>
@@ -34,11 +34,19 @@ import CodeMirror from "vue-codemirror6";
 import { python } from "@codemirror/lang-python"; // good enough for .env key=value highlighting
 import { lineNumbers, EditorView } from "@codemirror/view";
 import { ref } from "vue";
+import { settingsContextKey } from "../../context";
 
 export default {
     name: "GlobalEnv",
     components: {
         CodeMirror,
+    },
+
+    inject: {
+        settingsContext: {
+            from: settingsContextKey,
+            default: null,
+        },
     },
 
     setup() {
@@ -61,20 +69,17 @@ export default {
 
     computed: {
         settings() {
-            return this.$parent.$parent.$parent.settings;
-        },
-        saveSettings() {
-            return this.$parent.$parent.$parent.saveSettings;
+            return this.settingsContext?.getSettings() ?? {};
         },
         settingsLoaded() {
-            return this.$parent.$parent.$parent.settingsLoaded;
+            return this.settingsContext?.isSettingsLoaded() ?? false;
         },
     },
 
     methods: {
         /** Save the settings */
         saveGeneral() {
-            this.saveSettings();
+            this.settingsContext?.saveSettings();
         },
 
         onChange() {
@@ -83,14 +88,3 @@ export default {
     },
 };
 </script>
-
-<style scoped>
-.editor-box {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 14px;
-
-    &.edit-mode {
-        background-color: #2c2f38 !important;
-    }
-}
-</style>

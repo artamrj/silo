@@ -1,23 +1,41 @@
 <template>
     <div>
         <div v-if="valid">
-            <ul v-if="isArrayInited" class="list-group">
-                <li v-for="(value, index) in array" :key="index" class="list-group-item">
-                    <input v-model="array[index]" type="text" class="no-bg domain-input" :placeholder="placeholder" />
-                    <app-icon icon="times" class="action remove ms-2 me-3 text-danger" @click="remove(index)" />
+            <ul v-if="isArrayInited" class="flex list-none flex-col gap-2 p-0">
+                <li v-for="(value, index) in array" :key="index" class="flex items-center gap-2">
+                    <input v-model="array[index]" type="text" class="field" :placeholder="placeholder" />
+                    <button type="button" class="button button-sm button-danger" :aria-label="$t('delete')" @click="remove(index)">
+                        <app-icon icon="times" />
+                    </button>
                 </li>
             </ul>
 
-            <button class="btn btn-normal btn-sm mt-3" @click="addField">{{ $t("addListItem", [ displayName ]) }}</button>
+            <button class="button button-normal button-sm mt-3" @click="addField">{{ $t("addListItem", [ displayName ]) }}</button>
         </div>
-        <div v-else>
+        <div v-else class="text-ink-muted">
             {{ $t("LongSyntaxNotSupported") }}
         </div>
     </div>
 </template>
 
 <script>
+import { AppIcon } from "../icon";
+import { composeContextKey, serviceContextKey } from "../context";
+
 export default {
+    components: {
+        AppIcon,
+    },
+    inject: {
+        composeContext: {
+            from: composeContextKey,
+            default: null,
+        },
+        serviceContext: {
+            from: serviceContextKey,
+            default: null,
+        },
+    },
     props: {
         name: {
             type: String,
@@ -35,11 +53,6 @@ export default {
             type: String,
             default: "service",
         }
-    },
-    data() {
-        return {
-
-        };
     },
     computed: {
         array() {
@@ -63,20 +76,19 @@ export default {
          * Not a good name, but it is used to get the object.
          */
         service() {
-            if (this.objectType === "service") {
-                // Used in Container.vue
-                return this.$parent.$parent.service;
-            } else if (this.objectType === "x-silo") {
+            if (this.objectType === "x-silo") {
+                // Used in Compose.vue
+                const config = this.composeContext?.getJsonConfig() ?? {};
 
-                if (!this.$parent.$parent.jsonConfig["x-silo"]) {
+                if (!config["x-silo"]) {
                     return {};
                 }
 
-                // Used in Compose.vue
-                return this.$parent.$parent.jsonConfig["x-silo"];
-            } else {
-                return {};
+                return config["x-silo"];
             }
+
+            // Used in Container.vue
+            return this.serviceContext?.getService() ?? {};
         },
 
         valid() {
@@ -95,16 +107,14 @@ export default {
         }
 
     },
-    created() {
-
-    },
     methods: {
         addField() {
-
             // Create the object if not exists.
             if (this.objectType === "x-silo") {
-                if (!this.$parent.$parent.jsonConfig["x-silo"]) {
-                    this.$parent.$parent.jsonConfig["x-silo"] = {};
+                const config = this.composeContext?.getJsonConfig();
+
+                if (config && !config["x-silo"]) {
+                    config["x-silo"] = {};
                 }
             }
 
@@ -121,28 +131,3 @@ export default {
     }
 };
 </script>
-
-<style scoped>
-
-.list-group {
-    background-color: #070a10;
-
-    li {
-        display: flex;
-        align-items: center;
-        padding: 10px 0 10px 10px;
-
-        .domain-input {
-            flex-grow: 1;
-            background-color: #070a10;
-            border: none;
-            color: #b1b8c0;
-            outline: none;
-
-            &::placeholder {
-                color: #1d2634;
-            }
-        }
-    }
-}
-</style>

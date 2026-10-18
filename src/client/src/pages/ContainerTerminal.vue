@@ -4,10 +4,10 @@
             <h1 class="mb-3">{{ $t("terminal") }} - {{ serviceName }} ({{ stackName }})</h1>
 
             <div class="mb-3">
-                <router-link :to="sh" class="btn btn-normal me-2">{{ $t("Switch to sh") }}</router-link>
+                <router-link :to="sh" class="button button-normal">{{ $t("Switch to sh") }}</router-link>
             </div>
 
-            <Terminal :key="terminalName" class="terminal" :rows="20" mode="interactive" :name="terminalName" :stack-name="stackName" :service-name="serviceName" :shell="shell"></Terminal>
+            <Terminal :key="terminalName" class="h-[410px]" :rows="20" mode="interactive" :name="terminalName" :stack-name="stackName" :service-name="serviceName" :shell="shell"></Terminal>
         </div>
     </transition>
 </template>
@@ -19,11 +19,6 @@ import Terminal from "../components/Terminal.vue";
 export default {
     components: {
         Terminal,
-    },
-    data() {
-        return {
-
-        };
     },
     computed: {
         stackName() {
@@ -49,17 +44,5 @@ export default {
             };
         },
     },
-    mounted() {
-
-    },
-    methods: {
-
-    }
 };
 </script>
-
-<style scoped>
-.terminal {
-    height: 410px;
-}
-</style>

@@ -3,10 +3,10 @@
         <div v-if="!processing">
             <h1 class="mb-3">{{ $t("console") }}</h1>
 
-            <Terminal v-if="enableConsole" class="terminal" :rows="20" mode="mainTerminal" name="console"></Terminal>
+            <Terminal v-if="enableConsole" class="h-[410px]" :rows="20" mode="mainTerminal" name="console"></Terminal>
 
-            <div v-else class="alert alert-warning shadow-box" role="alert">
-                <h4 class="alert-heading">{{ $t("Console is not enabled") }}</h4>
+            <div v-else class="card border-warning bg-warning/10" role="alert">
+                <h4 class="mb-2 text-warning">{{ $t("Console is not enabled") }}</h4>
                 <i18n-t keypath="ConsoleNotEnabledMSG1" tag="p">
                     <template #docker><code>{{ $t('dockerCode') }}</code></template>
                     <template #rm><code>{{ $t('rmCode') }}</code></template>
@@ -47,14 +47,5 @@ export default {
             this.processing = false;
         });
     },
-    methods: {
-
-    }
 };
 </script>
-
-<style scoped>
-.terminal {
-    height: 410px;
-}
-</style>

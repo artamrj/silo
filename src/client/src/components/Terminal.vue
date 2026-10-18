@@ -1,6 +1,6 @@
 <template>
-    <div class="shadow-box">
-        <div v-pre ref="terminal" class="main-terminal"></div>
+    <div class="card overflow-hidden bg-slate-950 p-0">
+        <div v-pre ref="terminal" class="h-full w-full"></div>
     </div>
 </template>
 
@@ -384,16 +384,3 @@ export default {
     }
 };
 </script>
-
-<style scoped>
-.main-terminal {
-    height: 100%;
-}
-</style>
-
-<style>
-.terminal {
-    background-color: black !important;
-    height: 100%;
-}
-</style>
