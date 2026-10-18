@@ -15,19 +15,13 @@
     </header>
 </template>
 
-<script>
-export default {
-    props: {
-        /** Page title, rendered as the single <h1>. */
-        title: {
-            type: String,
-            required: true,
-        },
-        /** Optional supporting line under the title. */
-        description: {
-            type: String,
-            default: "",
-        },
-    },
-};
+<script setup lang="ts">
+withDefaults(defineProps<{
+    /** Page title, rendered as the single <h1>. */
+    title: string;
+    /** Optional supporting line under the title. */
+    description?: string;
+}>(), {
+    description: "",
+});
 </script>

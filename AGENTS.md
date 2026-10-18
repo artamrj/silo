@@ -17,8 +17,10 @@ runtime, no native addons.
 - **Runtime**: Node.js `>=26.0.0 <27` (see `.nvmrc`), ESM (`"type": "module"`).
 - **Server**: TypeScript, Express 5, Socket.IO 4, `pino` logging, zod validation.
 - **Database**: SQLite through the built-in `node:sqlite` driver (no native addon).
-- **Client**: Vue 3 (options API) + Vue Router 5 + vue-i18n, Tailwind CSS v4,
-  shadcn-vue primitives, `@lucide/vue` icons, `vue-sonner` toasts.
+- **Client**: Vue 3 (`<script setup>` Composition API, TypeScript) + Vue Router 5
+  + vue-i18n, Tailwind CSS v4, shadcn-vue primitives, `@lucide/vue` icons,
+  `vue-sonner` toasts. Shared reactive logic lives in composables
+  (`src/client/src/composables/`).
 - **Build/test**: Vite (client), esbuild (server), Vitest, ESLint (flat config).
 
 Do not add a framework, state library, ORM, or native dependency without a
@@ -30,10 +32,10 @@ strong reason. The project deliberately uses small, dependency-light modules.
 src/
 ├── client/       Vue app (Vite root is src/client)
 │   └── src/
-│       ├── pages/        Route-level views (Options API, plain JS <script>)
+│       ├── pages/        Route-level views (<script setup>, TS)
 │       ├── components/   App components; components/ui/** is generated shadcn-vue
 │       ├── layouts/      Shell layout
-│       ├── mixins/       Global mixins (socket, theme)
+│       ├── composables/  Shared reactive logic (useSocket, useTheme, useStackList)
 │       ├── context.ts    provide/inject keys and their interfaces
 │       ├── styles/main.css  Tailwind entry + theme tokens
 │       └── lang/en.json  i18n strings
@@ -59,7 +61,7 @@ cp .local/.env.example .local/.env
 npm run dev          # Vite on :5173 (proxies /socket.io, /metrics to :5001) + tsx watch server on :5001
 
 npm run lint         # eslint --fix via `npm run fmt`
-npm run check-ts     # tsc --noEmit
+npm run check-ts     # type-check server/shared (tsc) + client (vue-tsc)
 npm test             # vitest run
 npm run test:watch
 npm run build        # build:server (esbuild) then build:client (vite)
@@ -92,8 +94,10 @@ hand-formatting:
 
 ### Server
 
-- TypeScript is strict (`tsconfig.json`), but only `src/server`, `src/shared`,
-  and `scripts` are type-checked. The client is checked by Vite/esbuild only.
+- TypeScript is strict. `tsconfig.json` covers `src/server`, `src/shared`, and
+  `scripts` (`npm run check-ts:server`); the client is type-checked separately by
+  `vue-tsc` through `tsconfig.client.json` (`npm run check-ts:client`). Both run
+  under `npm run check-ts`.
 - Express routes live in a `Router` subclass (`src/server/router.ts`) and are
   registered in `SiloServer.routerList`.
 - Socket.IO event handlers live in a `SocketHandler` subclass
@@ -125,10 +129,19 @@ hand-formatting:
 
 ### Client
 
-- App-level Vue code uses the **options API** with a plain `<script>` block (no
-  `lang="ts"`), `data`/`computed`/`methods`/`watch`, and mixins for global state
-  (`mixins/socket.ts`, `mixins/theme.ts`). Match that style; do not introduce
-  `<script setup>` or TypeScript in app components.
+- App-level Vue code uses the **Composition API** with `<script setup lang="ts">`.
+  Do not use the options API (`data`/`methods`/`this`) or mixins.
+- Shared reactive state lives in composables under `src/client/src/composables/`
+  (`useSocket`, `useTheme`, `useStackList`, `useToast`). Import them directly,
+  e.g. `const { emitServer, loggedIn } = useSocket()`. Toast helpers live in
+  `useToast`, not `useSocket`. Never reach for a component instance
+  (`getCurrentInstance().proxy`, `this.$root`) to access app-level state.
+  Composables hold their state in module-level `ref`/`reactive` so every caller
+  shares one instance. There are no mixins.
+- Shared client types live in `src/client/src/composables/types.ts`
+  (`StackMeta`, `ServerInfo`, `DockerStatEntry`, `ServiceStatus`). `<script setup>`
+  cannot export types, so type-only exports go there; server-side payload shapes
+  stay in `src/shared/`.
 - `src/client/src/components/ui/**` is generated shadcn-vue output and is
   excluded from ESLint. Do not hand-edit it — regenerate when a primitive needs
   changes, or keep overrides in the consuming component.
@@ -137,17 +150,23 @@ hand-formatting:
   `@lucide/vue`.
 - Use `Toaster` from `@/components/ui/sonner` and the `toast` helper in
   `src/client/src/toast.ts` for user feedback.
-- All user-facing strings go through `$t(...)` with entries in
-  `src/client/src/lang/en.json`. Add the English string when you add a key.
-- Use shared context keys from `src/client/src/context.ts` via
-  `provide`/`inject` rather than prop-drilling; the getters intentionally return
-  live objects.
-- Theme is global: `$root.theme`, `$root.isDark`, `$root.cycleTheme`, and the
+- All user-facing strings go through i18n: `$t(...)` in templates, and
+  `const { t } = useI18n()` from `vue-i18n` in `<script setup>`. Add the English
+  string to `src/client/src/lang/en.json` when you add a key.
+- Use shared context keys from `src/client/src/context.ts` via `provide`/
+  `inject` rather than prop-drilling; the getters intentionally return live
+  objects. In `<script setup>` use `inject(key)` (pass a default for optional
+  contexts) and `provide(key, value)`.
+- Theme is global through `useTheme()` (`theme`, `isDark`, `cycleTheme`) and the
   `dark` class on `document.body`. Style with Tailwind tokens (`bg-card`,
   `text-ink-muted`, `bg-primary-soft`, ...) defined in `styles/main.css`; do not
   hardcode colors.
+- Declare props/emits with the type helpers `defineProps<...>()` /
+  `defineEmits<...>()`; keep runtime `withDefaults` only where a default is
+  needed. Template refs use `useTemplateRef`/`ref` instead of `this.$refs`.
 - Router routes are code-split with dynamic `import()` in
-  `src/client/src/router.ts`. Add new pages there, not eagerly.
+  `src/client/src/router.ts`. Add new pages there, not eagerly. In-component
+  guards use `onBeforeRouteUpdate`/`onBeforeRouteLeave` from `vue-router`.
 
 ### Shared
 
@@ -179,6 +198,16 @@ hand-formatting:
 - `SILO_DEV_NO_AUTH` is development-only. Never enable it in production paths or
   document it as a workaround.
 - Report vulnerabilities per `SECURITY.md`; do not open a public issue for them.
+
+### Skills
+
+- Installed skills are global. For this repo prefer `vue-best-practices` and
+  `vue-router-best-practices` (Composition API matches the current stack), and
+  `shadcn-vue` for UI primitives. The React-oriented `shadcn` skill is denied in
+  `opencode.json` because Silo uses shadcn-vue.
+- `vue-router-best-practices` targets Vue Router 4; Silo is on Vue Router 5. The
+  Composition API helpers (`useRoute`, `useRouter`, `onBeforeRouteLeave`, ...) are
+  the same — treat any v3/v4-only guidance with care.
 
 ## Git / PR workflow
 

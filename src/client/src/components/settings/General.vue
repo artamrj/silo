@@ -29,35 +29,21 @@
     </div>
 </template>
 
-<script>
-import { settingsContextKey } from "../../context";
+<script setup lang="ts">
+import { computed, inject } from "vue";
+import { settingsContextKey, type SettingsContext } from "../../context";
 
-export default {
-    inject: {
-        settingsContext: {
-            from: settingsContextKey,
-            default: null,
-        },
-    },
+const settingsContext = inject<SettingsContext | null>(settingsContextKey, null);
 
-    computed: {
-        settings() {
-            return this.settingsContext?.getSettings() ?? {};
-        },
-        settingsLoaded() {
-            return this.settingsContext?.isSettingsLoaded() ?? false;
-        },
-    },
+const settings = computed(() => settingsContext?.getSettings() ?? {});
 
-    methods: {
-        /** Save the settings */
-        saveGeneral() {
-            this.settingsContext?.saveSettings();
-        },
-        /** Get the base URL of the application */
-        autoGetPrimaryHostname() {
-            this.settings.primaryHostname = location.hostname;
-        },
-    },
-};
+/** Save the settings */
+function saveGeneral() : void {
+    settingsContext?.saveSettings();
+}
+
+/** Get the base URL of the application */
+function autoGetPrimaryHostname() : void {
+    settings.value.primaryHostname = location.hostname;
+}
 </script>

@@ -36,53 +36,57 @@
     </div>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            processing: false,
-            username: "",
-            password: "",
-            repeatPassword: "",
-        };
-    },
-    mounted() {
-        // TODO: Check if it is a database setup
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useSocket } from "../composables/useSocket";
+import { useToast } from "../composables/useToast";
+import type { SocketResult } from "../../../shared/socket-events";
 
-        this.$root.getSocket().emit("needSetup", (needSetup) => {
-            if (! needSetup) {
-                this.$router.push("/");
-            }
-        });
-    },
-    methods: {
-        /**
-         * Submit form data for processing
-         * @returns {void}
-         */
-        submit() {
-            this.processing = true;
+const { getSocket, login } = useSocket();
+const { toastError, toastRes } = useToast();
+const router = useRouter();
 
-            if (this.password !== this.repeatPassword) {
-                this.$root.toastError("PasswordsDoNotMatch");
-                this.processing = false;
-                return;
-            }
+const processing = ref(false);
+const username = ref("");
+const password = ref("");
+const repeatPassword = ref("");
 
-            this.$root.getSocket().emit("setup", this.username, this.password, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
+onMounted(() => {
+    // TODO: Check if it is a database setup
 
-                if (res.ok) {
-                    this.processing = true;
+    (getSocket().emit as (event : string, cb : (needSetup : boolean) => void) => void)("needSetup", (needSetup : boolean) => {
+        if (!needSetup) {
+            router.push("/");
+        }
+    });
+});
 
-                    this.$root.login(this.username, this.password, "", () => {
-                        this.processing = false;
-                        this.$router.push("/");
-                    });
-                }
+/**
+ * Submit form data for processing
+ * @returns {void}
+ */
+function submit() : void {
+    processing.value = true;
+
+    if (password.value !== repeatPassword.value) {
+        toastError("PasswordsDoNotMatch");
+        processing.value = false;
+        return;
+    }
+
+    (getSocket().emit as (event : string, user : string, pass : string, cb : (res : SocketResult) => void) => void)("setup", username.value, password.value, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+
+        if (res.ok) {
+            processing.value = true;
+
+            login(username.value, password.value, "", () => {
+                processing.value = false;
+                router.push("/");
             });
-        },
-    },
-};
+        }
+    });
+}
 </script>

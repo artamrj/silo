@@ -72,92 +72,83 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { DockerImage } from "../../../shared/docker";
 
-export default {
-    components: {
-        Badge,
-        Checkbox,
-        Tooltip,
-        TooltipContent,
-        TooltipTrigger,
-    },
-    props: {
-        /** Image entry, already grouped by id by the server. */
-        image: {
-            type: Object,
-            required: true,
-        },
-        /** Show the bulk-selection checkbox. */
-        selectable: {
-            type: Boolean,
-            default: true,
-        },
-        /** Whether the checkbox is currently ticked. */
-        selected: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    emits: [ "remove", "toggle-select" ],
-    computed: {
-        /** The repository of the first tag, without tag or registry port. */
-        primaryName() {
-            if (this.image.dangling || this.image.tags.length === 0) {
-                return "<none>";
-            }
-            const ref = this.image.tags[0];
-            const lastColon = ref.lastIndexOf(":");
-            // Only treat the colon as a tag separator when it follows the last slash.
-            if (lastColon > ref.lastIndexOf("/")) {
-                return ref.slice(0, lastColon);
-            }
-            return ref;
-        },
+const props = withDefaults(defineProps<{
+    /** Image entry, already grouped by id by the server. */
+    image : DockerImage;
+    /** Show the bulk-selection checkbox. */
+    selectable?: boolean;
+    /** Whether the checkbox is currently ticked. */
+    selected?: boolean;
+}>(), {
+    selectable: true,
+    selected: false,
+});
 
-        /** Tag portion of every reference. */
-        tagChips() {
-            return this.image.tags.map((ref) => {
-                const lastColon = ref.lastIndexOf(":");
-                return lastColon > ref.lastIndexOf("/") ? ref.slice(lastColon + 1) : "latest";
-            });
-        },
+defineEmits<{
+    remove: [ image : DockerImage ];
+    "toggle-select": [ image : DockerImage ];
+}>();
 
-        statusLabel() {
-            if (this.image.dangling) {
-                return this.$t("Dangling");
-            }
-            if (this.image.inUseByStack) {
-                return this.$t("In use (stack)");
-            }
-            if (this.image.containers > 0) {
-                return this.$t("In use");
-            }
-            return this.$t("Unused");
-        },
+const { t } = useI18n();
 
-        statusVariant() {
-            if (this.image.dangling) {
-                return "destructive";
-            }
-            if (this.image.inUse) {
-                return "secondary";
-            }
-            return "outline";
-        },
+/** The repository of the first tag, without tag or registry port. */
+const primaryName = computed(() => {
+    if (props.image.dangling || props.image.tags.length === 0) {
+        return "<none>";
+    }
+    const ref = props.image.tags[0];
+    const lastColon = ref.lastIndexOf(":");
+    // Only treat the colon as a tag separator when it follows the last slash.
+    if (lastColon > ref.lastIndexOf("/")) {
+        return ref.slice(0, lastColon);
+    }
+    return ref;
+});
 
-        statusTitle() {
-            if (this.image.inUseByStack) {
-                return this.$t("imageUsedByStacks", { stacks: this.image.usedByStacks.join(", ") });
-            }
-            if (this.image.containers > 0) {
-                return this.$t("imageUsedByContainers", { count: this.image.containers });
-            }
-            return this.$t("imageUnused");
-        },
-    },
-};
+/** Tag portion of every reference. */
+const tagChips = computed(() => props.image.tags.map((ref) => {
+    const lastColon = ref.lastIndexOf(":");
+    return lastColon > ref.lastIndexOf("/") ? ref.slice(lastColon + 1) : "latest";
+}));
+
+const statusLabel = computed(() => {
+    if (props.image.dangling) {
+        return t("Dangling");
+    }
+    if (props.image.inUseByStack) {
+        return t("In use (stack)");
+    }
+    if (props.image.containers > 0) {
+        return t("In use");
+    }
+    return t("Unused");
+});
+
+const statusVariant = computed<"destructive" | "secondary" | "outline">(() => {
+    if (props.image.dangling) {
+        return "destructive";
+    }
+    if (props.image.inUse) {
+        return "secondary";
+    }
+    return "outline";
+});
+
+const statusTitle = computed(() => {
+    if (props.image.inUseByStack) {
+        return t("imageUsedByStacks", { stacks: props.image.usedByStacks.join(", ") });
+    }
+    if (props.image.containers > 0) {
+        return t("imageUsedByContainers", { count: props.image.containers });
+    }
+    return t("imageUnused");
+});
 </script>

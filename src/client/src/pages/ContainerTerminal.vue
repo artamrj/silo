@@ -10,41 +10,28 @@
     </PageContainer>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
+import { useRoute } from "vue-router";
 import { getContainerExecTerminalName } from "../../../shared/utils";
 import Terminal from "../components/Terminal.vue";
 import PageContainer from "../components/PageContainer.vue";
 import PageHeader from "../components/PageHeader.vue";
 
-export default {
-    components: {
-        PageContainer,
-        PageHeader,
-        Terminal,
+const route = useRoute();
+
+const stackName = computed(() => String(route.params.stackName ?? ""));
+const shell = computed(() => String(route.params.type ?? ""));
+const serviceName = computed(() => String(route.params.serviceName ?? ""));
+
+const terminalName = computed(() => getContainerExecTerminalName(stackName.value, serviceName.value, 0, shell.value));
+
+const sh = computed(() => ({
+    name: "containerTerminal",
+    params: {
+        stackName: stackName.value,
+        serviceName: serviceName.value,
+        type: "sh",
     },
-    computed: {
-        stackName() {
-            return this.$route.params.stackName;
-        },
-        shell() {
-            return this.$route.params.type;
-        },
-        serviceName() {
-            return this.$route.params.serviceName;
-        },
-        terminalName() {
-            return getContainerExecTerminalName(this.stackName, this.serviceName, 0, this.shell);
-        },
-        sh() {
-            return {
-                name: "containerTerminal",
-                params: {
-                    stackName: this.stackName,
-                    serviceName: this.serviceName,
-                    type: "sh",
-                },
-            };
-        },
-    },
-};
+}));
 </script>

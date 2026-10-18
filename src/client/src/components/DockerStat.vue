@@ -40,13 +40,10 @@
     </div>
 </template>
 
-<script>
-export default {
-    props: {
-        stat: {
-            type: Object,
-            required: true
-        }
-    },
-};
+<script setup lang="ts">
+import type { DockerStatEntry } from "../composables/types";
+
+defineProps<{
+    stat : DockerStatEntry;
+}>();
 </script>

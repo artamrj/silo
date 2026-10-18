@@ -18,116 +18,95 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, inject } from "vue";
 import { AppIcon } from "../icon";
-import { composeContextKey, serviceContextKey } from "../context";
+import { composeContextKey, serviceContextKey, type ComposeContext, type ServiceContext } from "../context";
 
-export default {
-    components: {
-        AppIcon,
-    },
-    inject: {
-        composeContext: {
-            from: composeContextKey,
-            default: null,
-        },
-        serviceContext: {
-            from: serviceContextKey,
-            default: null,
-        },
-    },
-    props: {
-        name: {
-            type: String,
-            required: true,
-        },
-        placeholder: {
-            type: String,
-            default: "",
-        },
-        displayName: {
-            type: String,
-            required: true,
-        },
-        objectType: {
-            type: String,
-            default: "service",
-        }
-    },
-    computed: {
-        array() {
-            // Create the array if not exists, it should be safe.
-            if (!this.service[this.name]) {
-                return [];
-            }
-            return this.service[this.name];
-        },
+/** Untyped YAML object as exposed by the compose context. */
+type ComposeObject = ReturnType<ComposeContext["getJsonConfig"]>;
 
-        /**
-         * Check if the array is inited before called v-for.
-         * Prevent empty arrays inserted to the YAML file.
-         * @return {boolean}
-         */
-        isArrayInited() {
-            return this.service[this.name] !== undefined;
-        },
+const props = withDefaults(defineProps<{
+    name : string;
+    placeholder?: string;
+    displayName : string;
+    objectType?: string;
+}>(), {
+    placeholder: "",
+    objectType: "service",
+});
 
-        /**
-         * Not a good name, but it is used to get the object.
-         */
-        service() {
-            if (this.objectType === "x-silo") {
-                // Used in Compose.vue
-                const config = this.composeContext?.getJsonConfig() ?? {};
+const composeContext = inject<ComposeContext | null>(composeContextKey, null);
+const serviceContext = inject<ServiceContext | null>(serviceContextKey, null);
 
-                if (!config["x-silo"]) {
-                    return {};
-                }
+/**
+ * Not a good name, but it is used to get the object.
+ */
+const service = computed<ComposeObject>(() => {
+    if (props.objectType === "x-silo") {
+        // Used in Compose.vue
+        const config = composeContext?.getJsonConfig() ?? {};
 
-                return config["x-silo"];
-            }
-
-            // Used in Container.vue
-            return this.serviceContext?.getService() ?? {};
-        },
-
-        valid() {
-            // Check if the array is actually an array
-            if (!Array.isArray(this.array)) {
-                return false;
-            }
-
-            // Check if the array contains non-object only.
-            for (let item of this.array) {
-                if (typeof item === "object") {
-                    return false;
-                }
-            }
-            return true;
+        if (!config["x-silo"]) {
+            return {};
         }
 
-    },
-    methods: {
-        addField() {
-            // Create the object if not exists.
-            if (this.objectType === "x-silo") {
-                const config = this.composeContext?.getJsonConfig();
-
-                if (config && !config["x-silo"]) {
-                    config["x-silo"] = {};
-                }
-            }
-
-            // Create the array if not exists.
-            if (!this.service[this.name]) {
-                this.service[this.name] = [];
-            }
-
-            this.array.push("");
-        },
-        remove(index) {
-            this.array.splice(index, 1);
-        },
+        return config["x-silo"];
     }
-};
+
+    // Used in Container.vue
+    return serviceContext?.getService() ?? {};
+});
+
+const array = computed<unknown[]>(() => {
+    // Create the array if not exists, it should be safe.
+    if (!service.value[props.name]) {
+        return [];
+    }
+    return service.value[props.name];
+});
+
+/**
+ * Check if the array is inited before called v-for.
+ * Prevent empty arrays inserted to the YAML file.
+ * @returns whether the property exists on the service yet
+ */
+const isArrayInited = computed(() => service.value[props.name] !== undefined);
+
+const valid = computed(() => {
+    // Check if the array is actually an array
+    if (!Array.isArray(array.value)) {
+        return false;
+    }
+
+    // Check if the array contains non-object only.
+    for (const item of array.value) {
+        if (typeof item === "object") {
+            return false;
+        }
+    }
+    return true;
+});
+
+function addField() : void {
+    // Create the object if not exists.
+    if (props.objectType === "x-silo") {
+        const config = composeContext?.getJsonConfig();
+
+        if (config && !config["x-silo"]) {
+            config["x-silo"] = {};
+        }
+    }
+
+    // Create the array if not exists.
+    if (!service.value[props.name]) {
+        service.value[props.name] = [];
+    }
+
+    array.value.push("");
+}
+
+function remove(index : number) : void {
+    array.value.splice(index, 1);
+}
 </script>

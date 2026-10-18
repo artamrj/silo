@@ -26,28 +26,23 @@
     </PageContainer>
 </template>
 
-<script>
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
 import Terminal from "../components/Terminal.vue";
 import PageContainer from "../components/PageContainer.vue";
 import PageHeader from "../components/PageHeader.vue";
+import { useSocket } from "../composables/useSocket";
+import type { SocketResult } from "../../../shared/socket-events";
 
-export default {
-    components: {
-        PageContainer,
-        PageHeader,
-        Terminal,
-    },
-    data() {
-        return {
-            processing: true,
-            enableConsole: false,
-        };
-    },
-    mounted() {
-        this.$root.emitServer("checkMainTerminal", (res) => {
-            this.enableConsole = res.ok;
-            this.processing = false;
-        });
-    },
-};
+const { emitServer } = useSocket();
+
+const processing = ref(true);
+const enableConsole = ref(false);
+
+onMounted(() => {
+    emitServer("checkMainTerminal", (res : SocketResult) => {
+        enableConsole.value = res.ok === true;
+        processing.value = false;
+    });
+});
 </script>

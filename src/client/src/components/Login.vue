@@ -27,7 +27,7 @@
                     </div>
 
                     <div class="mt-3 mb-3 flex items-center justify-center gap-2">
-                        <Checkbox id="remember" v-model="$root.remember" />
+                        <Checkbox id="remember" v-model="remember" />
                         <Label for="remember" class="text-foreground">{{ $t("Remember me") }}</Label>
                     </div>
 
@@ -36,7 +36,7 @@
                     </Button>
 
                     <div v-if="res && !res.ok" class="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
-                        {{ $t(res.msg) }}
+                        {{ $t(res.msg ?? "") }}
                     </div>
                 </form>
             </CardContent>
@@ -44,63 +44,48 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from "vue";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSocket } from "../composables/useSocket";
+import type { SocketResult } from "../../../shared/socket-events";
 
-export default {
-    components: {
-        Button,
-        Card,
-        CardContent,
-        CardDescription,
-        CardHeader,
-        CardTitle,
-        Checkbox,
-        Input,
-        Label,
-    },
-    data() {
-        return {
-            processing: false,
-            username: "",
-            password: "",
-            token: "",
-            res: null,
-            tokenRequired: false,
-        };
-    },
+const { login, remember } = useSocket();
 
-    mounted() {
-        document.title += " - Login";
-    },
+const processing = ref(false);
+const username = ref("");
+const password = ref("");
+const token = ref("");
+const res = ref<(SocketResult & { token?: string; tokenRequired?: boolean }) | null>(null);
+const tokenRequired = ref(false);
 
-    unmounted() {
-        document.title = document.title.replace(" - Login", "");
-    },
+onMounted(() => {
+    document.title += " - Login";
+});
 
-    methods: {
-        /**
-         * Submit the user details and attempt to log in
-         * @returns {void}
-         */
-        submit() {
-            this.processing = true;
+onUnmounted(() => {
+    document.title = document.title.replace(" - Login", "");
+});
 
-            this.$root.login(this.username, this.password, this.token, (res) => {
-                this.processing = false;
+/**
+ * Submit the user details and attempt to log in
+ * @returns {void}
+ */
+function submit() : void {
+    processing.value = true;
 
-                if (res.tokenRequired) {
-                    this.tokenRequired = true;
-                } else {
-                    this.res = res;
-                }
-            });
-        },
+    login(username.value, password.value, token.value, (result) => {
+        processing.value = false;
 
-    },
-};
+        if (result.tokenRequired) {
+            tokenRequired.value = true;
+        } else {
+            res.value = result;
+        }
+    });
+}
 </script>

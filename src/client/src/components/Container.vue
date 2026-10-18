@@ -168,226 +168,193 @@
     </div>
 </template>
 
-<script>
-import { defineComponent } from "vue";
+<script setup lang="ts">
+import { computed, inject, onUnmounted, provide, ref, watch } from "vue";
 import { AppIcon } from "../icon";
 import { parseDockerPort } from "../../../shared/utils";
 import DockerStat from "./DockerStat.vue";
 import ArrayInput from "./ArrayInput.vue";
 import ArraySelect from "./ArraySelect.vue";
-import { composeContextKey, serviceContextKey } from "../context";
+import { composeContextKey, serviceContextKey, type ComposeContext } from "../context";
+import { useSocket } from "../composables/useSocket";
+import type { DockerStatEntry, ServiceStatus } from "../composables/types";
 
-export default defineComponent({
-    components: {
-        AppIcon,
-        DockerStat,
-        ArrayInput,
-        ArraySelect,
-    },
-    inject: {
-        composeContext: {
-            from: composeContextKey,
-            default: null,
-        },
-    },
-    provide() {
-        return {
-            [serviceContextKey]: {
-                getService: () => this.service,
-            },
-        };
-    },
-    props: {
-        name: {
-            type: String,
-            required: true,
-        },
-        isEditMode: {
-            type: Boolean,
-            default: false,
-        },
-        first: {
-            type: Boolean,
-            default: false,
-        },
-        serviceStatus: {
-            type: Object,
-            default: null,
-        },
-        dockerStats: {
-            type: Object,
-            default: null
-        }
-    },
-    emits: [
-        "start-service",
-        "stop-service",
-        "restart-service"
-    ],
-    data() {
-        return {
-            showConfig: false,
-            expandedStats: false,
-            pending: false,
-            pendingTimeout: null,
-        };
-    },
-    computed: {
+/** Untyped YAML object as exposed by the compose context. */
+type ComposeObject = ReturnType<ComposeContext["getJsonConfig"]>;
 
-        /** Does this service currently look active? */
-        isActive() {
-            return this.status === "running" || this.status === "healthy";
-        },
-
-        networkList() {
-            let list = [];
-            for (const networkName in this.jsonObject.networks) {
-                list.push(networkName);
-            }
-            return list;
-        },
-
-        bgStyle() {
-            if (this.isActive) {
-                return "bg-primary-fill text-primary-foreground";
-            } else if (this.status === "unhealthy") {
-                return "bg-danger-fill text-white";
-            } else if (this.pending) {
-                return "bg-slate-400 text-white";
-            } else {
-                return "bg-slate-500 text-white";
-            }
-        },
-
-        terminalRouteLink() {
-            return {
-                name: "containerTerminal",
-                params: {
-                    stackName: this.stackName,
-                    serviceName: this.name,
-                    type: "bash",
-                },
-            };
-        },
-
-        stack() {
-            return this.composeContext?.getStack() ?? {};
-        },
-
-        stackName() {
-            return this.stack.name;
-        },
-
-        service() {
-            if (!this.jsonObject.services[this.name]) {
-                return {};
-            }
-            return this.jsonObject.services[this.name];
-        },
-
-        serviceCount() {
-            return Object.keys(this.jsonObject.services).length;
-        },
-
-        jsonObject() {
-            return this.composeContext?.getJsonConfig() ?? {};
-        },
-
-        envsubstJSONConfig() {
-            return this.composeContext?.getEnvsubstJSONConfig() ?? {};
-        },
-
-        envsubstService() {
-            if (!this.envsubstJSONConfig.services || !this.envsubstJSONConfig.services[this.name]) {
-                return {};
-            }
-            return this.envsubstJSONConfig.services[this.name];
-        },
-
-        imageName() {
-            if (this.envsubstService.image) {
-                return this.envsubstService.image.split(":")[0];
-            } else {
-                return "";
-            }
-        },
-
-        imageTag() {
-            if (this.envsubstService.image) {
-                let tag = this.envsubstService.image.split(":")[1];
-
-                if (tag) {
-                    return tag;
-                } else {
-                    return "latest";
-                }
-            } else {
-                return "";
-            }
-        },
-        statsInstances() {
-            if (!this.serviceStatus) {
-                return [];
-            }
-
-            return this.serviceStatus
-                .map(s => this.dockerStats[s.name])
-                .filter(s => !!s)
-                .sort((a, b) => a.Name.localeCompare(b.Name));
-        },
-        status() {
-            if (!this.serviceStatus) {
-                return "N/A";
-            }
-            return this.serviceStatus[0].status;
-        }
-    },
-    watch: {
-        // The parent pushes new status once the action finishes.
-        status() {
-            clearTimeout(this.pendingTimeout);
-            this.pending = false;
-        },
-    },
-    unmounted() {
-        clearTimeout(this.pendingTimeout);
-    },
-    methods: {
-        parsePort(port) {
-            let hostname = this.$root.info.primaryHostname || location.hostname;
-            return parseDockerPort(port, hostname);
-        },
-        remove() {
-            delete this.jsonObject.services[this.name];
-        },
-
-        /**
-         * Send a service action and optimistically mark the pill as busy until
-         * the parent delivers a refreshed status.
-         * @param {string} event Event to emit
-         * @returns {void}
-         */
-        runServiceAction(event) {
-            if (this.pending) {
-                return;
-            }
-            this.pending = true;
-            this.pendingTimeout = setTimeout(() => {
-                this.pending = false;
-            }, 15000);
-            this.$emit(event, this.name);
-        },
-
-        startService() {
-            this.runServiceAction("start-service");
-        },
-        stopService() {
-            this.runServiceAction("stop-service");
-        },
-        restartService() {
-            this.runServiceAction("restart-service");
-        }
-
-    },
+const props = withDefaults(defineProps<{
+    name : string;
+    isEditMode?: boolean;
+    first?: boolean;
+    serviceStatus?: ServiceStatus[] | null;
+    dockerStats?: Record<string, DockerStatEntry> | null;
+}>(), {
+    isEditMode: false,
+    first: false,
+    serviceStatus: null,
+    dockerStats: null,
 });
+
+const emit = defineEmits<{
+    (event : "start-service" | "stop-service" | "restart-service", name : string) : void;
+}>();
+
+const composeContext = inject<ComposeContext | null>(composeContextKey, null);
+const { info } = useSocket();
+
+const showConfig = ref(false);
+const expandedStats = ref(false);
+const pending = ref(false);
+let pendingTimeout : ReturnType<typeof setTimeout> | null = null;
+
+/** Does this service currently look active? */
+const isActive = computed(() => status.value === "running" || status.value === "healthy");
+
+const networkList = computed(() => {
+    const list : string[] = [];
+    for (const networkName in jsonObject.value.networks) {
+        list.push(networkName);
+    }
+    return list;
+});
+
+const bgStyle = computed(() => {
+    if (isActive.value) {
+        return "bg-primary-fill text-primary-foreground";
+    } else if (status.value === "unhealthy") {
+        return "bg-danger-fill text-white";
+    } else if (pending.value) {
+        return "bg-slate-400 text-white";
+    } else {
+        return "bg-slate-500 text-white";
+    }
+});
+
+const terminalRouteLink = computed(() => ({
+    name: "containerTerminal",
+    params: {
+        stackName: stackName.value,
+        serviceName: props.name,
+        type: "bash",
+    },
+}));
+
+const stack = computed(() => composeContext?.getStack() ?? {});
+
+const stackName = computed(() => stack.value.name);
+
+const service = computed<ComposeObject>(() => {
+    if (!jsonObject.value.services[props.name]) {
+        return {};
+    }
+    return jsonObject.value.services[props.name];
+});
+
+const serviceCount = computed(() => Object.keys(jsonObject.value.services).length);
+
+const jsonObject = computed(() => composeContext?.getJsonConfig() ?? {});
+
+const envsubstJSONConfig = computed(() => composeContext?.getEnvsubstJSONConfig() ?? {});
+
+const envsubstService = computed<ComposeObject>(() => {
+    if (!envsubstJSONConfig.value.services || !envsubstJSONConfig.value.services[props.name]) {
+        return {};
+    }
+    return envsubstJSONConfig.value.services[props.name];
+});
+
+const imageName = computed(() => {
+    if (envsubstService.value.image) {
+        return (envsubstService.value.image as string).split(":")[0];
+    } else {
+        return "";
+    }
+});
+
+const imageTag = computed(() => {
+    if (envsubstService.value.image) {
+        const tag = (envsubstService.value.image as string).split(":")[1];
+
+        if (tag) {
+            return tag;
+        } else {
+            return "latest";
+        }
+    } else {
+        return "";
+    }
+});
+
+const statsInstances = computed(() => {
+    if (!props.serviceStatus) {
+        return [];
+    }
+
+    return props.serviceStatus
+        .map(s => props.dockerStats?.[s.name])
+        .filter((s) : s is DockerStatEntry => !!s)
+        .sort((a, b) => a.Name.localeCompare(b.Name));
+});
+
+const status = computed(() => {
+    if (!props.serviceStatus) {
+        return "N/A";
+    }
+    return props.serviceStatus[0].status;
+});
+
+// Expose the live service object so nested array editors edit compose.yaml.
+provide(serviceContextKey, {
+    getService: () => service.value,
+});
+
+// The parent pushes new status once the action finishes.
+watch(status, () => {
+    if (pendingTimeout) {
+        clearTimeout(pendingTimeout);
+    }
+    pending.value = false;
+});
+
+onUnmounted(() => {
+    if (pendingTimeout) {
+        clearTimeout(pendingTimeout);
+    }
+});
+
+function parsePort(port : string) {
+    const hostname = info.value.primaryHostname || location.hostname;
+    return parseDockerPort(port, hostname);
+}
+
+function remove() : void {
+    delete jsonObject.value.services[props.name];
+}
+
+/**
+ * Send a service action and optimistically mark the pill as busy until
+ * the parent delivers a refreshed status.
+ * @param event Event to emit
+ * @returns {void}
+ */
+function runServiceAction(event : "start-service" | "stop-service" | "restart-service") : void {
+    if (pending.value) {
+        return;
+    }
+    pending.value = true;
+    pendingTimeout = setTimeout(() => {
+        pending.value = false;
+    }, 15000);
+    emit(event, props.name);
+}
+
+function startService() : void {
+    runServiceAction("start-service");
+}
+function stopService() : void {
+    runServiceAction("stop-service");
+}
+function restartService() : void {
+    runServiceAction("restart-service");
+}
 </script>

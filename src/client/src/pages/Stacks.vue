@@ -56,18 +56,11 @@
     </PageContainer>
 </template>
 
-<script>
+<script setup lang="ts">
 import StackListItem from "../components/StackListItem.vue";
 import PageContainer from "../components/PageContainer.vue";
 import PageHeader from "../components/PageHeader.vue";
-import stackListMixin from "../mixins/stackList";
+import { useStackList } from "../composables/useStackList";
 
-export default {
-    components: {
-        PageContainer,
-        PageHeader,
-        StackListItem,
-    },
-    mixins: [ stackListMixin ],
-};
+const { searchText, loaded, filteredStackList, clearSearchText } = useStackList();
 </script>

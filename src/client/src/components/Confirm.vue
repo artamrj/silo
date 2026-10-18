@@ -21,7 +21,7 @@
     </AlertDialog>
 </template>
 
-<script>
+<script setup lang="ts">
 import {
     AlertDialog,
     AlertDialogAction,
@@ -32,65 +32,45 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { computed, ref } from "vue";
 
 // Legacy callers pass the old `.button-*` class names; map them onto shadcn variants.
-const ACTION_VARIANTS = {
+const ACTION_VARIANTS : Record<string, string> = {
     "button-primary": "bg-primary text-primary-foreground hover:bg-primary/90",
     "button-danger": "bg-destructive text-white hover:bg-destructive/90",
     "button-normal": "bg-secondary text-secondary-foreground hover:bg-secondary/80",
     "button-secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80",
 };
 
-export default {
-    components: {
-        AlertDialog,
-        AlertDialogAction,
-        AlertDialogCancel,
-        AlertDialogContent,
-        AlertDialogDescription,
-        AlertDialogFooter,
-        AlertDialogHeader,
-        AlertDialogTitle,
-    },
-    props: {
-        /** Style of the confirm button, using the legacy `.button-*` names */
-        btnStyle: {
-            type: String,
-            default: "button-primary",
-        },
-        /** Text to use as yes */
-        yesText: {
-            type: String,
-            default: "Yes",     // TODO: No idea what to translate this
-        },
-        /** Text to use as no */
-        noText: {
-            type: String,
-            default: "No",
-        },
-        /** Title to show on modal. Defaults to translated version of "Config" */
-        title: {
-            type: String,
-            default: null,
-        }
-    },
-    emits: [ "yes", "no" ],
-    data: () => ({
-        visible: false,
-    }),
-    computed: {
-        actionClass() {
-            return ACTION_VARIANTS[this.btnStyle] ?? ACTION_VARIANTS["button-primary"];
-        },
-    },
-    methods: {
-        /**
-         * Show the confirm dialog
-         * @returns {void}
-         */
-        show() {
-            this.visible = true;
-        },
-    },
-};
+const props = withDefaults(defineProps<{
+    /** Style of the confirm button, using the legacy `.button-*` names */
+    btnStyle?: string;
+    /** Text to use as yes */
+    yesText?: string;
+    /** Text to use as no */
+    noText?: string;
+    /** Title to show on modal. Defaults to translated version of "Config" */
+    title?: string | null;
+}>(), {
+    btnStyle: "button-primary",
+    yesText: "Yes",     // TODO: No idea what to translate this
+    noText: "No",
+    title: null,
+});
+
+defineEmits<{ yes: []; no: [] }>();
+
+const visible = ref(false);
+
+const actionClass = computed(() => ACTION_VARIANTS[props.btnStyle] ?? ACTION_VARIANTS["button-primary"]);
+
+/**
+ * Show the confirm dialog
+ * @returns {void}
+ */
+function show() : void {
+    visible.value = true;
+}
+
+defineExpose({ show });
 </script>

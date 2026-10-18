@@ -8,7 +8,9 @@
     "scripts": {
         "fmt": "eslint \"**/*.{ts,vue}\" --fix",
         "lint": "eslint \"**/*.{ts,vue}\"",
-        "check-ts": "tsc --noEmit",
+        "check-ts": "npm run check-ts:server && npm run check-ts:client",
+        "check-ts:server": "tsc --noEmit",
+        "check-ts:client": "vue-tsc --noEmit -p tsconfig.client.json",
         "test": "vitest run",
         "test:watch": "vitest",
         "start": "node ./dist/server/index.js",
@@ -78,6 +80,7 @@
         "vue-i18n": "~11.4.16",
         "vue-router": "~5.4.0",
         "vue-sonner": "^2.0.9",
+        "vue-tsc": "~3.3.13",
         "wait-on": "^9.5.1"
     },
     "overrides": {

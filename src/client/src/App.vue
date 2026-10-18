@@ -7,23 +7,14 @@
         close-button
         :duration="TOAST_DURATION"
         :visible-toasts="TOAST_MAX_VISIBLE"
-        :theme="$root.theme"
+        :theme="theme"
     />
 </template>
 
-<script>
+<script setup lang="ts">
 import { Toaster } from "@/components/ui/sonner";
 import { TOAST_DURATION, TOAST_MAX_VISIBLE } from "./toast";
+import { useTheme } from "./composables/useTheme";
 
-export default {
-    components: {
-        Toaster,
-    },
-    data() {
-        return {
-            TOAST_DURATION,
-            TOAST_MAX_VISIBLE,
-        };
-    },
-};
+const { theme } = useTheme();
 </script>

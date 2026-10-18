@@ -39,63 +39,51 @@
     </PageContainer>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 import { statusNameShort } from "../../../shared/utils";
 import PageContainer from "../components/PageContainer.vue";
 import PageHeader from "../components/PageHeader.vue";
+import { useSocket } from "../composables/useSocket";
+import { useToast } from "../composables/useToast";
+import type { SocketResult } from "../../../shared/socket-events";
 
-export default {
-    components: {
-        PageContainer,
-        PageHeader,
-    },
+const { completeStackList, getSocket, composeTemplate } = useSocket();
+const { toastError } = useToast();
+const router = useRouter();
 
-    data() {
-        return {
-            dockerRunCommand: "",
-        };
-    },
+const dockerRunCommand = ref("");
 
-    computed: {
-        activeNum() {
-            return this.getStatusNum("active");
-        },
-        inactiveNum() {
-            return this.getStatusNum("inactive");
-        },
-        exitedNum() {
-            return this.getStatusNum("exited");
-        },
-    },
+/** Count stacks whose short status matches `statusName`. */
+function getStatusNum(statusName : string) : number {
+    let num = 0;
 
-    methods: {
-
-        getStatusNum(statusName) {
-            let num = 0;
-
-            for (let stackName in this.$root.completeStackList) {
-                const stack = this.$root.completeStackList[stackName];
-                if (statusNameShort(stack.status) === statusName) {
-                    num += 1;
-                }
-            }
-            return num;
-        },
-
-        async convertDockerRun() {
-            if (this.dockerRunCommand.trim() === "docker run") {
-                throw new Error("Please enter a docker run command");
-            }
-
-            this.$root.getSocket().emit("composerize", this.dockerRunCommand, (res) => {
-                if (res.ok) {
-                    this.$root.composeTemplate = res.composeTemplate;
-                    this.$router.push("/compose");
-                } else {
-                    this.$root.toastError(res.msg ?? "Conversion failed");
-                }
-            });
-        },
+    for (const stackName in completeStackList.value) {
+        const stack = completeStackList.value[stackName];
+        if (statusNameShort(stack.status) === statusName) {
+            num += 1;
+        }
     }
-};
+    return num;
+}
+
+const activeNum = computed(() => getStatusNum("active"));
+const inactiveNum = computed(() => getStatusNum("inactive"));
+const exitedNum = computed(() => getStatusNum("exited"));
+
+async function convertDockerRun() : Promise<void> {
+    if (dockerRunCommand.value.trim() === "docker run") {
+        throw new Error("Please enter a docker run command");
+    }
+
+    getSocket().emit("composerize", dockerRunCommand.value, (res : SocketResult & { composeTemplate?: string }) => {
+        if (res.ok) {
+            composeTemplate.value = res.composeTemplate ?? "";
+            router.push("/compose");
+        } else {
+            toastError(res.msg ?? "Conversion failed");
+        }
+    });
+}
 </script>

@@ -4,8 +4,8 @@
             <!-- Change Password -->
             <template v-if="!settings.disableAuth">
                 <p class="mb-3 flex flex-wrap items-center gap-3">
-                    <span>{{ $t("Current User") }}: <strong>{{ $root.username }}</strong></span>
-                    <button v-if="! settings.disableAuth" id="logout-btn" class="button button-danger button-sm" @click="$root.logout">{{ $t("Logout") }}</button>
+                    <span>{{ $t("Current User") }}: <strong>{{ username }}</strong></span>
+                    <button v-if="! settings.disableAuth" id="logout-btn" class="button button-danger button-sm" @click="logout">{{ $t("Logout") }}</button>
                 </p>
 
                 <h5 class="mb-3">{{ $t("Change Password") }}</h5>
@@ -77,7 +77,7 @@
             </div>
         </div>
 
-        <Confirm ref="confirmDisableAuth" btn-style="button-danger" :yes-text="$t('I understand, please disable')" :no-text="$t('Leave')" @yes="disableAuth">
+        <Confirm ref="confirmDisableAuthRef" btn-style="button-danger" :yes-text="$t('I understand, please disable')" :no-text="$t('Leave')" @yes="disableAuth">
             <i18n-t keypath="disableauth.message1" tag="p">
                 <template #disableAuth>
                     <strong>{{ $t('disableAuth') }}</strong>
@@ -108,93 +108,73 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, inject, reactive, ref, watch } from "vue";
 import Confirm from "../../components/Confirm.vue";
-import { settingsContextKey } from "../../context";
+import { settingsContextKey, type SettingsContext } from "../../context";
+import { useSocket } from "../../composables/useSocket";
+import { useToast } from "../../composables/useToast";
+import type { SocketResult } from "../../../../shared/socket-events";
 
-export default {
-    components: {
-        Confirm,
-    },
+const settingsContext = inject<SettingsContext | null>(settingsContextKey, null);
+const { username, socketIO, getSocket, logout, storage } = useSocket();
+const { toastRes } = useToast();
 
-    inject: {
-        settingsContext: {
-            from: settingsContextKey,
-            default: null,
-        },
-    },
+const invalidPassword = ref(false);
+const password = reactive({
+    currentPassword: "",
+    newPassword: "",
+    repeatNewPassword: "",
+});
 
-    data() {
-        return {
-            invalidPassword: false,
-            password: {
-                currentPassword: "",
-                newPassword: "",
-                repeatNewPassword: "",
+const settings = computed(() => settingsContext?.getSettings() ?? {});
+const settingsLoaded = computed(() => settingsContext?.isSettingsLoaded() ?? false);
+
+watch(() => password.repeatNewPassword, () => {
+    invalidPassword.value = false;
+});
+
+/** Check new passwords match before saving them */
+function savePassword() : void {
+    if (password.newPassword !== password.repeatNewPassword) {
+        invalidPassword.value = true;
+    } else {
+        (getSocket().emit as (event : string, payload : unknown, cb : (res : SocketResult) => void) => void)("changePassword", password, (res) => {
+            toastRes(res);
+            if (res.ok) {
+                password.currentPassword = "";
+                password.newPassword = "";
+                password.repeatNewPassword = "";
             }
-        };
-    },
+        });
+    }
+}
 
-    computed: {
-        settings() {
-            return this.settingsContext?.getSettings() ?? {};
-        },
-        settingsLoaded() {
-            return this.settingsContext?.isSettingsLoaded() ?? false;
-        },
-    },
+/** Disable authentication for web app access */
+function disableAuth() : void {
+    settings.value.disableAuth = true;
 
-    watch: {
-        "password.repeatNewPassword"() {
-            this.invalidPassword = false;
-        },
-    },
+    // Need current password to disable auth
+    // Set it to empty if done
+    settingsContext?.saveSettings(() => {
+        password.currentPassword = "";
+        username.value = null;
+        socketIO.token = "autoLogin";
+    }, password.currentPassword);
+}
 
-    methods: {
-        /** Check new passwords match before saving them */
-        savePassword() {
-            if (this.password.newPassword !== this.password.repeatNewPassword) {
-                this.invalidPassword = true;
-            } else {
-                this.$root
-                    .getSocket()
-                    .emit("changePassword", this.password, (res) => {
-                        this.$root.toastRes(res);
-                        if (res.ok) {
-                            this.password.currentPassword = "";
-                            this.password.newPassword = "";
-                            this.password.repeatNewPassword = "";
-                        }
-                    });
-            }
-        },
+/** Enable authentication for web app access */
+function enableAuth() : void {
+    settings.value.disableAuth = false;
+    settingsContext?.saveSettings();
+    storage().removeItem("token");
+    location.reload();
+}
 
-        /** Disable authentication for web app access */
-        disableAuth() {
-            this.settings.disableAuth = true;
+/** Show confirmation dialog for disable auth */
+function confirmDisableAuth() : void {
+    confirmDisableAuthRef.value?.show();
+}
 
-            // Need current password to disable auth
-            // Set it to empty if done
-            this.settingsContext?.saveSettings(() => {
-                this.password.currentPassword = "";
-                this.$root.username = null;
-                this.$root.socketIO.token = "autoLogin";
-            }, this.password.currentPassword);
-        },
-
-        /** Enable authentication for web app access */
-        enableAuth() {
-            this.settings.disableAuth = false;
-            this.settingsContext?.saveSettings();
-            this.$root.storage().removeItem("token");
-            location.reload();
-        },
-
-        /** Show confirmation dialog for disable auth */
-        confirmDisableAuth() {
-            this.$refs.confirmDisableAuth.show();
-        },
-
-    },
-};
+const confirmDisableAuthRef = ref<InstanceType<typeof Confirm> | null>(null);
 </script>

@@ -33,161 +33,140 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, inject, onMounted, ref, watch } from "vue";
 import { AppIcon } from "../icon";
-import { composeContextKey } from "../context";
+import { composeContextKey, type ComposeContext } from "../context";
+import { useSocket } from "../composables/useSocket";
+import { useToast } from "../composables/useToast";
+import type { SocketResult } from "../../../shared/socket-events";
 
-export default {
-    components: {
-        AppIcon,
-    },
-    inject: {
-        composeContext: {
-            from: composeContextKey,
-            default: null,
-        },
-    },
-    data() {
-        return {
-            networkList: [],
-            externalList: {},
-            selectedExternalList: {},
-            externalNetworkList: [],
+interface NetworkRow {
+    key : string;
+    value : Record<string, unknown>;
+}
+
+const composeContext = inject<ComposeContext | null>(composeContextKey, null);
+const { emitServer } = useSocket();
+const { toastRes } = useToast();
+
+const networkList = ref<NetworkRow[]>([]);
+const externalList = ref<Record<string, Record<string, unknown>>>({});
+const selectedExternalList = ref<Record<string, boolean>>({});
+const externalNetworkList = ref<string[]>([]);
+
+const jsonConfig = computed(() => composeContext?.getJsonConfig() ?? {});
+
+const stack = computed(() => composeContext?.getStack() ?? {});
+
+const editorFocus = computed(() => composeContext?.isEditorFocused() ?? false);
+
+watch(() => jsonConfig.value.networks, () => {
+    if (editorFocus.value) {
+        console.debug("jsonConfig.networks changed");
+        loadNetworkList();
+    }
+}, { deep: true });
+
+watch(selectedExternalList, () => {
+    for (const networkName in selectedExternalList.value) {
+        const enable = selectedExternalList.value[networkName];
+
+        if (enable) {
+            if (!externalList.value[networkName]) {
+                externalList.value[networkName] = {};
+            }
+            externalList.value[networkName].external = true;
+        } else {
+            delete externalList.value[networkName];
+        }
+    }
+    applyToYAML();
+}, { deep: true });
+
+watch(networkList, () => {
+    applyToYAML();
+}, { deep: true });
+
+onMounted(() => {
+    loadNetworkList();
+    loadExternalNetworkList();
+});
+
+function loadNetworkList() : void {
+    networkList.value = [];
+    externalList.value = {};
+
+    for (const key in jsonConfig.value.networks) {
+        const obj = {
+            key: key,
+            value: jsonConfig.value.networks[key] as Record<string, unknown>,
         };
-    },
-    computed: {
-        jsonConfig() {
-            return this.composeContext?.getJsonConfig() ?? {};
-        },
 
-        stack() {
-            return this.composeContext?.getStack() ?? {};
-        },
-
-        editorFocus() {
-            return this.composeContext?.isEditorFocused() ?? false;
-        },
-    },
-    watch: {
-        "jsonConfig.networks": {
-            handler() {
-                if (this.editorFocus) {
-                    console.debug("jsonConfig.networks changed");
-                    this.loadNetworkList();
-                }
-            },
-            deep: true,
-        },
-
-        "selectedExternalList": {
-            handler() {
-                for (const networkName in this.selectedExternalList) {
-                    const enable = this.selectedExternalList[networkName];
-
-                    if (enable) {
-                        if (!this.externalList[networkName]) {
-                            this.externalList[networkName] = {};
-                        }
-                        this.externalList[networkName].external = true;
-                    } else {
-                        delete this.externalList[networkName];
-                    }
-                }
-                this.applyToYAML();
-            },
-            deep: true,
-        },
-
-        "networkList": {
-            handler() {
-                this.applyToYAML();
-            },
-            deep: true,
+        if (obj.value && obj.value.external) {
+            externalList.value[key] = Object.assign({}, obj.value);
+        } else {
+            networkList.value.push(obj);
         }
+    }
 
-    },
-    mounted() {
-        this.loadNetworkList();
-        this.loadExternalNetworkList();
-    },
-    methods: {
-        loadNetworkList() {
-            this.networkList = [];
-            this.externalList = {};
+    // Restore selectedExternalList
+    selectedExternalList.value = {};
+    for (const networkName in externalList.value) {
+        selectedExternalList.value[networkName] = true;
+    }
+}
 
-            for (const key in this.jsonConfig.networks) {
-                let obj = {
-                    key: key,
-                    value: this.jsonConfig.networks[key],
-                };
-
-                if (obj.value && obj.value.external) {
-                    this.externalList[key] = Object.assign({}, obj.value);
-                } else {
-                    this.networkList.push(obj);
+function loadExternalNetworkList() : void {
+    emitServer("getDockerNetworkList", (res : SocketResult & { dockerNetworkList?: string[] }) => {
+        if (res.ok) {
+            externalNetworkList.value = (res.dockerNetworkList ?? []).filter((n) => {
+                // Filter out this stack networks
+                if (n.startsWith(stack.value.name + "_")) {
+                    return false;
                 }
-            }
-
-            // Restore selectedExternalList
-            this.selectedExternalList = {};
-            for (const networkName in this.externalList) {
-                this.selectedExternalList[networkName] = true;
-            }
-        },
-
-        loadExternalNetworkList() {
-            this.$root.emitServer("getDockerNetworkList", (res) => {
-                if (res.ok) {
-                    this.externalNetworkList = res.dockerNetworkList.filter((n) => {
-                        // Filter out this stack networks
-                        if (n.startsWith(this.stack.name + "_")) {
-                            return false;
-                        }
-                        // They should be not supported.
-                        // https://docs.docker.com/compose/compose-file/06-networks/#host-or-none
-                        if (n === "none" || n === "host" || n === "bridge") {
-                            return false;
-                        }
-                        return true;
-                    });
-                } else {
-                    this.$root.toastRes(res);
+                // They should be not supported.
+                // https://docs.docker.com/compose/compose-file/06-networks/#host-or-none
+                if (n === "none" || n === "host" || n === "bridge") {
+                    return false;
                 }
+                return true;
             });
-        },
-
-        addField() {
-            this.networkList.push({
-                key: "",
-                value: {},
-            });
-        },
-
-        remove(index) {
-            this.networkList.splice(index, 1);
-            this.applyToYAML();
-        },
-
-        applyToYAML() {
-            if (this.editorFocus) {
-                return;
-            }
-
-            this.jsonConfig.networks = {};
-
-            // Internal networks
-            for (const networkRow of this.networkList) {
-                this.jsonConfig.networks[networkRow.key] = networkRow.value;
-            }
-
-            // External networks
-            for (const networkName in this.externalList) {
-                this.jsonConfig.networks[networkName] = this.externalList[networkName];
-            }
-
-            console.debug("applyToYAML", this.jsonConfig.networks);
+        } else {
+            toastRes(res);
         }
+    });
+}
 
-    },
-};
+function addField() : void {
+    networkList.value.push({
+        key: "",
+        value: {},
+    });
+}
+
+function remove(index : number) : void {
+    networkList.value.splice(index, 1);
+    applyToYAML();
+}
+
+function applyToYAML() : void {
+    if (editorFocus.value) {
+        return;
+    }
+
+    jsonConfig.value.networks = {};
+
+    // Internal networks
+    for (const networkRow of networkList.value) {
+        jsonConfig.value.networks[networkRow.key] = networkRow.value;
+    }
+
+    // External networks
+    for (const networkName in externalList.value) {
+        jsonConfig.value.networks[networkName] = externalList.value[networkName];
+    }
+
+    console.debug("applyToYAML", jsonConfig.value.networks);
+}
 </script>

@@ -22,87 +22,63 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, inject } from "vue";
 import { AppIcon } from "../icon";
-import { serviceContextKey } from "../context";
+import { serviceContextKey, type ServiceContext } from "../context";
 
-export default {
-    components: {
-        AppIcon,
-    },
-    inject: {
-        serviceContext: {
-            from: serviceContextKey,
-            default: null,
-        },
-    },
-    props: {
-        name: {
-            type: String,
-            required: true,
-        },
-        placeholder: {
-            type: String,
-            default: "",
-        },
-        displayName: {
-            type: String,
-            required: true,
-        },
-        options: {
-            type: Array,
-            required: true,
-        },
-    },
-    computed: {
-        array() {
-            // Create the array if not exists, it should be safe.
-            if (!this.service[this.name]) {
-                return [];
-            }
-            return this.service[this.name];
-        },
+const props = withDefaults(defineProps<{
+    name : string;
+    placeholder?: string;
+    displayName : string;
+    options : string[];
+}>(), {
+    placeholder: "",
+});
 
-        /**
-         * Check if the array is inited before called v-for.
-         * Prevent empty arrays inserted to the YAML file.
-         * @return {boolean}
-         */
-        isArrayInited() {
-            return this.service[this.name] !== undefined;
-        },
+const serviceContext = inject<ServiceContext | null>(serviceContextKey, null);
 
-        service() {
-            return this.serviceContext?.getService() ?? {};
-        },
+const service = computed<Record<string, unknown>>(() => serviceContext?.getService() ?? {});
 
-        valid() {
-            // Check if the array is actually an array
-            if (!Array.isArray(this.array)) {
-                return false;
-            }
-
-            // Check if the array contains non-object only.
-            for (let item of this.array) {
-                if (typeof item === "object") {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-    },
-    methods: {
-        addField() {
-            // Create the array if not exists.
-            if (!this.service[this.name]) {
-                this.service[this.name] = [];
-            }
-            this.array.push("");
-        },
-        remove(index) {
-            this.array.splice(index, 1);
-        },
+const array = computed<unknown[]>(() => {
+    // Create the array if not exists, it should be safe.
+    if (!service.value[props.name]) {
+        return [];
     }
-};
+    return service.value[props.name] as unknown[];
+});
+
+/**
+ * Check if the array is inited before called v-for.
+ * Prevent empty arrays inserted to the YAML file.
+ * @returns whether the property exists on the service yet
+ */
+const isArrayInited = computed(() => service.value[props.name] !== undefined);
+
+const valid = computed(() => {
+    // Check if the array is actually an array
+    if (!Array.isArray(array.value)) {
+        return false;
+    }
+
+    // Check if the array contains non-object only.
+    for (const item of array.value) {
+        if (typeof item === "object") {
+            return false;
+        }
+    }
+    return true;
+});
+
+function addField() : void {
+    // Create the array if not exists.
+    if (!service.value[props.name]) {
+        service.value[props.name] = [];
+    }
+    array.value.push("");
+}
+
+function remove(index : number) : void {
+    array.value.splice(index, 1);
+}
 </script>

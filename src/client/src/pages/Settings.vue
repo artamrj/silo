@@ -15,14 +15,14 @@
                 >
                     <router-link :to="`/settings/${key}`" :aria-current="currentPage === key ? 'page' : undefined">
                         <app-icon :icon="item.icon" />
-                        {{ item.title }}
+                        {{ $t(item.title) }}
                     </router-link>
                 </Button>
             </nav>
 
             <section class="min-w-0 flex-1 overflow-hidden rounded-xl bg-background">
                 <div v-if="currentPage" class="px-5 pt-4 text-xl font-bold tracking-tight">
-                    {{ subMenus[currentPage].title }}
+                    {{ $t(subMenus[currentPage].title) }}
                 </div>
                 <div class="p-4">
                     <router-view v-slot="{ Component }">
@@ -34,132 +34,115 @@
     </PageContainer>
 </template>
 
-<script>
-import { useRoute } from "vue-router";
+<script setup lang="ts">
+import { computed, onMounted, provide, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import PageContainer from "../components/PageContainer.vue";
-import { settingsContextKey } from "../context";
+import { settingsContextKey, type SettingsContext } from "../context";
+import { useSocket } from "../composables/useSocket";
+import { useToast } from "../composables/useToast";
+import type { SocketResult } from "../../../shared/socket-events";
 
-export default {
-    components: {
-        Button,
-        PageContainer,
-    },
-    provide() {
-        return {
-            [settingsContextKey]: {
-                getSettings: () => this.settings,
-                saveSettings: (callback, currentPassword) => this.saveSettings(callback, currentPassword),
-                isSettingsLoaded: () => this.settingsLoaded,
-            },
-        };
-    },
+const { getSocket } = useSocket();
+const { toastRes, toastError } = useToast();
+const route = useRoute();
+const router = useRouter();
 
-    data() {
-        return {
-            show: true,
-            settings: {},
-            settingsLoaded: false,
-        };
-    },
+const show = ref(true);
+const settings = ref<Record<string, unknown>>({});
+const settingsLoaded = ref(false);
 
-    computed: {
-        currentPage() {
-            let pathSplit = useRoute().path.split("/");
-            let pathEnd = pathSplit[pathSplit.length - 1];
-            if (!pathEnd || pathEnd === "settings") {
-                return null;
-            }
-            return pathEnd;
-        },
-
-        subMenus() {
-            return {
-                general: {
-                    title: this.$t("general"),
-                    icon: "cog",
-                },
-                security: {
-                    title: this.$t("Security"),
-                    icon: "security",
-                },
-                globalEnv: {
-                    title: this.$t("GlobalEnv"),
-                    icon: "file-code",
-                },
-                about: {
-                    title: this.$t("About"),
-                    icon: "home",
-                },
-            };
-        },
-    },
-
-    mounted() {
-        this.loadSettings();
-        this.loadGeneralPage();
-    },
-
-    methods: {
-
-        /** Send bare /settings visitors to the general page. */
-        loadGeneralPage() {
-            if (!this.currentPage) {
-                this.$router.push("/settings/general");
-            }
-        },
-
-        /** Load settings from server */
-        loadSettings() {
-            this.$root.getSocket().emit("getSettings", (res) => {
-                this.settings = res.data;
-                this.settingsLoaded = true;
-            });
-        },
-
-        /**
-         * Callback for saving settings
-         * @callback saveSettingsCB
-         * @param {Object} res Result of operation
-         */
-
-        /**
-         * Save Settings
-         * @param {saveSettingsCB} [callback]
-         * @param {string} [currentPassword] Only need for disableAuth to true
-         */
-        saveSettings(callback, currentPassword) {
-            let valid = this.validateSettings();
-            if (valid.success) {
-                this.$root.getSocket().emit("setSettings", this.settings, currentPassword, (res) => {
-                    this.$root.toastRes(res);
-                    this.loadSettings();
-
-                    if (callback) {
-                        callback();
-                    }
-                });
-            } else {
-                this.$root.toastError(valid.msg);
-            }
-        },
-
-        /**
-         * Ensure settings are valid
-         * @returns {Object} Contains success state and error msg
-         */
-        validateSettings() {
-            if (this.settings.keepDataPeriodDays < 0) {
-                return {
-                    success: false,
-                    msg: this.$t("dataRetentionTimeError"),
-                };
-            }
-            return {
-                success: true,
-                msg: "",
-            };
-        },
+const currentPage = computed<string | null>(() => {
+    const pathSplit = route.path.split("/");
+    const pathEnd = pathSplit[pathSplit.length - 1];
+    if (!pathEnd || pathEnd === "settings") {
+        return null;
     }
-};
+    return pathEnd;
+});
+
+const subMenus = computed<Record<string, { title : string; icon : string }>>(() => ({
+    general: {
+        title: "general",
+        icon: "cog",
+    },
+    security: {
+        title: "Security",
+        icon: "security",
+    },
+    globalEnv: {
+        title: "GlobalEnv",
+        icon: "file-code",
+    },
+    about: {
+        title: "About",
+        icon: "home",
+    },
+}));
+
+onMounted(() => {
+    loadSettings();
+    loadGeneralPage();
+});
+
+/** Send bare /settings visitors to the general page. */
+function loadGeneralPage() : void {
+    if (!currentPage.value) {
+        router.push("/settings/general");
+    }
+}
+
+/** Load settings from server */
+function loadSettings() : void {
+    (getSocket().emit as (event : string, cb : (res : SocketResult & { data?: Record<string, unknown> }) => void) => void)("getSettings", (res) => {
+        settings.value = res.data ?? {};
+        settingsLoaded.value = true;
+    });
+}
+
+/**
+ * Ensure settings are valid
+ * @returns Object containing success state and error msg
+ */
+function validateSettings() : { success : boolean; msg : string } {
+    const keepDays = Number(settings.value.keepDataPeriodDays);
+    if (!Number.isNaN(keepDays) && keepDays < 0) {
+        return {
+            success: false,
+            msg: "dataRetentionTimeError",
+        };
+    }
+    return {
+        success: true,
+        msg: "",
+    };
+}
+
+/**
+ * Save Settings
+ * @param callback Optional callback run after a successful save
+ * @param currentPassword Only needed for disableAuth to true
+ */
+function saveSettings(callback? : () => void, currentPassword? : string) : void {
+    const valid = validateSettings();
+    if (valid.success) {
+        (getSocket().emit as (event : string, data : unknown, pass : string | undefined, cb : (res : SocketResult) => void) => void)("setSettings", settings.value, currentPassword, (res) => {
+            toastRes(res);
+            loadSettings();
+
+            if (callback) {
+                callback();
+            }
+        });
+    } else {
+        toastError(valid.msg);
+    }
+}
+
+provide<SettingsContext>(settingsContextKey, {
+    getSettings: () => settings.value,
+    saveSettings: (callback? : () => void, currentPassword? : string) => saveSettings(callback, currentPassword),
+    isSettingsLoaded: () => settingsLoaded.value,
+});
 </script>

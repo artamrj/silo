@@ -154,7 +154,7 @@
         </div>
 
         <!-- Remove one / remove selected -->
-        <Confirm :ref="(el) => (removeConfirm = el)" :title="$t('removeImage')" btn-style="button-danger" :yes-text="$t('removeImage')" @yes="confirmRemove">
+        <Confirm ref="removeConfirm" :title="$t('removeImage')" btn-style="button-danger" :yes-text="$t('removeImage')" @yes="confirmRemove">
             <p>{{ $t("removeImageMsg") }}</p>
             <ul class="list-inside list-disc font-mono text-xs">
                 <li v-for="image in pendingRemoval" :key="image.id">{{ imageName(image) }}</li>
@@ -162,7 +162,7 @@
         </Confirm>
 
         <!-- Prune confirmation -->
-        <Confirm :ref="(el) => (pruneConfirm = el)" :title="pruneAll ? $t('All unused images') : $t('Dangling images')" btn-style="button-danger" :yes-text="$t('Prune')" @yes="confirmPrune">
+        <Confirm ref="pruneConfirm" :title="pruneAll ? $t('All unused images') : $t('Dangling images')" btn-style="button-danger" :yes-text="$t('Prune')" @yes="confirmPrune">
             <p>{{ pruneAll ? $t("pruneAllMsg") : $t("pruneDanglingMsg") }}</p>
             <div v-if="pruneAll && protectedImages.length > 0" class="rounded-xl bg-muted p-2">
                 <p class="font-semibold">{{ $t("pruneProtectedMsg") }}</p>
@@ -174,7 +174,8 @@
     </PageContainer>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -184,195 +185,174 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import Confirm from "../components/Confirm.vue";
 import ImageListItem from "../components/ImageListItem.vue";
 import PageContainer from "../components/PageContainer.vue";
 import PageHeader from "../components/PageHeader.vue";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { formatBytes } from "../../../shared/docker";
+import type { DockerDiskUsage, DockerImage, DockerImageInventory } from "../../../shared/docker";
+import type { SocketResult } from "../../../shared/socket-events";
+import { useSocket } from "../composables/useSocket";
+import { useToast } from "../composables/useToast";
 
-export default {
-    components: {
-        Button,
-        Confirm,
-        DropdownMenu,
-        DropdownMenuContent,
-        DropdownMenuItem,
-        DropdownMenuLabel,
-        DropdownMenuSeparator,
-        DropdownMenuTrigger,
-        ImageListItem,
-        PageContainer,
-        PageHeader,
-        TooltipProvider,
+const { emitServer } = useSocket();
+const { toastRes } = useToast();
+
+const images = ref<DockerImage[]>([]);
+const disk = ref<DockerDiskUsage | null>(null);
+const searchText = ref("");
+const activeFilter = ref("all");
+const loading = ref(false);
+const loaded = ref(false);
+const loadError = ref("");
+const selectedIds = ref<string[]>([]);
+const pendingRemoval = ref<DockerImage[]>([]);
+const pruneAll = ref(false);
+
+const removeConfirm = ref<InstanceType<typeof Confirm> | null>(null);
+const pruneConfirm = ref<InstanceType<typeof Confirm> | null>(null);
+
+const danglingCount = computed(() => images.value.filter(image => image.dangling).length);
+
+/** Unused images that docker may still keep because a stack pins them. */
+const prunableCount = computed(() => images.value.filter(image => !image.inUse).length);
+
+/** Images that `prune -a` would remove but a stack still needs. */
+const protectedImages = computed(() => images.value.filter(image => !image.containers && image.inUseByStack));
+
+const filters = computed(() => [
+    {
+        value: "all",
+        label: "All",
+        count: images.value.length,
     },
-    data() {
-        return {
-            images: [],
-            disk: null,
-            searchText: "",
-            activeFilter: "all",
-            loading: false,
-            loaded: false,
-            loadError: "",
-            selectedIds: [],
-            pendingRemoval: [],
-            pruneAll: false,
-            removeConfirm: null,
-            pruneConfirm: null,
-        };
+    {
+        value: "used",
+        label: "In use",
+        count: images.value.filter(i => i.inUse).length,
     },
-    computed: {
-        danglingCount() {
-            return this.images.filter(image => image.dangling).length;
-        },
-
-        /** Unused images that docker may still keep because a stack pins them. */
-        prunableCount() {
-            return this.images.filter(image => !image.inUse).length;
-        },
-
-        /** Images that `prune -a` would remove but a stack still needs. */
-        protectedImages() {
-            return this.images.filter(image => !image.containers && image.inUseByStack);
-        },
-
-        filters() {
-            return [
-                {
-                    value: "all",
-                    label: "All",
-                    count: this.images.length,
-                },
-                {
-                    value: "used",
-                    label: "In use",
-                    count: this.images.filter(i => i.inUse).length,
-                },
-                {
-                    value: "unused",
-                    label: "Unused",
-                    count: this.images.filter(i => !i.inUse && !i.dangling).length,
-                },
-                {
-                    value: "dangling",
-                    label: "Dangling",
-                    count: this.danglingCount,
-                },
-            ];
-        },
-
-        filteredImages() {
-            let result = this.images;
-
-            if (this.activeFilter === "used") {
-                result = result.filter(image => image.inUse);
-            } else if (this.activeFilter === "unused") {
-                result = result.filter(image => !image.inUse && !image.dangling);
-            } else if (this.activeFilter === "dangling") {
-                result = result.filter(image => image.dangling);
-            }
-
-            if (this.searchText !== "") {
-                const needle = this.searchText.toLowerCase();
-                result = result.filter(image => image.tags.some(tag => tag.toLowerCase().includes(needle))
-                    || image.shortId.toLowerCase().includes(needle));
-            }
-
-            return result;
-        },
-
-        selectedSize() {
-            const bytes = this.images
-                .filter(image => this.selectedIds.includes(image.id))
-                .reduce((sum, image) => sum + (image.sizeBytes || 0), 0);
-            return formatBytes(bytes);
-        },
-
-        reclaimableText() {
-            if (!this.disk) {
-                return "";
-            }
-            return this.disk.reclaimable || this.disk.size;
-        },
+    {
+        value: "unused",
+        label: "Unused",
+        count: images.value.filter(i => !i.inUse && !i.dangling).length,
     },
-    mounted() {
-        this.loadImages();
+    {
+        value: "dangling",
+        label: "Dangling",
+        count: danglingCount.value,
     },
-    methods: {
-        /** Fetch the image inventory and disk usage from the server. */
-        loadImages() {
-            this.loading = true;
-            this.loadError = "";
-            this.$root.emitServer("getDockerImageList", (res) => {
-                this.loading = false;
-                this.loaded = true;
+]);
 
-                if (res.ok && res.imageInventory) {
-                    this.images = res.imageInventory.images;
-                    this.disk = res.imageInventory.disk;
-                    // Drop selections for images that no longer exist.
-                    const ids = new Set(this.images.map(image => image.id));
-                    this.selectedIds = this.selectedIds.filter(id => ids.has(id));
-                } else {
-                    this.loadError = res.msg ?? "";
-                    this.$root.toastRes(res);
-                }
-            });
-        },
+const filteredImages = computed(() => {
+    let result = images.value;
 
-        imageName(image) {
-            return image.tags.length > 0 ? image.tags.join(", ") : image.shortId;
-        },
+    if (activeFilter.value === "used") {
+        result = result.filter(image => image.inUse);
+    } else if (activeFilter.value === "unused") {
+        result = result.filter(image => !image.inUse && !image.dangling);
+    } else if (activeFilter.value === "dangling") {
+        result = result.filter(image => image.dangling);
+    }
 
-        toggleSelect(image) {
-            if (this.selectedIds.includes(image.id)) {
-                this.selectedIds = this.selectedIds.filter(id => id !== image.id);
-            } else {
-                this.selectedIds.push(image.id);
-            }
-        },
+    if (searchText.value !== "") {
+        const needle = searchText.value.toLowerCase();
+        result = result.filter(image => image.tags.some(tag => tag.toLowerCase().includes(needle))
+            || image.shortId.toLowerCase().includes(needle));
+    }
 
-        clearSelection() {
-            this.selectedIds = [];
-        },
+    return result;
+});
 
-        askRemove(image) {
-            this.pendingRemoval = [ image ];
-            this.removeConfirm.show();
-        },
+const selectedSize = computed(() => {
+    const bytes = images.value
+        .filter(image => selectedIds.value.includes(image.id))
+        .reduce((sum, image) => sum + (image.sizeBytes || 0), 0);
+    return formatBytes(bytes);
+});
 
-        askRemoveSelected() {
-            this.pendingRemoval = this.images.filter(image => this.selectedIds.includes(image.id));
-            this.removeConfirm.show();
-        },
+const reclaimableText = computed(() => {
+    if (!disk.value) {
+        return "";
+    }
+    return disk.value.reclaimable || disk.value.size;
+});
 
-        confirmRemove() {
-            const ids = this.pendingRemoval.map(image => image.id);
-            if (ids.length === 0) {
-                return;
-            }
+onMounted(() => {
+    loadImages();
+});
 
-            this.$root.emitServer("removeDockerImages", ids, (res) => {
-                this.$root.toastRes(res);
-                this.pendingRemoval = [];
-                this.clearSelection();
-                this.loadImages();
-            });
-        },
+/** Fetch the image inventory and disk usage from the server. */
+function loadImages() : void {
+    loading.value = true;
+    loadError.value = "";
+    emitServer("getDockerImageList", (res : SocketResult & { imageInventory?: DockerImageInventory }) => {
+        loading.value = false;
+        loaded.value = true;
 
-        askPrune(all) {
-            this.pruneAll = all;
-            this.pruneConfirm.show();
-        },
+        if (res.ok && res.imageInventory) {
+            images.value = res.imageInventory.images;
+            disk.value = res.imageInventory.disk;
+            // Drop selections for images that no longer exist.
+            const ids = new Set(images.value.map(image => image.id));
+            selectedIds.value = selectedIds.value.filter(id => ids.has(id));
+        } else {
+            loadError.value = res.msg ?? "";
+            toastRes(res);
+        }
+    });
+}
 
-        confirmPrune() {
-            this.$root.emitServer("pruneDockerImages", { all: this.pruneAll }, (res) => {
-                this.$root.toastRes(res);
-                this.clearSelection();
-                this.loadImages();
-            });
-        },
-    },
-};
+function imageName(image : DockerImage) : string {
+    return image.tags.length > 0 ? image.tags.join(", ") : image.shortId;
+}
+
+function toggleSelect(image : DockerImage) : void {
+    if (selectedIds.value.includes(image.id)) {
+        selectedIds.value = selectedIds.value.filter(id => id !== image.id);
+    } else {
+        selectedIds.value.push(image.id);
+    }
+}
+
+function clearSelection() : void {
+    selectedIds.value = [];
+}
+
+function askRemove(image : DockerImage) : void {
+    pendingRemoval.value = [ image ];
+    removeConfirm.value?.show();
+}
+
+function askRemoveSelected() : void {
+    pendingRemoval.value = images.value.filter(image => selectedIds.value.includes(image.id));
+    removeConfirm.value?.show();
+}
+
+function confirmRemove() : void {
+    const ids = pendingRemoval.value.map(image => image.id);
+    if (ids.length === 0) {
+        return;
+    }
+
+    emitServer("removeDockerImages", ids, (res : SocketResult) => {
+        toastRes(res);
+        pendingRemoval.value = [];
+        clearSelection();
+        loadImages();
+    });
+}
+
+function askPrune(all : boolean) : void {
+    pruneAll.value = all;
+    pruneConfirm.value?.show();
+}
+
+function confirmPrune() : void {
+    emitServer("pruneDockerImages", { all: pruneAll.value }, (res : SocketResult) => {
+        toastRes(res);
+        clearSelection();
+        loadImages();
+    });
+}
 </script>

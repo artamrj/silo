@@ -126,7 +126,7 @@
                     <Container
                         v-for="(service, name) in jsonConfig.services"
                         :key="name"
-                        :name="name"
+                        :name="String(name)"
                         :is-edit-mode="isEditMode"
                         :first="name === Object.keys(jsonConfig.services)[0]"
                         :serviceStatus="serviceStatusList[name]"
@@ -155,7 +155,6 @@
                 <div v-show="!isEditMode">
                     <h4 class="mb-3">{{ $t("terminal") }}</h4>
                     <Terminal
-                        ref="combinedTerminal"
                         class="mb-3 h-[315px]"
                         :name="combinedTerminalName"
                         :rows="combinedTerminalRows"
@@ -170,13 +169,12 @@
                 <!-- YAML editor -->
                 <div class="editor mb-3">
                     <code-mirror
-                        ref="editor"
                         v-model="stack.composeYAML"
                         :extensions="extensions"
                         minimal
-                        wrap="true"
-                        dark="true"
-                        tab="true"
+                        :wrap="true"
+                        :dark="true"
+                        :tab="true"
                         :disabled="!isEditMode"
                         :hasFocus="editorFocus"
                         @change="yamlCodeChange"
@@ -191,13 +189,12 @@
                     <h4 class="mb-3">.env</h4>
                     <div class="editor mb-3">
                         <code-mirror
-                            ref="envEditor"
                             v-model="stack.composeENV"
                             :extensions="extensionsEnv"
                             minimal
-                            wrap="true"
-                            dark="true"
-                            tab="true"
+                            :wrap="true"
+                            :dark="true"
+                            :tab="true"
                             :disabled="!isEditMode"
                             :hasFocus="editorFocus"
                             @change="yamlCodeChange"
@@ -258,23 +255,26 @@
     </PageContainer>
 </template>
 
-<script>
+<script setup lang="ts">
 import CodeMirror from "vue-codemirror6";
 import { yaml } from "@codemirror/lang-yaml";
 import { python } from "@codemirror/lang-python";
 import { lineNumbers, EditorView } from "@codemirror/view";
 import { parseDocument, Document } from "yaml";
+import { computed, onMounted, onUnmounted, provide, ref, watch } from "vue";
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
+import type { NavigationGuardNext } from "vue-router";
 
-import { AppIcon } from "../icon";
 import {
     COMBINED_TERMINAL_COLS,
     COMBINED_TERMINAL_ROWS,
     getCombinedTerminalName,
     getComposeTerminalName,
     PROGRESS_TERMINAL_ROWS,
-    RUNNING
+    RUNNING,
 } from "../../../shared/utils";
 import { copyYAMLComments, envsubstYAML } from "../../../shared/yaml";
+import type { SocketResult } from "../../../shared/socket-events";
 import NetworkInput from "../components/NetworkInput.vue";
 import ArrayInput from "../components/ArrayInput.vue";
 import Container from "../components/Container.vue";
@@ -287,8 +287,23 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import dotenv from "dotenv";
-import { ref } from "vue";
-import { composeContextKey } from "../context";
+import { useI18n } from "vue-i18n";
+import { composeContextKey, type ComposeContext } from "../context";
+import { useSocket } from "../composables/useSocket";
+import { useToast } from "../composables/useToast";
+import type { DockerStatEntry, ServiceStatus } from "../composables/types";
+
+/** The stack being viewed or edited, as stored in local state. */
+interface StackData {
+    name : string;
+    composeYAML : string;
+    composeENV : string;
+    isManagedBySilo : boolean;
+    composeFileName? : string;
+}
+
+/** Parsed compose.yaml as exposed by the shared compose context. */
+type ComposeObject = ReturnType<ComposeContext["getJsonConfig"]>;
 
 const template = `
 services:
@@ -300,606 +315,560 @@ services:
 `;
 const envDefault = "# VARIABLE=value #comment";
 
-let yamlErrorTimeout = null;
+let yamlErrorTimeout : ReturnType<typeof setTimeout> | undefined;
+let serviceStatusTimeout : ReturnType<typeof setTimeout> | undefined;
+let dockerStatsTimeout : ReturnType<typeof setTimeout> | undefined;
 
-let serviceStatusTimeout = null;
-let dockerStatsTimeout = null;
+const { emitServer, completeStackList, composeTemplate, envTemplate } = useSocket();
+const { toastRes, toastError } = useToast();
+const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 
-export default {
-    components: {
-        ArrayInput,
-        Container,
-        NetworkInput,
-        AppIcon,
-        Button,
-        CodeMirror,
-        Dialog,
-        DialogContent,
-        DialogDescription,
-        DialogFooter,
-        DialogHeader,
-        DialogTitle,
-        Input,
-        Label,
-        PageContainer,
-        PageHeader,
-        Terminal,
-        Uptime,
-    },
-    provide() {
-        return {
-            [composeContextKey]: {
-                getStack: () => this.stack,
-                getJsonConfig: () => this.jsonConfig,
-                getEnvsubstJSONConfig: () => this.envsubstJSONConfig,
-                isEditorFocused: () => this.editorFocus,
-            },
-        };
-    },
-    beforeRouteUpdate(to, from, next) {
-        this.exitConfirm(next);
-    },
-    beforeRouteLeave(to, from, next) {
-        this.exitConfirm(next);
-    },
-    setup() {
-        const editorFocus = ref(false);
+const jsonConfig = ref<ComposeObject>({});
+const envsubstJSONConfig = ref<ComposeObject>({});
+const yamlError = ref("");
+const processing = ref(true);
+const showProgressTerminal = ref(false);
+const progressTerminalRows = ref(PROGRESS_TERMINAL_ROWS);
+const combinedTerminalRows = ref(COMBINED_TERMINAL_ROWS);
+const combinedTerminalCols = ref(COMBINED_TERMINAL_COLS);
+const stack = ref<StackData>({ name: "",
+    composeYAML: "",
+    composeENV: "",
+    isManagedBySilo: false });
+const serviceStatusList = ref<Record<string, ServiceStatus[]>>({});
+const dockerStats = ref<Record<string, DockerStatEntry>>({});
+const isEditMode = ref(false);
+const submitted = ref(false);
+const stackLoaded = ref(false);
+const showDeleteDialog = ref(false);
+const deleteConfirmation = ref("");
+const newContainerName = ref("");
+const stopServiceStatusTimeout = ref(false);
+const stopDockerStatsTimeout = ref(false);
 
-        const focusEffectHandler = (state, focusing) => {
-            editorFocus.value = focusing;
-            return null;
-        };
+const editorFocus = ref(false);
 
-        const extensions = [
-            yaml(),
-            lineNumbers(),
-            EditorView.focusChangeEffect.of(focusEffectHandler)
-        ];
+// Keeps the YAML comments across re-serialisation; non-reactive on purpose.
+let yamlDoc : Document | null = null;
 
-        const extensionsEnv = [
-            python(),
-            lineNumbers(),
-            EditorView.focusChangeEffect.of(focusEffectHandler)
-        ];
+const containerList = ref<HTMLElement | null>(null);
+const progressTerminal = ref<InstanceType<typeof Terminal> | null>(null);
 
-        return { extensions,
-            extensionsEnv,
-            editorFocus };
-    },
-    yamlDoc: null,  // For keeping the yaml comments
-    data() {
-        return {
-            jsonConfig: {},
-            envsubstJSONConfig: {},
-            yamlError: "",
-            processing: true,
-            showProgressTerminal: false,
-            progressTerminalRows: PROGRESS_TERMINAL_ROWS,
-            combinedTerminalRows: COMBINED_TERMINAL_ROWS,
-            combinedTerminalCols: COMBINED_TERMINAL_COLS,
-            stack: {
+const focusEffectHandler = (_state : unknown, focusing : boolean) => {
+    editorFocus.value = focusing;
+    return null;
+};
 
-            },
-            serviceStatusList: {},
-            dockerStats: {},
-            isEditMode: false,
-            submitted: false,
-            stackLoaded: false,
-            showDeleteDialog: false,
-            deleteConfirmation: "",
-            newContainerName: "",
-            stopServiceStatusTimeout: false,
-            stopDockerStatsTimeout: false,
-        };
-    },
-    computed: {
+const extensions = [
+    yaml(),
+    lineNumbers(),
+    EditorView.focusChangeEffect.of(focusEffectHandler),
+];
 
-        urls() {
-            if (!this.envsubstJSONConfig["x-silo"] || !this.envsubstJSONConfig["x-silo"].urls || !Array.isArray(this.envsubstJSONConfig["x-silo"].urls)) {
-                return [];
+const extensionsEnv = [
+    python(),
+    lineNumbers(),
+    EditorView.focusChangeEffect.of(focusEffectHandler),
+];
+
+const urls = computed<{ display : string; url : string }[]>(() => {
+    const xSilo = envsubstJSONConfig.value["x-silo"];
+    if (!xSilo || !xSilo.urls || !Array.isArray(xSilo.urls)) {
+        return [];
+    }
+
+    const result : { display : string; url : string }[] = [];
+    for (const url of xSilo.urls) {
+        let display;
+        try {
+            const obj = new URL(url);
+            let pathname = obj.pathname;
+            if (pathname === "/") {
+                pathname = "";
             }
-
-            let urls = [];
-            for (const url of this.envsubstJSONConfig["x-silo"].urls) {
-                let display;
-                try {
-                    let obj = new URL(url);
-                    let pathname = obj.pathname;
-                    if (pathname === "/") {
-                        pathname = "";
-                    }
-                    display = obj.host + pathname + obj.search;
-                } catch (e) {
-                    display = url;
-                }
-
-                urls.push({
-                    display,
-                    url,
-                });
-            }
-            return urls;
-        },
-
-        isAdd() {
-            return this.$route.path === "/compose" && !this.submitted;
-        },
-
-        /** True while an existing stack is still being fetched. */
-        loadingStack() {
-            return !this.isAdd && !this.stackLoaded;
-        },
-
-        /**
-         * Get the stack from the global stack list, because it may contain more real-time data like status
-         * @return {*}
-         */
-        globalStack() {
-            return this.$root.completeStackList[this.stack.name];
-        },
-
-        status() {
-            return this.globalStack?.status;
-        },
-
-        active() {
-            return this.status === RUNNING;
-        },
-
-        terminalName() {
-            if (!this.stack.name) {
-                return "";
-            }
-            return getComposeTerminalName(this.stack.name);
-        },
-
-        combinedTerminalName() {
-            if (!this.stack.name) {
-                return "";
-            }
-            return getCombinedTerminalName(this.stack.name);
-        },
-
-        networks() {
-            return this.jsonConfig.networks;
-        },
-
-        url() {
-            return `/compose/${this.stack.name}`;
-        },
-
-        deleteConfirmationText() {
-            return `DELETE ${this.stack.name}`;
-        },
-    },
-    watch: {
-        "stack.composeYAML": {
-            handler() {
-                if (this.editorFocus) {
-                    console.debug("yaml code changed");
-                    this.yamlCodeChange();
-                }
-            },
-            deep: true,
-        },
-
-        "stack.composeENV": {
-            handler() {
-                if (this.editorFocus) {
-                    console.debug("env code changed");
-                    this.yamlCodeChange();
-                }
-            },
-            deep: true,
-        },
-
-        jsonConfig: {
-            handler() {
-                if (!this.editorFocus) {
-                    console.debug("jsonConfig changed");
-
-                    let doc = new Document(this.jsonConfig);
-
-                    // Stick back the yaml comments
-                    if (this.yamlDoc) {
-                        copyYAMLComments(doc, this.yamlDoc);
-                    }
-
-                    this.stack.composeYAML = doc.toString();
-                    this.yamlDoc = doc;
-                }
-            },
-            deep: true,
-        },
-
-        showDeleteDialog(value) {
-            if (!value) {
-                this.deleteConfirmation = "";
-            }
-        },
-    },
-    mounted() {
-        if (this.isAdd) {
-            this.processing = false;
-            this.isEditMode = true;
-
-            let composeYAML;
-            let composeENV;
-
-            if (this.$root.composeTemplate) {
-                composeYAML = this.$root.composeTemplate;
-                this.$root.composeTemplate = "";
-            } else {
-                composeYAML = template;
-            }
-            if (this.$root.envTemplate) {
-                composeENV = this.$root.envTemplate;
-                this.$root.envTemplate = "";
-            } else {
-                composeENV = envDefault;
-            }
-
-            // Default Values
-            this.stack = {
-                name: "",
-                composeYAML,
-                composeENV,
-                isManagedBySilo: true,
-            };
-            this.stackLoaded = true;
-
-            this.yamlCodeChange();
-
-        } else {
-            this.stack.name = this.$route.params.stackName;
-            this.loadStack();
+            display = obj.host + pathname + obj.search;
+        } catch {
+            display = url;
         }
 
-        this.requestServiceStatus();
-        this.requestDockerStats();
-    },
-    unmounted() {
-        clearTimeout(serviceStatusTimeout);
-        clearTimeout(dockerStatsTimeout);
-    },
-    methods: {
-        startServiceStatusTimeout() {
-            clearTimeout(serviceStatusTimeout);
-            serviceStatusTimeout = setTimeout(async () => {
-                this.requestServiceStatus();
-            }, 5000);
-        },
-
-        startDockerStatsTimeout() {
-            clearTimeout(dockerStatsTimeout);
-            dockerStatsTimeout = setTimeout(async () => {
-                this.requestDockerStats();
-            }, 5000);
-        },
-
-        requestServiceStatus() {
-            // Do not request if it is add mode
-            if (this.isAdd) {
-                return;
-            }
-
-            this.$root.emitServer("serviceStatusList", this.stack.name, (res) => {
-                if (res.ok) {
-                    this.serviceStatusList = res.serviceStatusList;
-                }
-                if (!this.stopServiceStatusTimeout) {
-                    this.startServiceStatusTimeout();
-                }
-            });
-        },
-
-        requestDockerStats() {
-            this.$root.emitServer("dockerStats", (res) => {
-                if (res.ok) {
-                    this.dockerStats = res.dockerStats;
-                }
-                if (!this.stopDockerStatsTimeout) {
-                    this.startDockerStatsTimeout();
-                }
-            });
-        },
-
-        exitConfirm(next) {
-            if (this.isEditMode) {
-                if (confirm(this.$t("confirmLeaveStack"))) {
-                    this.exitAction();
-                    next();
-                } else {
-                    next(false);
-                }
-            } else {
-                this.exitAction();
-                next();
-            }
-        },
-
-        exitAction() {
-            console.log("exitAction");
-            this.stopServiceStatusTimeout = true;
-            this.stopDockerStatsTimeout = true;
-            clearTimeout(serviceStatusTimeout);
-            clearTimeout(dockerStatsTimeout);
-
-            // Leave Combined Terminal
-            console.debug("leaveCombinedTerminal", this.stack.name);
-            this.$root.emitServer("leaveCombinedTerminal", this.stack.name, () => {});
-        },
-
-        bindTerminal() {
-            this.$refs.progressTerminal?.bind?.(this.terminalName);
-        },
-
-        loadStack() {
-            this.processing = true;
-            this.$root.emitServer("getStack", this.stack.name, (res) => {
-                if (res.ok) {
-                    this.stack = res.stack;
-                    this.yamlCodeChange();
-                    this.processing = false;
-                    this.stackLoaded = true;
-                    this.bindTerminal();
-                } else {
-                    this.$root.toastRes(res);
-                }
-            });
-        },
-
-        deployStack() {
-            this.processing = true;
-
-            if (!this.jsonConfig.services) {
-                this.$root.toastError("No services found in compose.yaml");
-                this.processing = false;
-                return;
-            }
-
-            // Check if services is object
-            if (typeof this.jsonConfig.services !== "object") {
-                this.$root.toastError("Services must be an object");
-                this.processing = false;
-                return;
-            }
-
-            let serviceNameList = Object.keys(this.jsonConfig.services);
-
-            // Set the stack name if empty, use the first container name
-            if (!this.stack.name && serviceNameList.length > 0) {
-                let serviceName = serviceNameList[0];
-                let service = this.jsonConfig.services[serviceName];
-
-                if (service && service.container_name) {
-                    this.stack.name = service.container_name;
-                } else {
-                    this.stack.name = serviceName;
-                }
-            }
-
-            this.bindTerminal();
-
-            this.$root.emitServer("deployStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.isEditMode = false;
-                    this.$router.push(this.url);
-                }
-            });
-        },
-
-        saveStack() {
-            this.processing = true;
-
-            this.$root.emitServer("saveStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.isEditMode = false;
-                    this.$router.push(this.url);
-                }
-            });
-        },
-
-        startStack() {
-            this.processing = true;
-
-            this.$root.emitServer("startStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
-        },
-
-        stopStack() {
-            this.processing = true;
-
-            this.$root.emitServer("stopStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
-        },
-
-        downStack() {
-            this.processing = true;
-
-            this.$root.emitServer("downStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
-        },
-
-        restartStack() {
-            this.processing = true;
-
-            this.$root.emitServer("restartStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
-        },
-
-        updateStack() {
-            this.processing = true;
-
-            this.$root.emitServer("updateStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
-        },
-
-        openDeleteDialog() {
-            this.deleteConfirmation = "";
-            this.showDeleteDialog = true;
-        },
-
-        /**
-         * Delete the stack after confirming the typed stack name.
-         * @returns {void}
-         */
-        deleteDialog() {
-            this.processing = true;
-            this.$root.emitServer("deleteStack", this.stack.name, {
-                deleteData: true,
-                confirmation: this.deleteConfirmation,
-            }, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-                if (res.ok) {
-                    this.showDeleteDialog = false;
-                    this.$router.push("/");
-                }
-            });
-        },
-
-        discardStack() {
-            this.stackLoaded = false;
-            this.loadStack();
-            this.isEditMode = false;
-        },
-
-        yamlToJSON(yaml) {
-            let doc = parseDocument(yaml);
-            if (doc.errors.length > 0) {
-                throw doc.errors[0];
-            }
-
-            const config = doc.toJS() ?? {};
-
-            // Check data types
-            // "services" must be an object
-            if (!config.services) {
-                config.services = {};
-            }
-
-            if (Array.isArray(config.services) || typeof config.services !== "object") {
-                throw new Error("Services must be an object");
-            }
-
-            return {
-                config,
-                doc,
-            };
-        },
-
-        yamlCodeChange() {
-            try {
-                let { config, doc } = this.yamlToJSON(this.stack.composeYAML);
-
-                this.yamlDoc = doc;
-                this.jsonConfig = config;
-
-                let env = dotenv.parse(this.stack.composeENV);
-                let envYAML = envsubstYAML(this.stack.composeYAML, env);
-                this.envsubstJSONConfig = this.yamlToJSON(envYAML).config;
-
-                clearTimeout(yamlErrorTimeout);
-                this.yamlError = "";
-            } catch (e) {
-                clearTimeout(yamlErrorTimeout);
-
-                if (this.yamlError) {
-                    this.yamlError = e.message;
-
-                } else {
-                    yamlErrorTimeout = setTimeout(() => {
-                        this.yamlError = e.message;
-                    }, 3000);
-                }
-            }
-        },
-
-        enableEditMode() {
-            this.isEditMode = true;
-        },
-
-        addContainer() {
-            if (this.jsonConfig.services[this.newContainerName]) {
-                this.$root.toastError("Container name already exists");
-                return;
-            }
-
-            if (!this.newContainerName) {
-                this.$root.toastError("Container name cannot be empty");
-                return;
-            }
-
-            this.jsonConfig.services[this.newContainerName] = {
-                restart: "unless-stopped",
-            };
-            this.newContainerName = "";
-            let element = this.$refs.containerList.lastElementChild;
-            element.scrollIntoView({
-                block: "start",
-                behavior: "smooth"
-            });
-        },
-
-        stackNameToLowercase() {
-            this.stack.name = this.stack?.name?.toLowerCase();
-        },
-
-        startService(serviceName) {
-            this.processing = true;
-
-            this.$root.emitServer("startService", this.stack.name, serviceName, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.requestServiceStatus(); // Refresh service status
-                }
-            });
-        },
-
-        stopService(serviceName) {
-            this.processing = true;
-
-            this.$root.emitServer("stopService", this.stack.name, serviceName, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.requestServiceStatus(); // Refresh service status
-                }
-            });
-        },
-
-        restartService(serviceName) {
-            this.processing = true;
-
-            this.$root.emitServer("restartService", this.stack.name, serviceName, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.requestServiceStatus(); // Refresh service status
-                }
-            });
-        },
+        result.push({
+            display,
+            url,
+        });
     }
-};
+    return result;
+});
+
+const isAdd = computed(() => route.path === "/compose" && !submitted.value);
+
+/** True while an existing stack is still being fetched. */
+const loadingStack = computed(() => !isAdd.value && !stackLoaded.value);
+
+/**
+ * Get the stack from the global stack list, because it may contain more real-time data like status
+ */
+const globalStack = computed(() => completeStackList.value[stack.value.name]);
+
+const status = computed(() => globalStack.value?.status);
+
+const active = computed(() => status.value === RUNNING);
+
+const terminalName = computed(() => {
+    if (!stack.value.name) {
+        return "";
+    }
+    return getComposeTerminalName(stack.value.name);
+});
+
+const combinedTerminalName = computed(() => {
+    if (!stack.value.name) {
+        return "";
+    }
+    return getCombinedTerminalName(stack.value.name);
+});
+
+const url = computed(() => `/compose/${stack.value.name}`);
+
+const deleteConfirmationText = computed(() => `DELETE ${stack.value.name}`);
+
+// Expose the live compose state to every nested container/network editor.
+provide<ComposeContext>(composeContextKey, {
+    getStack: () => stack.value,
+    getJsonConfig: () => jsonConfig.value,
+    getEnvsubstJSONConfig: () => envsubstJSONConfig.value,
+    isEditorFocused: () => editorFocus.value,
+});
+
+watch(() => stack.value.composeYAML, () => {
+    if (editorFocus.value) {
+        console.debug("yaml code changed");
+        yamlCodeChange();
+    }
+}, { deep: true });
+
+watch(() => stack.value.composeENV, () => {
+    if (editorFocus.value) {
+        console.debug("env code changed");
+        yamlCodeChange();
+    }
+}, { deep: true });
+
+watch(jsonConfig, () => {
+    if (!editorFocus.value) {
+        console.debug("jsonConfig changed");
+
+        const doc = new Document(jsonConfig.value);
+
+        // Stick back the yaml comments
+        if (yamlDoc) {
+            copyYAMLComments(doc, yamlDoc);
+        }
+
+        stack.value.composeYAML = doc.toString();
+        yamlDoc = doc;
+    }
+}, { deep: true });
+
+watch(showDeleteDialog, (value) => {
+    if (!value) {
+        deleteConfirmation.value = "";
+    }
+});
+
+onBeforeRouteUpdate((_to, _from, next : NavigationGuardNext) => {
+    exitConfirm(next);
+});
+
+onBeforeRouteLeave((_to, _from, next : NavigationGuardNext) => {
+    exitConfirm(next);
+});
+
+onMounted(() => {
+    if (isAdd.value) {
+        processing.value = false;
+        isEditMode.value = true;
+
+        let composeYAML;
+        let composeENV;
+
+        if (composeTemplate.value) {
+            composeYAML = composeTemplate.value;
+            composeTemplate.value = "";
+        } else {
+            composeYAML = template;
+        }
+        if (envTemplate.value) {
+            composeENV = envTemplate.value;
+            envTemplate.value = "";
+        } else {
+            composeENV = envDefault;
+        }
+
+        // Default Values
+        stack.value = {
+            name: "",
+            composeYAML,
+            composeENV,
+            isManagedBySilo: true,
+        };
+        stackLoaded.value = true;
+
+        yamlCodeChange();
+    } else {
+        stack.value.name = String(route.params.stackName ?? "");
+        loadStack();
+    }
+
+    requestServiceStatus();
+    requestDockerStats();
+});
+
+onUnmounted(() => {
+    clearTimeout(serviceStatusTimeout);
+    clearTimeout(dockerStatsTimeout);
+});
+
+function startServiceStatusTimeout() : void {
+    clearTimeout(serviceStatusTimeout);
+    serviceStatusTimeout = setTimeout(() => {
+        requestServiceStatus();
+    }, 5000);
+}
+
+function startDockerStatsTimeout() : void {
+    clearTimeout(dockerStatsTimeout);
+    dockerStatsTimeout = setTimeout(() => {
+        requestDockerStats();
+    }, 5000);
+}
+
+function requestServiceStatus() : void {
+    // Do not request if it is add mode
+    if (isAdd.value) {
+        return;
+    }
+
+    emitServer("serviceStatusList", stack.value.name, (res : SocketResult & { serviceStatusList? : Record<string, ServiceStatus[]> }) => {
+        if (res.ok && res.serviceStatusList) {
+            serviceStatusList.value = res.serviceStatusList;
+        }
+        if (!stopServiceStatusTimeout.value) {
+            startServiceStatusTimeout();
+        }
+    });
+}
+
+function requestDockerStats() : void {
+    emitServer("dockerStats", (res : SocketResult & { dockerStats? : Record<string, DockerStatEntry> }) => {
+        if (res.ok && res.dockerStats) {
+            dockerStats.value = res.dockerStats;
+        }
+        if (!stopDockerStatsTimeout.value) {
+            startDockerStatsTimeout();
+        }
+    });
+}
+
+function exitConfirm(next : NavigationGuardNext) : void {
+    if (isEditMode.value) {
+        if (confirm(t("confirmLeaveStack"))) {
+            exitAction();
+            next();
+        } else {
+            next(false);
+        }
+    } else {
+        exitAction();
+        next();
+    }
+}
+
+function exitAction() : void {
+    console.log("exitAction");
+    stopServiceStatusTimeout.value = true;
+    stopDockerStatsTimeout.value = true;
+    clearTimeout(serviceStatusTimeout);
+    clearTimeout(dockerStatsTimeout);
+
+    // Leave Combined Terminal
+    console.debug("leaveCombinedTerminal", stack.value.name);
+    emitServer("leaveCombinedTerminal", stack.value.name, () => {});
+}
+
+function bindTerminal() : void {
+    progressTerminal.value?.bind?.(terminalName.value);
+}
+
+function loadStack() : void {
+    processing.value = true;
+    emitServer("getStack", stack.value.name, (res : SocketResult & { stack? : StackData }) => {
+        if (res.ok && res.stack) {
+            stack.value = res.stack;
+            yamlCodeChange();
+            processing.value = false;
+            stackLoaded.value = true;
+            bindTerminal();
+        } else {
+            toastRes(res);
+        }
+    });
+}
+
+function deployStack() : void {
+    processing.value = true;
+
+    if (!jsonConfig.value.services) {
+        toastError("No services found in compose.yaml");
+        processing.value = false;
+        return;
+    }
+
+    // Check if services is object
+    if (typeof jsonConfig.value.services !== "object") {
+        toastError("Services must be an object");
+        processing.value = false;
+        return;
+    }
+
+    const serviceNameList = Object.keys(jsonConfig.value.services);
+
+    // Set the stack name if empty, use the first container name
+    if (!stack.value.name && serviceNameList.length > 0) {
+        const serviceName = serviceNameList[0];
+        const service = jsonConfig.value.services[serviceName];
+
+        if (service && service.container_name) {
+            stack.value.name = service.container_name;
+        } else {
+            stack.value.name = serviceName;
+        }
+    }
+
+    bindTerminal();
+
+    emitServer("deployStack", stack.value.name, stack.value.composeYAML, stack.value.composeENV, isAdd.value, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+
+        if (res.ok) {
+            isEditMode.value = false;
+            router.push(url.value);
+        }
+    });
+}
+
+function saveStack() : void {
+    processing.value = true;
+
+    emitServer("saveStack", stack.value.name, stack.value.composeYAML, stack.value.composeENV, isAdd.value, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+
+        if (res.ok) {
+            isEditMode.value = false;
+            router.push(url.value);
+        }
+    });
+}
+
+function startStack() : void {
+    processing.value = true;
+
+    emitServer("startStack", stack.value.name, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+    });
+}
+
+function stopStack() : void {
+    processing.value = true;
+
+    emitServer("stopStack", stack.value.name, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+    });
+}
+
+function downStack() : void {
+    processing.value = true;
+
+    emitServer("downStack", stack.value.name, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+    });
+}
+
+function restartStack() : void {
+    processing.value = true;
+
+    emitServer("restartStack", stack.value.name, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+    });
+}
+
+function updateStack() : void {
+    processing.value = true;
+
+    emitServer("updateStack", stack.value.name, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+    });
+}
+
+function openDeleteDialog() : void {
+    deleteConfirmation.value = "";
+    showDeleteDialog.value = true;
+}
+
+/**
+ * Delete the stack after confirming the typed stack name.
+ * @returns {void}
+ */
+function deleteDialog() : void {
+    processing.value = true;
+    emitServer("deleteStack", stack.value.name, {
+        deleteData: true,
+        confirmation: deleteConfirmation.value,
+    }, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+        if (res.ok) {
+            showDeleteDialog.value = false;
+            router.push("/");
+        }
+    });
+}
+
+function discardStack() : void {
+    stackLoaded.value = false;
+    loadStack();
+    isEditMode.value = false;
+}
+
+function yamlToJSON(yamlContent : string) : { config : ComposeObject; doc : Document } {
+    const doc = parseDocument(yamlContent);
+    if (doc.errors.length > 0) {
+        throw doc.errors[0];
+    }
+
+    const config = (doc.toJS() ?? {}) as ComposeObject;
+
+    // Check data types
+    // "services" must be an object
+    if (!config.services) {
+        config.services = {};
+    }
+
+    if (Array.isArray(config.services) || typeof config.services !== "object") {
+        throw new Error("Services must be an object");
+    }
+
+    return {
+        config,
+        doc,
+    };
+}
+
+function yamlCodeChange() : void {
+    try {
+        const { config, doc } = yamlToJSON(stack.value.composeYAML);
+
+        yamlDoc = doc;
+        jsonConfig.value = config;
+
+        const env = dotenv.parse(stack.value.composeENV);
+        const envYAML = envsubstYAML(stack.value.composeYAML, env);
+        envsubstJSONConfig.value = yamlToJSON(envYAML).config;
+
+        clearTimeout(yamlErrorTimeout);
+        yamlError.value = "";
+    } catch (e) {
+        clearTimeout(yamlErrorTimeout);
+        const message = e instanceof Error ? e.message : String(e);
+
+        if (yamlError.value) {
+            yamlError.value = message;
+        } else {
+            yamlErrorTimeout = setTimeout(() => {
+                yamlError.value = message;
+            }, 3000);
+        }
+    }
+}
+
+function enableEditMode() : void {
+    isEditMode.value = true;
+}
+
+function addContainer() : void {
+    if (!jsonConfig.value.services) {
+        jsonConfig.value.services = {};
+    }
+
+    if (jsonConfig.value.services[newContainerName.value]) {
+        toastError("Container name already exists");
+        return;
+    }
+
+    if (!newContainerName.value) {
+        toastError("Container name cannot be empty");
+        return;
+    }
+
+    jsonConfig.value.services[newContainerName.value] = {
+        restart: "unless-stopped",
+    };
+    newContainerName.value = "";
+    const element = containerList.value?.lastElementChild;
+    element?.scrollIntoView({
+        block: "start",
+        behavior: "smooth",
+    });
+}
+
+function stackNameToLowercase() : void {
+    stack.value.name = (stack.value.name ?? "").toLowerCase();
+}
+
+function startService(serviceName : string) : void {
+    processing.value = true;
+
+    emitServer("startService", stack.value.name, serviceName, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+
+        if (res.ok) {
+            requestServiceStatus(); // Refresh service status
+        }
+    });
+}
+
+function stopService(serviceName : string) : void {
+    processing.value = true;
+
+    emitServer("stopService", stack.value.name, serviceName, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+
+        if (res.ok) {
+            requestServiceStatus(); // Refresh service status
+        }
+    });
+}
+
+function restartService(serviceName : string) : void {
+    processing.value = true;
+
+    emitServer("restartService", stack.value.name, serviceName, (res : SocketResult) => {
+        processing.value = false;
+        toastRes(res);
+
+        if (res.ok) {
+            requestServiceStatus(); // Refresh service status
+        }
+    });
+}
 </script>

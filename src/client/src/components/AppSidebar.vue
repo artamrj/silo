@@ -74,7 +74,7 @@
                             type="button"
                             class="flex size-11 items-center justify-center rounded-xl text-ink-muted transition-all duration-200 hover:scale-105 hover:bg-destructive/10 hover:text-destructive active:scale-95"
                             :aria-label="$t('Logout')"
-                            @click="$root.logout"
+                            @click="logout"
                         >
                             <app-icon icon="sign-out-alt" size="lg" />
                         </button>
@@ -86,61 +86,50 @@
     </TooltipProvider>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ThemeToggle from "./ThemeToggle.vue";
+import { useSocket } from "../composables/useSocket";
+import { useTheme } from "../composables/useTheme";
+import { useToast } from "../composables/useToast";
+import type { SocketResult } from "../../../shared/socket-events";
 
-export default {
-    components: {
-        Separator,
-        ThemeToggle,
-        Tooltip,
-        TooltipContent,
-        TooltipProvider,
-        TooltipTrigger,
+const { emitServer, logout } = useSocket();
+const { userTheme } = useTheme();
+const { toastRes } = useToast();
+
+// Shared styling for every icon-only navigation control.
+const iconButtonClass = "group flex size-11 items-center justify-center rounded-xl text-ink-muted no-underline transition-all duration-200 hover:scale-105 hover:bg-accent hover:text-ink hover:no-underline active:scale-95 aria-[current=page]:bg-accent aria-[current=page]:text-ink aria-[current=page]:shadow-sm aria-[current=page]:hover:bg-accent";
+
+const navItems = [
+    {
+        to: "/stacks",
+        icon: "warehouse",
+        label: "Stacks",
     },
-
-    data() {
-        return {
-            // Shared styling for every icon-only navigation control.
-            iconButtonClass: "group flex size-11 items-center justify-center rounded-xl text-ink-muted no-underline transition-all duration-200 hover:scale-105 hover:bg-accent hover:text-ink hover:no-underline active:scale-95 aria-[current=page]:bg-accent aria-[current=page]:text-ink aria-[current=page]:shadow-sm aria-[current=page]:hover:bg-accent",
-        };
+    {
+        to: "/images",
+        icon: "box",
+        label: "Images",
     },
+];
 
-    computed: {
-        navItems() {
-            return [
-                {
-                    to: "/stacks",
-                    icon: "warehouse",
-                    label: "Stacks",
-                },
-                {
-                    to: "/images",
-                    icon: "box",
-                    label: "Images",
-                },
-            ];
-        },
-
-        /** i18n key for the current theme, shown in the tooltip. */
-        themeLabel() {
-            return {
-                light: "Light",
-                dark: "Dark",
-                auto: "Auto",
-            }[this.$root.userTheme] ?? "Dark";
-        },
-    },
-
-    methods: {
-        /** Ask the server to rescan the stacks folder, then toast the result. */
-        scanFolder() {
-            this.$root.emitServer("requestStackList", (res) => {
-                this.$root.toastRes(res);
-            });
-        },
-    },
+/** Theme value -> i18n key for the tooltip. */
+const themeLabels : Record<string, string> = {
+    light: "Light",
+    dark: "Dark",
+    auto: "Auto",
 };
+
+/** i18n key for the current theme, shown in the tooltip. */
+const themeLabel = computed(() => themeLabels[userTheme.value ?? ""] ?? "Dark");
+
+/** Ask the server to rescan the stacks folder, then toast the result. */
+function scanFolder() : void {
+    emitServer("requestStackList", (res : SocketResult) => {
+        toastRes(res);
+    });
+}
 </script>

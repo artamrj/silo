@@ -1,7 +1,6 @@
 <template>
     <div class="mb-3 flex items-stretch gap-2">
         <input
-            ref="input"
             v-model="model"
             :type="visibility"
             class="field"
@@ -18,65 +17,47 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from "vue";
 import { AppIcon } from "../icon";
 
-export default {
-    components: {
-        AppIcon,
+const props = withDefaults(defineProps<{
+    /** The value of the input */
+    modelValue?: string;
+    /** A placeholder to use */
+    placeholder?: string;
+    /** Maximum length of the input */
+    maxlength?: number;
+    /** Should the field auto complete */
+    autocomplete?: string;
+    /** Is the input required? */
+    required?: boolean;
+    /** Should the input be read only? */
+    readonly?: boolean;
+}>(), {
+    modelValue: "",
+    placeholder: "",
+    maxlength: 255,
+    autocomplete: "new-password",
+    required: false,
+    readonly: false,
+});
+
+const emit = defineEmits<{ "update:modelValue": [ value : string ] }>();
+
+const visibility = ref("password");
+
+const model = computed({
+    get() : string {
+        return props.modelValue;
     },
-    props: {
-        /** The value of the input */
-        modelValue: {
-            type: String,
-            default: ""
-        },
-        /** A placeholder to use */
-        placeholder: {
-            type: String,
-            default: ""
-        },
-        /** Maximum length of the input */
-        maxlength: {
-            type: Number,
-            default: 255
-        },
-        /** Should the field auto complete */
-        autocomplete: {
-            type: String,
-            default: "new-password",
-        },
-        /** Is the input required? */
-        required: {
-            type: Boolean
-        },
-        /** Should the input be read only? */
-        readonly: {
-            type: String,
-            default: undefined,
-        },
+    set(value : string) : void {
+        emit("update:modelValue", value);
     },
-    emits: [ "update:modelValue" ],
-    data() {
-        return {
-            visibility: "password",
-        };
-    },
-    computed: {
-        model: {
-            get() {
-                return this.modelValue;
-            },
-            set(value) {
-                this.$emit("update:modelValue", value);
-            }
-        }
-    },
-    methods: {
-        /** Toggle between plain text and censored input */
-        toggleVisibility() {
-            this.visibility = this.visibility === "password" ? "text" : "password";
-        },
-    }
-};
+});
+
+/** Toggle between plain text and censored input */
+function toggleVisibility() : void {
+    visibility.value = visibility.value === "password" ? "text" : "password";
+}
 </script>
