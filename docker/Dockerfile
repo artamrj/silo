@@ -3,7 +3,7 @@ WORKDIR /src
 COPY docker/healthcheck.go .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /healthcheck healthcheck.go
 
-FROM node:24-bookworm-slim AS build
+FROM node:26-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -14,7 +14,7 @@ COPY scripts ./scripts
 RUN npm run build \
     && npm prune --omit=dev
 
-FROM node:24-bookworm-slim AS release
+FROM node:26-bookworm-slim AS release
 RUN apt-get update && apt-get install --yes --no-install-recommends \
         ca-certificates \
         curl \
