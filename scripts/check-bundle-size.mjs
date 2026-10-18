@@ -9,8 +9,9 @@ const assetsDir = new URL("../dist/client/assets/", import.meta.url).pathname;
 
 // Budgets: gzip KB. Groups map to a chunk-name prefix.
 const budgets = {
-    entry: 25,
+    entry: 30,
     "vendor-vue": 80,
+    "vendor-ui": 55,
     "vendor-socket": 20,
 };
 

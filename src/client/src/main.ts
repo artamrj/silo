@@ -8,6 +8,7 @@ import { i18n } from "./i18n";
 import { toast } from "./toast";
 
 // CSS
+import "vue-sonner/style.css";
 import "./styles/main.css";
 
 // Minxins

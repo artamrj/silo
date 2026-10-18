@@ -72,9 +72,9 @@ export default defineComponent({
          */
         updateThemeColorMeta() {
             if (this.theme === "dark") {
-                document.querySelector("#theme-color").setAttribute("content", "#161B22");
+                document.querySelector("#theme-color").setAttribute("content", "#0a0a0a");
             } else {
-                document.querySelector("#theme-color").setAttribute("content", "#5cdd8b");
+                document.querySelector("#theme-color").setAttribute("content", "#ffffff");
             }
         }
     }

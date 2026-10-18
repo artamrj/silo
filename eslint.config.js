@@ -19,6 +19,8 @@ const sharedRules = {
     "vue/singleline-html-element-content-newline": "off",
     "vue/html-self-closing": "off",
     "vue/require-component-is": "off",
+    // shadcn-vue primitive names intentionally collide with HTML tag names.
+    "vue/no-reserved-component-names": "off",
     "vue/attribute-hyphenation": "off",
     "vue/multi-word-component-names": "off",
     "no-multi-spaces": [ "error", { ignoreEOLComments: true } ],
@@ -56,7 +58,8 @@ const sharedRules = {
 
 export default [
     {
-        ignores: [ "node_modules/**", "dist/**" ],
+        // shadcn-vue output is generated on demand; do not restyle it.
+        ignores: [ "node_modules/**", "dist/**", "src/client/src/components/ui/**" ],
     },
     js.configs.recommended,
     ...tsPlugin.configs["flat/recommended"],

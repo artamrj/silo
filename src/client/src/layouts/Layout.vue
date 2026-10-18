@@ -19,51 +19,53 @@
                 </router-link>
 
                 <nav v-if="$root.loggedIn" class="flex items-center gap-1" :aria-label="$t('Main navigation')">
-                    <router-link to="/" class="flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-ink-muted no-underline hover:bg-subtle hover:text-ink aria-[current=page]:bg-subtle aria-[current=page]:text-ink">
-                        <app-icon icon="home" /> {{ $t("home") }}
-                    </router-link>
+                    <Button as-child variant="ghost" class="text-ink-muted hover:text-ink aria-[current=page]:bg-subtle aria-[current=page]:text-ink">
+                        <router-link to="/">
+                            <app-icon icon="home" /> {{ $t("home") }}
+                        </router-link>
+                    </Button>
 
-                    <router-link to="/console" class="flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-ink-muted no-underline hover:bg-subtle hover:text-ink aria-[current=page]:bg-subtle aria-[current=page]:text-ink">
-                        <app-icon icon="terminal" /> {{ $t("console") }}
-                    </router-link>
+                    <Button as-child variant="ghost" class="text-ink-muted hover:text-ink aria-[current=page]:bg-subtle aria-[current=page]:text-ink">
+                        <router-link to="/console">
+                            <app-icon icon="terminal" /> {{ $t("console") }}
+                        </router-link>
+                    </Button>
 
-                    <details class="relative">
-                        <summary class="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-ink hover:bg-subtle [&::-webkit-details-marker]:hidden">
-                            <span class="flex size-7 items-center justify-center rounded-full bg-primary-fill text-xs font-bold text-white" aria-hidden="true">{{ $root.usernameFirstChar }}</span>
-                            <span class="sr-only">{{ $t("Open user menu") }}</span>
-                            <app-icon icon="angle-down" aria-hidden="true" />
-                        </summary>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                            <Button variant="ghost" class="px-2 text-ink hover:bg-subtle">
+                                <span class="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground" aria-hidden="true">{{ $root.usernameFirstChar }}</span>
+                                <span class="sr-only">{{ $t("Open user menu") }}</span>
+                                <app-icon icon="angle-down" aria-hidden="true" />
+                            </Button>
+                        </DropdownMenuTrigger>
 
-                        <ul class="menu absolute right-0 top-[calc(100%+8px)] z-50">
-                            <li class="px-3 py-2 text-sm">
+                        <DropdownMenuContent align="end" class="w-56">
+                            <DropdownMenuLabel>
                                 <i18n-t v-if="$root.username != null" tag="span" keypath="signedInDisp">
                                     <strong>{{ $root.username }}</strong>
                                 </i18n-t>
                                 <span v-if="$root.username == null">{{ $t("signedInDispDisabled") }}</span>
-                            </li>
+                            </DropdownMenuLabel>
 
-                            <li><hr class="my-1 border-t border-line"></li>
+                            <DropdownMenuSeparator />
 
-                            <li>
-                                <button class="menu-item" @click="scanFolder">
-                                    <app-icon icon="arrows-rotate" /> {{ $t("scanFolder") }}
-                                </button>
-                            </li>
+                            <DropdownMenuItem @select="scanFolder">
+                                <app-icon icon="arrows-rotate" /> {{ $t("scanFolder") }}
+                            </DropdownMenuItem>
 
-                            <li>
-                                <router-link to="/settings/general" class="menu-item no-underline">
+                            <DropdownMenuItem as-child>
+                                <router-link to="/settings/general" class="no-underline">
                                     <app-icon icon="cog" /> {{ $t("Settings") }}
                                 </router-link>
-                            </li>
+                            </DropdownMenuItem>
 
-                            <li>
-                                <button class="menu-item" @click="$root.logout">
-                                    <app-icon icon="sign-out-alt" />
-                                    {{ $t("Logout") }}
-                                </button>
-                            </li>
-                        </ul>
-                    </details>
+                            <DropdownMenuItem variant="destructive" @select="$root.logout">
+                                <app-icon icon="sign-out-alt" />
+                                {{ $t("Logout") }}
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </nav>
             </div>
         </header>
@@ -103,11 +105,27 @@
 
 <script>
 import Login from "../components/Login.vue";
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default {
 
     components: {
         Login,
+        Button,
+        DropdownMenu,
+        DropdownMenuContent,
+        DropdownMenuItem,
+        DropdownMenuLabel,
+        DropdownMenuSeparator,
+        DropdownMenuTrigger,
     },
 
     computed: {

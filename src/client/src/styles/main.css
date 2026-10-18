@@ -1,76 +1,190 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Design tokens. Dark mode overrides the same variables in @layer base. */
+/* Typography stays Silo-owned. */
 @theme {
     --font-sans: BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
 
-    --color-canvas: #f6f7fb;
-    --color-surface: #ffffff;
-    --color-raised: #ffffff;
-    --color-subtle: #f1f5f9;
-    --color-line: #e2e8f0;
-    --color-line-strong: #cbd5e1;
-    --color-ink: #111827;
-    --color-ink-muted: #526074;
-    --color-primary: #4f46e5;
-    /* Solid fills keep white text at >=4.5:1 in both themes, so they never follow the accent. */
-    --color-primary-fill: #4f46e5;
-    --color-primary-fill-hover: #4338ca;
-    --color-primary-hover: #4338ca;
-    --color-primary-soft: #eef2ff;
-    --color-danger: #dc2626;
-    --color-danger-fill: #dc2626;
-    --color-success: #15803d;
-    --color-warning: #b45309;
+/*
+ * Color tokens come from shadcn-vue (neutral base). The second half of this
+ * block bridges the original Silo token names onto the shadcn tokens, so
+ * not-yet-migrated components keep working against the same palette.
+ */
+@theme inline {
+    /* Elevation is indirected so `.dark` can restate it per theme. */
+    --shadow-sm: var(--elevation-sm);
+    --shadow-md: var(--elevation-md);
+    --shadow-lg: var(--elevation-lg);
 
-    --shadow-sm: 0 1px 2px rgb(15 23 42 / .04), 0 1px 4px rgb(15 23 42 / .04);
-    --shadow-md: 0 10px 30px rgb(15 23 42 / .08);
-    --shadow-lg: 0 24px 70px rgb(15 23 42 / .14);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Silo bridge (legacy names -> shadcn tokens). */
+    --color-canvas: var(--background);
+    --color-surface: var(--card);
+    --color-raised: var(--popover);
+    --color-subtle: var(--muted);
+    --color-line: var(--border);
+    --color-line-strong: var(--input);
+    --color-ink: var(--foreground);
+    --color-ink-muted: var(--muted-foreground);
+    --color-primary-fill: var(--primary);
+    --color-primary-fill-hover: var(--primary);
+    --color-primary-hover: var(--primary);
+    --color-primary-soft: var(--accent);
+    --color-danger: var(--destructive);
+    --color-danger-fill: var(--destructive);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    --radius: 0.625rem;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+
+    /* Extra semantic colors shadcn does not ship by default. */
+    --success: oklch(0.55 0.15 155);
+    --warning: oklch(0.62 0.14 65);
+
+    --elevation-sm: 0 1px 2px rgb(15 23 42 / .04), 0 1px 4px rgb(15 23 42 / .04);
+    --elevation-md: 0 10px 30px rgb(15 23 42 / .08);
+    --elevation-lg: 0 24px 70px rgb(15 23 42 / .14);
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+    --success: oklch(0.7 0.16 155);
+    --warning: oklch(0.8 0.15 80);
+
+    --elevation-sm: 0 1px 2px rgb(0 0 0 / .2);
+    --elevation-md: 0 14px 36px rgb(0 0 0 / .24);
+    --elevation-lg: 0 28px 80px rgb(0 0 0 / .38);
 }
 
 @layer base {
-    :root {
-        color-scheme: light;
+    * {
+        @apply border-border outline-ring/50;
     }
 
-    :root:has(body.dark),
-    .dark {
-        color-scheme: dark;
-        --color-canvas: #080d17;
-        --color-surface: #101722;
-        --color-raised: #151e2b;
-        --color-subtle: #182231;
-        --color-line: #263244;
-        --color-line-strong: #36465d;
-        --color-ink: #e5e7eb;
-        --color-ink-muted: #94a3b8;
-        --color-primary: #818cf8;
-        --color-primary-fill: #4f46e5;
-        --color-primary-fill-hover: #4338ca;
-        --color-primary-hover: #a5b4fc;
-        --color-primary-soft: rgb(99 102 241 / .14);
-        --color-danger: #fb7185;
-        --color-danger-fill: #dc2626;
-        --color-success: #4ade80;
-        --color-warning: #fbbf24;
-        --shadow-sm: 0 1px 2px rgb(0 0 0 / .2);
-        --shadow-md: 0 14px 36px rgb(0 0 0 / .24);
-        --shadow-lg: 0 28px 80px rgb(0 0 0 / .38);
+    body {
+        @apply bg-background text-foreground;
     }
 
     html {
+        color-scheme: light;
         font-family: var(--font-sans);
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
     }
 
+    .dark,
+    :root:has(body.dark) {
+        color-scheme: dark;
+    }
+
     body {
         min-width: 320px;
-        background: var(--color-canvas);
-        color: var(--color-ink);
     }
 
     h1, h2, h3, h4, h5 {
@@ -173,10 +287,10 @@
     .button {
         @apply inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent px-3.5 py-2 text-sm leading-none font-semibold transition-colors;
     }
-    .button-primary { @apply bg-primary-fill text-white hover:bg-primary-fill-hover; }
+    .button-primary { @apply bg-primary text-primary-foreground hover:opacity-90; }
     .button-normal { @apply border-line bg-surface text-ink shadow-sm hover:border-line-strong hover:bg-subtle; }
     .button-secondary { @apply bg-slate-500 text-white hover:bg-slate-600; }
-    .button-danger { @apply bg-danger-fill text-white hover:brightness-95; }
+    .button-danger { @apply bg-destructive text-white hover:opacity-90; }
     .button-outline { @apply border-primary bg-transparent text-primary hover:bg-primary-soft; }
     .button-sm { @apply min-h-8 rounded-full px-3 py-1 text-xs; }
 
@@ -184,8 +298,7 @@
         @apply block min-h-10 w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-ink transition-colors;
     }
     .field:focus {
-        @apply border-primary outline-none;
-        box-shadow: 0 0 0 3px rgb(99 102 241 / .16);
+        @apply border-ring outline-none ring-3 ring-ring/50;
     }
     .field-label { @apply mb-1 block text-sm font-semibold text-ink; }
     .field-hint { @apply mt-1 text-xs text-ink-muted; }
@@ -227,37 +340,6 @@
     .btn-close:hover { @apply bg-subtle text-ink; }
     .btn-close::before { content: "\00d7"; font-size: 1.25rem; line-height: 1; }
 }
-
-/* Toasts are created by toast.ts, so they need real class names. */
-.silo-toast-container {
-    position: fixed;
-    right: 1rem;
-    bottom: 1rem;
-    z-index: 2000;
-    display: flex;
-    width: min(24rem, calc(100vw - 2rem));
-    flex-direction: column;
-    gap: .6rem;
-    pointer-events: none;
-}
-.silo-toast {
-    transform: translateY(.5rem);
-    border: 1px solid var(--color-line-strong);
-    border-left-width: 4px;
-    border-radius: .75rem;
-    background: var(--color-raised);
-    padding: .8rem 1rem;
-    color: var(--color-ink);
-    font-size: .875rem;
-    opacity: 0;
-    box-shadow: var(--shadow-md);
-    cursor: pointer;
-    pointer-events: auto;
-    transition: opacity .2s, transform .2s;
-}
-.silo-toast-visible { transform: translateY(0); opacity: 1; }
-.silo-toast-success { border-left-color: var(--color-success); }
-.silo-toast-error { border-left-color: var(--color-danger); }
 
 /* Skeleton placeholders. */
 .skeleton {

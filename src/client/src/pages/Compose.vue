@@ -219,40 +219,41 @@
             </div>
 
             <!-- Delete Dialog -->
-            <div
-                v-if="showDeleteDialog"
-                class="modal"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="delete-stack-title"
-                @click.self="showDeleteDialog = false"
-            >
-                <div ref="deleteDialog" class="modal-dialog" @keydown.esc="showDeleteDialog = false" @keydown.tab="onDialogKeydown">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 id="delete-stack-title" class="modal-title">{{ $t("deleteStack") }}</h5>
-                            <button class="btn-close" :aria-label="$t('Close')" @click="showDeleteDialog = false" />
-                        </div>
-                        <div class="modal-body">
-                            <p>{{ $t("deleteStackMsg") }}</p>
-                            <label for="delete-confirmation" class="field-label">
+            <Dialog v-model:open="showDeleteDialog">
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{{ $t("deleteStack") }}</DialogTitle>
+                    </DialogHeader>
+
+                    <div class="space-y-4 text-sm">
+                        <DialogDescription as="p" class="text-foreground">
+                            {{ $t("deleteStackMsg") }}
+                        </DialogDescription>
+                        <div class="space-y-2">
+                            <Label for="delete-confirmation" class="text-sm font-medium">
                                 {{ $t("deleteStackConfirmation", { confirmation: deleteConfirmationText }) }}
-                            </label>
-                            <input
+                            </Label>
+                            <Input
                                 id="delete-confirmation"
                                 v-model="deleteConfirmation"
-                                class="field"
                                 :placeholder="deleteConfirmationText"
                                 autocomplete="off"
                             />
                         </div>
-                        <div class="modal-footer">
-                            <button class="button button-normal" @click="showDeleteDialog = false">{{ $t("cancel") }}</button>
-                            <button class="button button-danger" :disabled="deleteConfirmation !== deleteConfirmationText || processing" @click="deleteDialog">{{ $t("deleteStack") }}</button>
-                        </div>
                     </div>
-                </div>
-            </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" @click="showDeleteDialog = false">{{ $t("cancel") }}</Button>
+                        <Button
+                            variant="destructive"
+                            :disabled="deleteConfirmation !== deleteConfirmationText || processing"
+                            @click="deleteDialog"
+                        >
+                            {{ $t("deleteStack") }}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     </transition>
 </template>
@@ -274,12 +275,15 @@ import {
     RUNNING
 } from "../../../shared/utils";
 import { copyYAMLComments, envsubstYAML } from "../../../shared/yaml";
-import { trapFocus } from "../focusTrap";
 import NetworkInput from "../components/NetworkInput.vue";
 import ArrayInput from "../components/ArrayInput.vue";
 import Container from "../components/Container.vue";
 import Terminal from "../components/Terminal.vue";
 import Uptime from "../components/Uptime.vue";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import dotenv from "dotenv";
 import { ref } from "vue";
 import { composeContextKey } from "../context";
@@ -305,7 +309,16 @@ export default {
         Container,
         NetworkInput,
         AppIcon,
+        Button,
         CodeMirror,
+        Dialog,
+        DialogContent,
+        DialogDescription,
+        DialogFooter,
+        DialogHeader,
+        DialogTitle,
+        Input,
+        Label,
         Terminal,
         Uptime,
     },
@@ -370,7 +383,6 @@ export default {
             stackLoaded: false,
             showDeleteDialog: false,
             deleteConfirmation: "",
-            previouslyFocused: null,
             newContainerName: "",
             stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
@@ -497,14 +509,8 @@ export default {
         },
 
         showDeleteDialog(value) {
-            if (value) {
-                this.previouslyFocused = document.activeElement;
-                this.$nextTick(() => {
-                    this.$refs.containerList?.closest(".modal")?.querySelector("input")?.focus();
-                });
-            } else {
-                this.previouslyFocused?.focus?.();
-                this.previouslyFocused = null;
+            if (!value) {
+                this.deleteConfirmation = "";
             }
         },
     },
@@ -547,19 +553,12 @@ export default {
 
         this.requestServiceStatus();
         this.requestDockerStats();
-
-        document.addEventListener("keydown", this.onKeydown);
     },
     unmounted() {
-        document.removeEventListener("keydown", this.onKeydown);
+        clearTimeout(serviceStatusTimeout);
+        clearTimeout(dockerStatsTimeout);
     },
     methods: {
-        onKeydown(e) {
-            if (e.key === "Escape" && this.showDeleteDialog) {
-                this.showDeleteDialog = false;
-            }
-        },
-
         startServiceStatusTimeout() {
             clearTimeout(serviceStatusTimeout);
             serviceStatusTimeout = setTimeout(async () => {
@@ -754,14 +753,9 @@ export default {
         },
 
         /**
-         * Keep Tab navigation inside the open delete dialog.
-         * @param {KeyboardEvent} event Tab keydown event
+         * Delete the stack after confirming the typed stack name.
          * @returns {void}
          */
-        onDialogKeydown(event) {
-            trapFocus(this.$refs.deleteDialog, event);
-        },
-
         deleteDialog() {
             this.processing = true;
             this.$root.emitServer("deleteStack", this.stack.name, {

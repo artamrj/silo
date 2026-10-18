@@ -249,7 +249,7 @@ export default defineComponent({
 
         bgStyle() {
             if (this.isActive) {
-                return "bg-primary-fill text-white";
+                return "bg-primary-fill text-primary-foreground";
             } else if (this.status === "unhealthy") {
                 return "bg-danger-fill text-white";
             } else if (this.pending) {

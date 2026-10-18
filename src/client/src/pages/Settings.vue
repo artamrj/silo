@@ -5,25 +5,31 @@
         </h1>
 
         <div class="card flex min-h-[calc(100vh-155px)] flex-col overflow-hidden p-0 lg:flex-row">
-            <nav v-if="showSubMenu" class="shrink-0 p-3.5 lg:w-64 lg:border-r lg:border-line" :aria-label="$t('Settings')">
-                <router-link
+            <nav v-if="showSubMenu" class="shrink-0 space-y-1 p-3.5 lg:w-64 lg:border-r lg:border-line" :aria-label="$t('Settings')">
+                <Button
                     v-for="(item, key) in subMenus"
                     :key="key"
-                    :to="`/settings/${key}`"
-                    class="group no-underline"
-                    :aria-current="currentPage === key ? 'page' : undefined"
+                    as-child
+                    variant="ghost"
+                    class="w-full justify-start text-muted-foreground aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground"
                 >
-                    <div class="menu-item group-aria-[current=page]:bg-primary-soft group-aria-[current=page]:text-primary">
+                    <router-link :to="`/settings/${key}`" :aria-current="currentPage === key ? 'page' : undefined">
                         <app-icon :icon="item.icon" />
                         {{ item.title }}
-                    </div>
-                </router-link>
+                    </router-link>
+                </Button>
 
                 <!-- Logout Button -->
-                <button v-if="$root.isMobile && $root.loggedIn && $root.socketIO.token !== 'autoLogin'" type="button" class="menu-item text-danger" @click="$root.logout">
+                <Button
+                    v-if="$root.isMobile && $root.loggedIn && $root.socketIO.token !== 'autoLogin'"
+                    type="button"
+                    variant="ghost"
+                    class="w-full justify-start text-destructive hover:text-destructive"
+                    @click="$root.logout"
+                >
                     <app-icon icon="sign-out-alt" />
                     {{ $t("Logout") }}
-                </button>
+                </Button>
             </nav>
 
             <section class="min-w-0 flex-1 lg:border-l lg:border-line" :class="{ 'lg:border-l-0': !showSubMenu }">
@@ -44,9 +50,13 @@
 
 <script>
 import { useRoute } from "vue-router";
+import { Button } from "@/components/ui/button";
 import { settingsContextKey } from "../context";
 
 export default {
+    components: {
+        Button,
+    },
     provide() {
         return {
             [settingsContextKey]: {

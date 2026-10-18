@@ -1,30 +1,33 @@
 <template>
     <div>
-        <div class="mb-4">
-            <span class="field-label">{{ $t("Theme") }}</span>
-            <div class="inline-flex overflow-hidden rounded-lg border border-line" role="radiogroup" :aria-label="$t('Theme')">
-                <label
-                    v-for="option in themeOptions"
-                    :key="option.value"
-                    class="cursor-pointer border-l border-line px-4 py-2 text-sm first:border-l-0"
-                    :class="$root.userTheme === option.value ? 'bg-primary-fill text-white' : 'bg-surface text-ink hover:bg-subtle'"
-                >
-                    <input
-                        v-model="$root.userTheme"
-                        type="radio"
-                        class="sr-only"
-                        name="theme"
-                        :value="option.value"
-                    />
+        <div class="mb-4 space-y-1.5">
+            <Label>{{ $t("Theme") }}</Label>
+            <ToggleGroup
+                :model-value="$root.userTheme"
+                type="single"
+                variant="outline"
+                class="w-fit"
+                :aria-label="$t('Theme')"
+                @update:model-value="onThemeChange"
+            >
+                <ToggleGroupItem v-for="option in themeOptions" :key="option.value" :value="option.value">
                     {{ $t(option.label) }}
-                </label>
-            </div>
+                </ToggleGroupItem>
+            </ToggleGroup>
         </div>
     </div>
 </template>
 
 <script>
+import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
 export default {
+    components: {
+        Label,
+        ToggleGroup,
+        ToggleGroupItem,
+    },
     computed: {
         themeOptions() {
             return [
@@ -38,6 +41,18 @@ export default {
                     value: "auto",
                     label: "Auto" },
             ];
+        },
+    },
+    methods: {
+        /**
+         * Apply the chosen theme to the root theme state
+         * @param value Selected theme value
+         * @returns {void}
+         */
+        onThemeChange(value) {
+            if (value) {
+                this.$root.userTheme = value;
+            }
         },
     },
 };

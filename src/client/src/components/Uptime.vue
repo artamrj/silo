@@ -29,7 +29,7 @@ export default {
         colorClass() {
             switch (statusColor(this.stack?.status)) {
                 case "primary":
-                    return "bg-primary-fill text-white";
+                    return "bg-primary-fill text-primary-foreground";
                 case "danger":
                     return "bg-danger-fill text-white";
                 case "dark":

@@ -1,51 +1,68 @@
 <template>
     <div class="flex min-h-[calc(100vh-72px)] items-center py-10">
-        <div class="m-auto w-full max-w-[420px] rounded-2xl border border-line bg-surface p-8 shadow-lg">
-            <form @submit.prevent="submit">
-                <div class="mb-7 flex items-center gap-3.5">
-                    <object width="52" height="52" data="/icon.svg" />
-                    <div>
-                        <h1 class="mb-0">Silo</h1>
-                        <p class="mt-0.5 mb-0 text-ink-muted">{{ $t("Login") }}</p>
+        <Card class="m-auto w-full max-w-[420px] gap-0 py-8 shadow-lg">
+            <CardContent class="px-8">
+                <form @submit.prevent="submit">
+                    <CardHeader class="mb-7 flex flex-row items-center gap-3.5 p-0">
+                        <object width="52" height="52" data="/icon.svg" />
+                        <div>
+                            <CardTitle class="text-2xl">Silo</CardTitle>
+                            <CardDescription class="mt-0.5">{{ $t("Login") }}</CardDescription>
+                        </div>
+                    </CardHeader>
+
+                    <div v-if="!tokenRequired" class="mb-3 space-y-1.5">
+                        <Label for="floatingInput">{{ $t("Username") }}</Label>
+                        <Input id="floatingInput" v-model="username" type="text" placeholder="Username" autocomplete="username" required />
                     </div>
-                </div>
 
-                <div v-if="!tokenRequired" class="mb-3">
-                    <label class="field-label" for="floatingInput">{{ $t("Username") }}</label>
-                    <input id="floatingInput" v-model="username" type="text" class="field" placeholder="Username" autocomplete="username" required>
-                </div>
+                    <div v-if="!tokenRequired" class="mb-3 space-y-1.5">
+                        <Label for="floatingPassword">{{ $t("Password") }}</Label>
+                        <Input id="floatingPassword" v-model="password" type="password" placeholder="Password" autocomplete="current-password" required />
+                    </div>
 
-                <div v-if="!tokenRequired" class="mb-3">
-                    <label class="field-label" for="floatingPassword">{{ $t("Password") }}</label>
-                    <input id="floatingPassword" v-model="password" type="password" class="field" placeholder="Password" autocomplete="current-password" required>
-                </div>
+                    <div v-if="tokenRequired" class="mb-3 space-y-1.5">
+                        <Label for="otp">{{ $t("Token") }}</Label>
+                        <Input id="otp" v-model="token" type="text" maxlength="6" placeholder="123456" autocomplete="one-time-code" required />
+                    </div>
 
-                <div v-if="tokenRequired" class="mb-3">
-                    <label class="field-label" for="otp">{{ $t("Token") }}</label>
-                    <input id="otp" v-model="token" type="text" maxlength="6" class="field" placeholder="123456" autocomplete="one-time-code" required>
-                </div>
+                    <div class="mt-3 mb-3 flex items-center justify-center gap-2">
+                        <Checkbox id="remember" v-model="$root.remember" />
+                        <Label for="remember" class="text-foreground">{{ $t("Remember me") }}</Label>
+                    </div>
 
-                <div class="mt-3 mb-3 flex items-center justify-center gap-2">
-                    <input id="remember" v-model="$root.remember" type="checkbox" class="size-4 accent-primary">
-                    <label class="text-sm text-ink" for="remember">
-                        {{ $t("Remember me") }}
-                    </label>
-                </div>
+                    <Button type="submit" class="h-10 w-full" :disabled="processing">
+                        {{ $t("Login") }}
+                    </Button>
 
-                <button class="button button-primary w-full" type="submit" :disabled="processing">
-                    {{ $t("Login") }}
-                </button>
-
-                <div v-if="res && !res.ok" class="mt-3 rounded-lg border border-danger bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
-                    {{ $t(res.msg) }}
-                </div>
-            </form>
-        </div>
+                    <div v-if="res && !res.ok" class="mt-3 rounded-lg border border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                        {{ $t(res.msg) }}
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
     </div>
 </template>
 
 <script>
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 export default {
+    components: {
+        Button,
+        Card,
+        CardContent,
+        CardDescription,
+        CardHeader,
+        CardTitle,
+        Checkbox,
+        Input,
+        Label,
+    },
     data() {
         return {
             processing: false,

@@ -4,7 +4,12 @@
         "target": "ESNext",
         "strict": true,
         "moduleResolution": "bundler",
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "paths": {
+            "@/*": [
+                "./src/client/src/*"
+            ]
+        }
     },
     "include": [
         "src/server/**/*",
