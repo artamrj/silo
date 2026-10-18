@@ -1,6 +1,6 @@
 <template>
     <div class="flex min-h-screen items-center py-10" data-cy="setup-form">
-        <div class="m-auto w-full max-w-[440px] rounded-2xl border border-line bg-surface p-9 text-center shadow-lg">
+        <div class="m-auto w-full max-w-[440px] rounded-3xl bg-surface p-9 text-center shadow-lg">
             <form @submit.prevent="submit">
                 <div>
                     <object width="64" height="64" data="/icon.svg" />

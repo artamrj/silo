@@ -141,7 +141,7 @@
         <!-- Bulk action bar, appears once anything selectable is ticked. -->
         <div
             v-if="selectedIds.length > 0"
-            class="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-line bg-raised px-4 py-2 shadow-lg"
+            class="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full bg-raised px-4 py-2 shadow-lg"
         >
             <span class="text-sm">{{ $t("selectedCount", { count: selectedIds.length }) }}</span>
             <span class="text-sm text-ink-muted">{{ $t("reclaimableSize", { size: selectedSize }) }}</span>
@@ -164,7 +164,7 @@
         <!-- Prune confirmation -->
         <Confirm :ref="(el) => (pruneConfirm = el)" :title="pruneAll ? $t('All unused images') : $t('Dangling images')" btn-style="button-danger" :yes-text="$t('Prune')" @yes="confirmPrune">
             <p>{{ pruneAll ? $t("pruneAllMsg") : $t("pruneDanglingMsg") }}</p>
-            <div v-if="pruneAll && protectedImages.length > 0" class="rounded-lg border border-line bg-subtle p-2">
+            <div v-if="pruneAll && protectedImages.length > 0" class="rounded-xl bg-muted p-2">
                 <p class="font-semibold">{{ $t("pruneProtectedMsg") }}</p>
                 <ul class="mt-1 list-inside list-disc font-mono text-xs">
                     <li v-for="image in protectedImages" :key="image.id">{{ imageName(image) }}</li>

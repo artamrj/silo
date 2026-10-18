@@ -35,7 +35,7 @@
                         {{ $t("Login") }}
                     </Button>
 
-                    <div v-if="res && !res.ok" class="mt-3 rounded-lg border border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                    <div v-if="res && !res.ok" class="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
                         {{ $t(res.msg) }}
                     </div>
                 </form>

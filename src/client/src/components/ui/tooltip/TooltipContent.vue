@@ -12,9 +12,8 @@ defineOptions({
 const props = withDefaults(
   defineProps<TooltipContentProps & { class?: HTMLAttributes["class"] }>(),
   {
-    // Flush with the rail's outer edge (rail 16→96px, trigger right edge 78px).
-    // The rail's right border is suppressed while a tooltip is open, so the two
-    // surfaces meet with no hairline between them.
+    // Flush with the rail's outer edge (rail 16→96px, trigger right edge 78px)
+    // so the two borderless surfaces meet with no gap between them.
     sideOffset: 18,
   },
 )
@@ -31,9 +30,8 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       data-slot="tooltip-content"
       v-bind="{ ...$attrs, ...forwarded }"
       :class="cn(
-        // Flush against the rail's outer edge. z-40 keeps it below the z-50 rail,
-        // and the rail hides its right border while a tooltip is open, so the two
-        // surfaces meet with no outline between them.
+        // Flush against the rail's outer edge. z-40 keeps it below the z-50 rail
+        // so the two surfaces meet with no seam between them.
         'silo-tooltip bg-surface/80 text-ink backdrop-blur z-40 w-fit select-none',
         // Flat inner edge (butts the rail), rounded outer tip.
         'rounded-l-none rounded-r-xl px-3 py-1.5 text-[13px] font-semibold tracking-tight whitespace-nowrap',

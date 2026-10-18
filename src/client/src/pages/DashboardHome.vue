@@ -3,17 +3,17 @@
         <PageHeader :title="$t('Dashboard')" :description="$t('dashboardDescription')" />
 
         <!-- Stats -->
-        <div class="card mb-4 p-5">
-            <div class="grid grid-cols-1 text-center sm:grid-cols-3 sm:divide-x sm:divide-line">
-                <div class="px-3.5 py-2.5">
+        <div class="card mb-4 p-2">
+            <div class="grid grid-cols-1 gap-2 text-center sm:grid-cols-3">
+                <div class="rounded-xl bg-muted px-3.5 py-3">
                     <h3 class="text-xs font-bold tracking-wider text-ink-muted uppercase">{{ $t("active") }}</h3>
                     <span class="block text-3xl font-bold text-primary">{{ activeNum }}</span>
                 </div>
-                <div class="px-3.5 py-2.5">
+                <div class="rounded-xl bg-muted px-3.5 py-3">
                     <h3 class="text-xs font-bold tracking-wider text-ink-muted uppercase">{{ $t("exited") }}</h3>
                     <span class="block text-3xl font-bold text-danger">{{ exitedNum }}</span>
                 </div>
-                <div class="px-3.5 py-2.5">
+                <div class="rounded-xl bg-muted px-3.5 py-3">
                     <h3 class="text-xs font-bold tracking-wider text-ink-muted uppercase">{{ $t("inactive") }}</h3>
                     <span class="block text-3xl font-bold text-ink-muted">{{ inactiveNum }}</span>
                 </div>

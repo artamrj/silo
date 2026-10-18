@@ -1,7 +1,7 @@
 <template>
     <TooltipProvider>
         <nav
-            class="silo-sidebar fixed top-[var(--sidebar-gap)] bottom-[var(--sidebar-gap)] left-[var(--sidebar-gap)] z-50 flex w-[var(--sidebar-w)] flex-col items-center rounded-3xl border border-line bg-surface/80 px-2.5 py-4 shadow-lg backdrop-blur"
+            class="silo-sidebar fixed top-[var(--sidebar-gap)] bottom-[var(--sidebar-gap)] left-[var(--sidebar-gap)] z-50 flex w-[var(--sidebar-w)] flex-col items-center rounded-3xl bg-surface/80 px-2.5 py-4 shadow-lg backdrop-blur"
             :aria-label="$t('Main navigation')"
         >
             <!-- Logo doubles as the dashboard entry point. -->

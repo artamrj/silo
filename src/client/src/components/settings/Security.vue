@@ -47,7 +47,7 @@
                             v-model="password.repeatNewPassword"
                             type="password"
                             class="field"
-                            :class="{ 'border-danger': invalidPassword }"
+                            :class="{ 'bg-destructive/10': invalidPassword }"
                             :aria-invalid="invalidPassword"
                             aria-describedby="password-mismatch"
                             autocomplete="new-password"

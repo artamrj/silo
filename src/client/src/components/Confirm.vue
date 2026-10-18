@@ -37,7 +37,7 @@ import {
 const ACTION_VARIANTS = {
     "button-primary": "bg-primary text-primary-foreground hover:bg-primary/90",
     "button-danger": "bg-destructive text-white hover:bg-destructive/90",
-    "button-normal": "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
+    "button-normal": "bg-secondary text-secondary-foreground hover:bg-secondary/80",
     "button-secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80",
 };
 

@@ -4,8 +4,8 @@
             {{ $t("Settings") }}
         </h1>
 
-        <div class="card flex min-h-0 flex-1 flex-col overflow-hidden p-0 lg:flex-row">
-            <nav class="shrink-0 space-y-1 p-3.5 lg:w-64 lg:border-r lg:border-line" :aria-label="$t('Settings')">
+        <div class="card flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden p-1.5 lg:flex-row">
+            <nav class="shrink-0 space-y-1 p-2 lg:w-64" :aria-label="$t('Settings')">
                 <Button
                     v-for="(item, key) in subMenus"
                     :key="key"
@@ -20,8 +20,8 @@
                 </Button>
             </nav>
 
-            <section class="min-w-0 flex-1 border-l border-line">
-                <div v-if="currentPage" class="border-b border-line px-5 py-4 text-xl font-bold tracking-tight">
+            <section class="min-w-0 flex-1 overflow-hidden rounded-xl bg-background">
+                <div v-if="currentPage" class="px-5 pt-4 text-xl font-bold tracking-tight">
                     {{ subMenus[currentPage].title }}
                 </div>
                 <div class="p-4">
