@@ -5,7 +5,7 @@
         </h1>
 
         <div class="card flex min-h-0 flex-1 flex-col overflow-hidden p-0 lg:flex-row">
-            <nav v-if="showSubMenu" class="shrink-0 space-y-1 p-3.5 lg:w-64 lg:border-r lg:border-line" :aria-label="$t('Settings')">
+            <nav class="shrink-0 space-y-1 p-3.5 lg:w-64 lg:border-r lg:border-line" :aria-label="$t('Settings')">
                 <Button
                     v-for="(item, key) in subMenus"
                     :key="key"
@@ -18,21 +18,9 @@
                         {{ item.title }}
                     </router-link>
                 </Button>
-
-                <!-- Logout Button -->
-                <Button
-                    v-if="$root.isMobile && $root.loggedIn && $root.socketIO.token !== 'autoLogin'"
-                    type="button"
-                    variant="ghost"
-                    class="w-full justify-start text-destructive hover:text-destructive"
-                    @click="$root.logout"
-                >
-                    <app-icon icon="sign-out-alt" />
-                    {{ $t("Logout") }}
-                </Button>
             </nav>
 
-            <section class="min-w-0 flex-1 lg:border-l lg:border-line" :class="{ 'lg:border-l-0': !showSubMenu }">
+            <section class="min-w-0 flex-1 border-l border-line">
                 <div v-if="currentPage" class="border-b border-line px-5 py-4 text-xl font-bold tracking-tight">
                     {{ subMenus[currentPage].title }}
                 </div>
@@ -85,23 +73,11 @@ export default {
             return pathEnd;
         },
 
-        showSubMenu() {
-            if (this.$root.isMobile) {
-                return !this.currentPage;
-            } else {
-                return true;
-            }
-        },
-
         subMenus() {
             return {
                 general: {
                     title: this.$t("general"),
                     icon: "cog",
-                },
-                appearance: {
-                    title: this.$t("Appearance"),
-                    icon: "palette",
                 },
                 security: {
                     title: this.$t("Security"),
@@ -119,12 +95,6 @@ export default {
         },
     },
 
-    watch: {
-        "$root.isMobile"() {
-            this.loadGeneralPage();
-        }
-    },
-
     mounted() {
         this.loadSettings();
         this.loadGeneralPage();
@@ -132,13 +102,10 @@ export default {
 
     methods: {
 
-        /**
-         * Load the general settings page
-         * For desktop only, on mobile do nothing
-         */
+        /** Send bare /settings visitors to the general page. */
         loadGeneralPage() {
-            if (!this.currentPage && !this.$root.isMobile) {
-                this.$router.push("/settings/appearance");
+            if (!this.currentPage) {
+                this.$router.push("/settings/general");
             }
         },
 

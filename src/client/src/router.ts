@@ -13,7 +13,6 @@ const ContainerTerminal = () => import("./pages/ContainerTerminal.vue");
 const Settings = () => import("./pages/Settings.vue");
 
 // Settings - Sub Pages
-const Appearance = () => import("./components/settings/Appearance.vue");
 const General = () => import("./components/settings/General.vue");
 const Security = () => import("./components/settings/Security.vue");
 const GlobalEnv = () => import("./components/settings/GlobalEnv.vue");
@@ -61,10 +60,6 @@ const routes = [
                             {
                                 path: "general",
                                 component: General,
-                            },
-                            {
-                                path: "appearance",
-                                component: Appearance,
                             },
                             {
                                 path: "security",

@@ -5,7 +5,6 @@ export default defineComponent({
         return {
             system: (window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light",
             userTheme: localStorage.theme,
-            isMobile: window.matchMedia("(max-width: 768px)").matches,
             path: "",
         };
     },
@@ -48,22 +47,32 @@ export default defineComponent({
         document.body.classList.add(this.theme);
         this.updateThemeColorMeta();
 
-        this.mobileQuery = window.matchMedia("(max-width: 768px)");
-        this.mobileQuery.addEventListener("change", this.onMobileChange);
+        this.systemQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        this.systemQuery.addEventListener("change", this.onSystemChange);
     },
 
     beforeUnmount() {
-        this.mobileQuery?.removeEventListener("change", this.onMobileChange);
+        this.systemQuery?.removeEventListener("change", this.onSystemChange);
     },
 
     methods: {
         /**
-         * Track viewport width to switch between mobile and desktop layouts.
+         * Advance the theme in the order light -> dark -> auto -> light.
+         * @returns {void}
+         */
+        cycleTheme() {
+            const order = [ "light", "dark", "auto" ];
+            const current = order.indexOf(this.userTheme);
+            this.userTheme = order[(current + 1) % order.length];
+        },
+
+        /**
+         * Track OS theme so `auto` follows it live.
          * @param {MediaQueryListEvent} event Media query change event
          * @returns {void}
          */
-        onMobileChange(event) {
-            this.isMobile = event.matches;
+        onSystemChange(event) {
+            this.system = event.matches ? "dark" : "light";
         },
 
         /**

@@ -11,13 +11,13 @@
         </div>
 
         <!-- Desktop sidebar: the only permanent navigation surface. -->
-        <AppSidebar v-if="! $root.isMobile && $root.loggedIn" />
+        <AppSidebar v-if="$root.loggedIn" />
 
         <main
             id="main-content"
             tabindex="-1"
-            class="flex w-full flex-1 flex-col pb-20 md:pb-6"
-            :class="{ 'md:pl-[calc(var(--sidebar-gap)*2+var(--sidebar-w))]': $root.loggedIn && ! $root.isMobile }"
+            class="flex w-full flex-1 flex-col pb-6"
+            :class="{ 'pl-[calc(var(--sidebar-gap)*2+var(--sidebar-w))]': $root.loggedIn }"
         >
             <div v-if="$root.socketIO.connecting" class="px-6 py-12 text-center">
                 <h4>{{ $t("connecting...") }}</h4>
@@ -31,33 +31,6 @@
 
             <Login v-if="! $root.loggedIn && $root.allowLoginDialog" />
         </main>
-
-        <!-- Mobile bottom nav -->
-        <nav
-            v-if="$root.isMobile && $root.loggedIn"
-            class="fixed inset-x-0 bottom-0 z-50 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
-            :aria-label="$t('Main navigation')"
-        >
-            <router-link to="/" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-ink-muted no-underline aria-[current=page]:font-semibold aria-[current=page]:text-primary">
-                <app-icon icon="dashboard" size="lg" />
-                {{ $t("Dashboard") }}
-            </router-link>
-
-            <router-link to="/console" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-ink-muted no-underline aria-[current=page]:font-semibold aria-[current=page]:text-primary">
-                <app-icon icon="terminal" size="lg" />
-                {{ $t("console") }}
-            </router-link>
-
-            <router-link to="/stacks" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-ink-muted no-underline aria-[current=page]:font-semibold aria-[current=page]:text-primary">
-                <app-icon icon="warehouse" size="lg" />
-                {{ $t("Stacks") }}
-            </router-link>
-
-            <router-link to="/settings/general" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-ink-muted no-underline aria-[current=page]:font-semibold aria-[current=page]:text-primary">
-                <app-icon icon="cog" size="lg" />
-                {{ $t("Settings") }}
-            </router-link>
-        </nav>
     </div>
 </template>
 
@@ -70,18 +43,6 @@ export default {
     components: {
         AppSidebar,
         Login,
-    },
-
-    computed: {
-
-        // Theme or Mobile
-        classes() {
-            const classes = {};
-            classes[this.$root.theme] = true;
-            classes["mobile"] = this.$root.isMobile;
-            return classes;
-        },
-
     },
 
 };
