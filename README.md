@@ -44,9 +44,14 @@ Project checks:
 ```bash
 npm run lint
 npm run check-ts
-npm run build:client
 npm test
+npm run build
 ```
+
+`npm run build` compiles the client into `dist/client` and the TypeScript server
+into `dist/server` (see [Production](#production)). Run the compiled server with
+`npm start` after building. The `reset-password` script also runs from `dist`,
+so build before using it.
 
 In development, Vite proxies `/socket.io`, `/trpc`, and `/metrics` to the backend
 on port 5001. The browser therefore uses the same origin in development and
@@ -100,6 +105,7 @@ src/
 scripts/          Administrative utilities
 docker/           Container build and health check
 dist/client/      Generated production client
+dist/server/      Generated production server bundle
 ```
 
 Development-only state is kept under `.local/`:
@@ -114,6 +120,17 @@ Development-only state is kept under `.local/`:
 `.local/.env` and all runtime contents are excluded from Git. The tracked
 `.local/.env.example` documents the available local defaults. Production keeps
 using `/app/data` and `/opt/stacks` when run with the provided Compose file.
+
+## Production
+
+Production runs compiled JavaScript, not TypeScript. `npm run build` bundles the
+server into `dist/server/index.js` and the reset-password tool into
+`dist/scripts/reset-password.js`, then `npm start` runs the bundle with plain
+`node`. `tsx` and the TypeScript compiler are only needed for development, so a
+production install works with `npm ci --omit=dev` after building.
+
+The container image builds and runs the compiled server this way; it ships no
+`tsx` and no TypeScript sources are executed at runtime.
 
 ## Container image
 

@@ -6,6 +6,9 @@ node_modules
 tmp
 /private
 
+# Compiled output: the image builds its own copy inside the build stage.
+dist
+
 # Repository metadata and development configuration
 .editorconfig
 eslint.config.js

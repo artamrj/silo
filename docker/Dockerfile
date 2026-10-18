@@ -8,8 +8,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY src/client ./src/client
+COPY src/server ./src/server
 COPY src/shared ./src/shared
-RUN npm run build:client \
+COPY scripts ./scripts
+RUN npm run build \
     && npm prune --omit=dev
 
 FROM node:24-bookworm-slim AS release
@@ -31,7 +33,9 @@ WORKDIR /app
 COPY --from=healthcheck /healthcheck /app/bin/healthcheck
 COPY --from=build /app/node_modules /app/node_modules
 COPY . .
-COPY --from=build /app/dist/client /app/dist/client
+# Compiled server + client from the build stage. Copied after `COPY . .` so a
+# stale host `dist/` can never shadow them.
+COPY --from=build /app/dist /app/dist
 RUN mkdir -p /app/data
 
 ENV NODE_ENV=production \
@@ -42,5 +46,5 @@ VOLUME ["/app/data"]
 EXPOSE 5001
 HEALTHCHECK --interval=60s --timeout=30s --start-period=60s --retries=5 CMD ["/app/bin/healthcheck"]
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-# Use the locally installed tsx (a production dependency) instead of a global install.
-CMD ["node", "./node_modules/.bin/tsx", "./src/server/index.ts"]
+# Compiled server bundle. No TypeScript or tsx is needed at runtime.
+CMD ["node", "./dist/server/index.js"]
