@@ -13,7 +13,7 @@
         <!-- Desktop sidebar (replaces the old top header entirely) -->
         <AppSidebar v-if="! $root.isMobile && $root.loggedIn" />
 
-        <main id="main-content" tabindex="-1" class="w-full pb-20 md:pb-0 md:pl-24">
+        <main id="main-content" tabindex="-1" class="w-full pb-20 md:pb-0 md:pl-28">
             <div v-if="$root.socketIO.connecting" class="px-6 py-12 text-center">
                 <h4>{{ $t("connecting...") }}</h4>
             </div>
