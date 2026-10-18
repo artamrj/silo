@@ -98,6 +98,11 @@ export default {
                     icon: "terminal",
                     label: "console",
                 },
+                {
+                    to: "/stacks",
+                    icon: "warehouse",
+                    label: "Stacks",
+                },
             ];
         },
 

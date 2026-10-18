@@ -38,6 +38,11 @@
                 {{ $t("console") }}
             </router-link>
 
+            <router-link to="/stacks" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-ink-muted no-underline aria-[current=page]:font-semibold aria-[current=page]:text-primary">
+                <app-icon icon="warehouse" size="lg" />
+                {{ $t("Stacks") }}
+            </router-link>
+
             <router-link to="/settings/general" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-ink-muted no-underline aria-[current=page]:font-semibold aria-[current=page]:text-primary">
                 <app-icon icon="cog" size="lg" />
                 {{ $t("Settings") }}

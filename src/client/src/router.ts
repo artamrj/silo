@@ -7,6 +7,7 @@ const Dashboard = () => import("./pages/Dashboard.vue");
 const DashboardHome = () => import("./pages/DashboardHome.vue");
 const Setup = () => import("./pages/Setup.vue");
 const Console = () => import("./pages/Console.vue");
+const Stacks = () => import("./pages/Stacks.vue");
 const Compose = () => import("./pages/Compose.vue");
 const ContainerTerminal = () => import("./pages/ContainerTerminal.vue");
 const Settings = () => import("./pages/Settings.vue");
@@ -50,6 +51,10 @@ const routes = [
                     {
                         path: "/console",
                         component: Console,
+                    },
+                    {
+                        path: "/stacks",
+                        component: Stacks,
                     },
                     {
                         path: "/settings",

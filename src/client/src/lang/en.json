@@ -8,6 +8,7 @@
     "signedInDispDisabled": "Auth Disabled.",
     "home": "Home",
     "console": "Console",
+    "Stacks": "Stacks",
     "compose": "Compose",
     "addFirstStackMsg": "Compose your first stack!",
     "stackName": "Stack Name",
