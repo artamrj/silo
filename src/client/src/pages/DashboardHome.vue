@@ -1,29 +1,27 @@
 <template>
-    <transition name="slide-fade" appear>
-        <div v-if="$route.name === 'DashboardHome'">
-            <h1 class="mb-3 tracking-tight">
-                {{ $t("Dashboard") }}
-            </h1>
+    <PageContainer>
+        <PageHeader :title="$t('Dashboard')" :description="$t('dashboardDescription')" />
 
-            <!-- Stats -->
-            <div class="card mb-4 p-5">
-                <div class="grid grid-cols-1 text-center sm:grid-cols-3 sm:divide-x sm:divide-line">
-                    <div class="px-3.5 py-2.5">
-                        <h3 class="text-xs font-bold tracking-wider text-ink-muted uppercase">{{ $t("active") }}</h3>
-                        <span class="block text-3xl font-bold text-primary">{{ activeNum }}</span>
-                    </div>
-                    <div class="px-3.5 py-2.5">
-                        <h3 class="text-xs font-bold tracking-wider text-ink-muted uppercase">{{ $t("exited") }}</h3>
-                        <span class="block text-3xl font-bold text-danger">{{ exitedNum }}</span>
-                    </div>
-                    <div class="px-3.5 py-2.5">
-                        <h3 class="text-xs font-bold tracking-wider text-ink-muted uppercase">{{ $t("inactive") }}</h3>
-                        <span class="block text-3xl font-bold text-ink-muted">{{ inactiveNum }}</span>
-                    </div>
+        <!-- Stats -->
+        <div class="card mb-4 p-5">
+            <div class="grid grid-cols-1 text-center sm:grid-cols-3 sm:divide-x sm:divide-line">
+                <div class="px-3.5 py-2.5">
+                    <h3 class="text-xs font-bold tracking-wider text-ink-muted uppercase">{{ $t("active") }}</h3>
+                    <span class="block text-3xl font-bold text-primary">{{ activeNum }}</span>
+                </div>
+                <div class="px-3.5 py-2.5">
+                    <h3 class="text-xs font-bold tracking-wider text-ink-muted uppercase">{{ $t("exited") }}</h3>
+                    <span class="block text-3xl font-bold text-danger">{{ exitedNum }}</span>
+                </div>
+                <div class="px-3.5 py-2.5">
+                    <h3 class="text-xs font-bold tracking-wider text-ink-muted uppercase">{{ $t("inactive") }}</h3>
+                    <span class="block text-3xl font-bold text-ink-muted">{{ inactiveNum }}</span>
                 </div>
             </div>
+        </div>
 
-            <!-- Docker Run -->
+        <!-- Docker Run -->
+        <div class="card p-5">
             <h2 class="mb-3">{{ $t("Docker Run") }}</h2>
             <div class="mb-3">
                 <textarea
@@ -36,16 +34,22 @@
                 ></textarea>
             </div>
 
-            <button class="button button-primary mb-4" @click="convertDockerRun">{{ $t("Convert to Compose") }}</button>
+            <button class="button button-primary" @click="convertDockerRun">{{ $t("Convert to Compose") }}</button>
         </div>
-    </transition>
-    <router-view ref="child" />
+    </PageContainer>
 </template>
 
 <script>
 import { statusNameShort } from "../../../shared/utils";
+import PageContainer from "../components/PageContainer.vue";
+import PageHeader from "../components/PageHeader.vue";
 
 export default {
+    components: {
+        PageContainer,
+        PageHeader,
+    },
+
     data() {
         return {
             dockerRunCommand: "",

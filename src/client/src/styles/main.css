@@ -80,6 +80,13 @@
 }
 
 :root {
+    /*
+     * App-shell geometry. The floating sidebar and the content offset both
+     * read these, so resizing the rail is a one-line change here.
+     */
+    --sidebar-w: 5rem;
+    --sidebar-gap: 1rem;
+
     --radius: 0.625rem;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);

@@ -1,10 +1,10 @@
 <template>
-    <div>
-        <h1 v-show="show" class="mb-3">
+    <PageContainer wide fill>
+        <h1 v-show="show" class="mb-5 tracking-tight">
             {{ $t("Settings") }}
         </h1>
 
-        <div class="card flex min-h-[calc(100vh-155px)] flex-col overflow-hidden p-0 lg:flex-row">
+        <div class="card flex min-h-0 flex-1 flex-col overflow-hidden p-0 lg:flex-row">
             <nav v-if="showSubMenu" class="shrink-0 space-y-1 p-3.5 lg:w-64 lg:border-r lg:border-line" :aria-label="$t('Settings')">
                 <Button
                     v-for="(item, key) in subMenus"
@@ -38,24 +38,24 @@
                 </div>
                 <div class="p-4">
                     <router-view v-slot="{ Component }">
-                        <transition name="slide-fade" appear>
-                            <component :is="Component" />
-                        </transition>
+                        <component :is="Component" />
                     </router-view>
                 </div>
             </section>
         </div>
-    </div>
+    </PageContainer>
 </template>
 
 <script>
 import { useRoute } from "vue-router";
 import { Button } from "@/components/ui/button";
+import PageContainer from "../components/PageContainer.vue";
 import { settingsContextKey } from "../context";
 
 export default {
     components: {
         Button,
+        PageContainer,
     },
     provide() {
         return {

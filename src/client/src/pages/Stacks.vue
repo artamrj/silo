@@ -1,12 +1,12 @@
 <template>
-    <div>
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h1 class="mb-0">{{ $t("Stacks") }}</h1>
-
-            <router-link to="/compose" class="button button-primary no-underline">
-                <app-icon icon="plus" /> {{ $t("compose") }}
-            </router-link>
-        </div>
+    <PageContainer>
+        <PageHeader :title="$t('Stacks')" :description="$t('stacksDescription')">
+            <template #actions>
+                <router-link to="/compose" class="button button-primary no-underline">
+                    <app-icon icon="plus" /> {{ $t("compose") }}
+                </router-link>
+            </template>
+        </PageHeader>
 
         <div class="card mb-4 p-2.5">
             <div class="flex items-center gap-1">
@@ -53,15 +53,19 @@
                 />
             </div>
         </div>
-    </div>
+    </PageContainer>
 </template>
 
 <script>
 import StackListItem from "../components/StackListItem.vue";
+import PageContainer from "../components/PageContainer.vue";
+import PageHeader from "../components/PageHeader.vue";
 import stackListMixin from "../mixins/stackList";
 
 export default {
     components: {
+        PageContainer,
+        PageHeader,
         StackListItem,
     },
     mixins: [ stackListMixin ],

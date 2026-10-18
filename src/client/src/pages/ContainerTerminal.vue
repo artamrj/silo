@@ -1,23 +1,25 @@
 <template>
-    <transition name="slide-fade" appear>
-        <div>
-            <h1 class="mb-3">{{ $t("terminal") }} - {{ serviceName }} ({{ stackName }})</h1>
+    <PageContainer wide fill>
+        <PageHeader :title="`${$t('terminal')} - ${serviceName} (${stackName})`">
+            <template #actions>
+                <router-link :to="sh" class="button button-normal no-underline">{{ $t("Switch to sh") }}</router-link>
+            </template>
+        </PageHeader>
 
-            <div class="mb-3">
-                <router-link :to="sh" class="button button-normal">{{ $t("Switch to sh") }}</router-link>
-            </div>
-
-            <Terminal :key="terminalName" class="h-[410px]" :rows="20" mode="interactive" :name="terminalName" :stack-name="stackName" :service-name="serviceName" :shell="shell"></Terminal>
-        </div>
-    </transition>
+        <Terminal :key="terminalName" class="h-[410px] flex-1" :rows="20" mode="interactive" :name="terminalName" :stack-name="stackName" :service-name="serviceName" :shell="shell"></Terminal>
+    </PageContainer>
 </template>
 
 <script>
 import { getContainerExecTerminalName } from "../../../shared/utils";
 import Terminal from "../components/Terminal.vue";
+import PageContainer from "../components/PageContainer.vue";
+import PageHeader from "../components/PageHeader.vue";
 
 export default {
     components: {
+        PageContainer,
+        PageHeader,
         Terminal,
     },
     computed: {

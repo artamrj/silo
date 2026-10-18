@@ -1,5 +1,5 @@
 <template>
-    <div :class="classes">
+    <div class="flex min-h-dvh flex-col">
         <a v-if="$root.loggedIn" href="#main-content" class="skip-link">{{ $t("skipToContent") }}</a>
 
         <div v-if="! $root.socketIO.connected && ! $root.socketIO.firstConnect" class="fixed inset-x-0 top-0 z-[99999] bg-danger-fill px-4 py-1 text-center text-sm text-white">
@@ -10,15 +10,25 @@
             </span>
         </div>
 
-        <!-- Desktop sidebar (replaces the old top header entirely) -->
+        <!-- Desktop sidebar: the only permanent navigation surface. -->
         <AppSidebar v-if="! $root.isMobile && $root.loggedIn" />
 
-        <main id="main-content" tabindex="-1" class="w-full pb-20 md:pb-0 md:pl-28">
+        <main
+            id="main-content"
+            tabindex="-1"
+            class="flex w-full flex-1 flex-col pb-20 md:pb-6"
+            :class="{ 'md:pl-[calc(var(--sidebar-gap)*2+var(--sidebar-w))]': $root.loggedIn && ! $root.isMobile }"
+        >
             <div v-if="$root.socketIO.connecting" class="px-6 py-12 text-center">
                 <h4>{{ $t("connecting...") }}</h4>
             </div>
 
-            <router-view v-if="$root.loggedIn" />
+            <router-view v-if="$root.loggedIn" v-slot="{ Component }">
+                <transition name="slide-fade" mode="out-in">
+                    <component :is="Component" />
+                </transition>
+            </router-view>
+
             <Login v-if="! $root.loggedIn && $root.allowLoginDialog" />
         </main>
 

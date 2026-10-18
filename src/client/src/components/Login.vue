@@ -1,5 +1,5 @@
 <template>
-    <div class="flex min-h-[calc(100vh-72px)] items-center py-10">
+    <div class="flex min-h-dvh items-center py-10">
         <Card class="m-auto w-full max-w-[420px] gap-0 py-8 shadow-lg">
             <CardContent class="px-8">
                 <form @submit.prevent="submit">
