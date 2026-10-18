@@ -82,11 +82,13 @@
     },
     "overrides": {
         "glob": "13.0.6",
-        "lodash": "4.18.1"
+        "lodash": "4.18.1",
+        "core-js": "3.50.0",
+        "prebuild-install": "npm:@scrypted/prebuild-install@7.1.10"
     },
     "allowScripts": {
         "@homebridge/node-pty-prebuilt-multiarch@0.13.1": true,
-        "core-js@2.6.12": true,
+        "core-js@3.50.0": true,
         "esbuild@0.28.1": true,
         "fsevents@2.3.3": true,
         "vue-demi@0.14.10": true
