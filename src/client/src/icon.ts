@@ -1,5 +1,6 @@
 import { Component, defineComponent, h, PropType } from "vue";
 import {
+    Box,
     ChevronDown,
     ChevronRight,
     ChevronUp,
@@ -36,6 +37,7 @@ import {
 const icons: Record<string, Component> = {
     "angle-down": ChevronDown,
     "arrows-rotate": RefreshCw,
+    box: Box,
     "chevron-circle-down": CircleChevronDown,
     "chevron-circle-right": CircleChevronRight,
     "chevron-down": ChevronDown,

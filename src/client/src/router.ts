@@ -8,6 +8,7 @@ const DashboardHome = () => import("./pages/DashboardHome.vue");
 const Setup = () => import("./pages/Setup.vue");
 const Console = () => import("./pages/Console.vue");
 const Stacks = () => import("./pages/Stacks.vue");
+const Images = () => import("./pages/Images.vue");
 const Compose = () => import("./pages/Compose.vue");
 const ContainerTerminal = () => import("./pages/ContainerTerminal.vue");
 const Settings = () => import("./pages/Settings.vue");
@@ -52,6 +53,10 @@ const routes = [
                     {
                         path: "/stacks",
                         component: Stacks,
+                    },
+                    {
+                        path: "/images",
+                        component: Images,
                     },
                     {
                         path: "/settings",

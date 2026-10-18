@@ -309,6 +309,33 @@ export class Stack {
         };
     }
 
+    /**
+     * Every `image:` reference declared by this stack's services. Used to
+     * protect images a stopped stack still needs from the bulk prune.
+     * @returns Remote and local image references, without duplicates
+     */
+    getImageRefs() : string[] {
+        let doc;
+        try {
+            doc = yaml.parse(this.composeYAML);
+        } catch {
+            return [];
+        }
+
+        const services = doc?.services;
+        if (!services || typeof services !== "object") {
+            return [];
+        }
+
+        const refs = new Set<string>();
+        for (const service of Object.values(services as Record<string, Record<string, unknown>>)) {
+            if (service && typeof service === "object" && typeof service.image === "string" && service.image.trim()) {
+                refs.add(service.image.trim());
+            }
+        }
+        return [ ...refs ];
+    }
+
     async deploy(socket : SiloSocket) : Promise<number> {
         return this.withDeploymentLock("deploy", async () => {
             await this.validateComposeConfig();

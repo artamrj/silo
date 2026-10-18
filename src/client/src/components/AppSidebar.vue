@@ -116,6 +116,11 @@ export default {
                     icon: "warehouse",
                     label: "Stacks",
                 },
+                {
+                    to: "/images",
+                    icon: "box",
+                    label: "Images",
+                },
             ];
         },
 

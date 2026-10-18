@@ -2,8 +2,9 @@ import { SocketHandler } from "../../socket-handler";
 import { SiloServer } from "../../silo-server";
 import { callbackError, callbackResult, checkLogin, SiloSocket, ValidationError } from "../../utils/socket";
 import { Stack } from "../../stack";
-import { stackDeleteSchema, stackSaveSchema, stackNameSchema, serviceActionSchema } from "../../../shared/schemas";
+import { imageIdsSchema, imagePruneSchema, stackDeleteSchema, stackSaveSchema, stackNameSchema, serviceActionSchema } from "../../../shared/schemas";
 import { validate } from "../../utils/socket";
+import { spawnErrorMessage } from "../../utils/exec";
 
 export class DockerSocketHandler extends SocketHandler {
     create(socket : SiloSocket, server : SiloServer) {
@@ -332,6 +333,70 @@ export class DockerSocketHandler extends SocketHandler {
                     ok: true,
                     dockerNetworkList,
                 }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        // Downloaded images, grouped by image id, with disk usage.
+        socket.on("getDockerImageList", async (callback) => {
+            try {
+                checkLogin(socket);
+                const imageInventory = await server.getDockerImageInventory();
+                callbackResult({
+                    ok: true,
+                    imageInventory,
+                }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        // Remove one or more images by id.
+        socket.on("removeDockerImages", async (ids : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                const input = validate(imageIdsSchema, { ids });
+                try {
+                    const removed = await server.removeDockerImages(input.ids);
+                    callbackResult({
+                        ok: true,
+                        msg: "Deleted",
+                        msgi18n: true,
+                        removed,
+                    }, callback);
+                } catch (e) {
+                    callback({
+                        ok: false,
+                        msg: spawnErrorMessage(e),
+                        msgi18n: false,
+                    });
+                }
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        // Prune dangling images, or every unused image when `all` is set.
+        socket.on("pruneDockerImages", async (options : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                const input = validate(imagePruneSchema, options ?? {});
+                try {
+                    const reclaimed = await server.pruneDockerImages(input.all);
+                    callbackResult({
+                        ok: true,
+                        msg: reclaimed ? `Reclaimed ${reclaimed}` : "Nothing to reclaim",
+                        msgi18n: false,
+                        reclaimed,
+                    }, callback);
+                } catch (e) {
+                    callback({
+                        ok: false,
+                        msg: spawnErrorMessage(e),
+                        msgi18n: false,
+                    });
+                }
             } catch (e) {
                 callbackError(e, callback);
             }

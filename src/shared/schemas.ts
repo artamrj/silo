@@ -117,6 +117,24 @@ export const serviceActionSchema = z.strictObject({
 export const composerizeSchema = z.string().min(1).max(100_000);
 
 /**
+ * An image id, optionally prefixed with `sha256:`. Docker accepts an
+ * unambiguous prefix, so 12 characters is the documented minimum.
+ */
+export const imageIdSchema = z.string()
+    .trim()
+    .regex(/^(sha256:)?[0-9a-f]{12,64}$/, "Invalid image id");
+
+/** One or more image ids, used by the bulk remove. */
+export const imageIdsSchema = z.strictObject({
+    ids: z.array(imageIdSchema).min(1).max(500),
+});
+
+/** Prune scope: dangling only, or every image not used by a container. */
+export const imagePruneSchema = z.strictObject({
+    all: z.boolean().default(false),
+});
+
+/**
  * General settings written to the database. Known keys are typed; unknown keys
  * are stripped before persisting so the client cannot inject arbitrary rows.
  * Stripping (rather than rejecting) keeps saves working on installs that still

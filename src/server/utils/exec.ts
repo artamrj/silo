@@ -30,6 +30,31 @@ export class SpawnError extends Error {
 }
 
 /**
+ * Best-effort human readable message for a failed `spawnAsync` call. Docker
+ * reports the useful reason (e.g. `image is being used by running container`)
+ * on stderr, so prefer it over the generic "Process exited" message.
+ * @param error Value thrown by `spawnAsync`
+ * @returns The most specific message available
+ */
+export function spawnErrorMessage(error : unknown) : string {
+    if (error instanceof SpawnError) {
+        const stderr = error.stderr.trim();
+        // Strip the CLI's `Error response from daemon: ` prefix for readability.
+        if (stderr) {
+            return stderr.replace(/^Error response from daemon:\s*/i, "");
+        }
+        const stdout = error.stdout.trim();
+        if (stdout) {
+            return stdout;
+        }
+    }
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return "Docker command failed";
+}
+
+/**
  * Run a command and resolve with its captured output, rejecting when it exits
  * with a non-zero code or cannot be started.
  * @param command Executable to run

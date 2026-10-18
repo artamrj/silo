@@ -18,7 +18,7 @@ import { countUsers, createUser, findFirstUser } from "./db/repositories/users";
 import { getSetting, setSetting } from "./db/repositories/settings";
 import { devNoAuth, genSecret, isDev } from "../shared/utils";
 import { generatePasswordHash } from "./password-hash";
-import { Arguments, Config, SiloSocket } from "./utils/socket";
+import { Arguments, Config, SiloSocket, ValidationError } from "./utils/socket";
 import { DockerSocketHandler } from "./socket-handlers/local/docker-socket-handler";
 import { paths } from "./paths";
 import path from "path";
@@ -27,6 +27,18 @@ import { Stack } from "./stack";
 import gracefulShutdown from "http-graceful-shutdown";
 import User from "./models/user";
 import { spawnAsync } from "./utils/exec";
+import {
+    DockerDiskUsage,
+    DockerImageInventory,
+    DockerImageRow,
+    DockerSystemDfRow,
+    formatBytes,
+    groupImages,
+    normalizeImageRef,
+    parseJsonLines,
+    parsePruneReclaimed,
+    toDiskUsage,
+} from "../shared/docker";
 import { Terminal } from "./terminal";
 import { httpRequestDuration, metricsRegistry, socketConnectionErrors, socketConnections } from "./metrics";
 import { serveClientAssets } from "./static";
@@ -595,6 +607,166 @@ export class SiloServer {
         } catch (e) {
             log.error("getDockerStats", e);
             return stats;
+        }
+    }
+
+    /**
+     * Every image reference declared by any Compose stack, running or stopped,
+     * mapped back to the stacks that use it. Docker's `image prune -a` ignores
+     * stopped stacks, so the Images page treats these as in use.
+     * @returns Normalised references plus the stacks referencing them
+     */
+    async getStackImageRefs() : Promise<{ refs: Set<string>; namesByRef: Map<string, string[]> }> {
+        const refs = new Set<string>();
+        const namesByRef = new Map<string, string[]>();
+
+        try {
+            const stackList = await Stack.getStackList(this, true);
+
+            for (const [ stackName, stack ] of stackList) {
+                for (const rawRef of stack.getImageRefs()) {
+                    // Match both the literal compose value (covers digest pins)
+                    // and its normalised `repository:tag` form.
+                    const candidates = [ rawRef, normalizeImageRef(rawRef) ];
+                    for (const candidate of candidates) {
+                        if (!candidate) {
+                            continue;
+                        }
+                        refs.add(candidate);
+                        const names = namesByRef.get(candidate) ?? [];
+                        if (!names.includes(stackName)) {
+                            names.push(stackName);
+                        }
+                        namesByRef.set(candidate, names);
+                    }
+                }
+            }
+        } catch (e) {
+            log.error("getStackImageRefs", e);
+        }
+
+        return { refs,
+            namesByRef };
+    }
+
+    /**
+     * List every downloaded image grouped by image ID, with disk usage and the
+     * stacks that pin each image.
+     * @returns Images and the aggregated `docker system df` figures
+     */
+    async getDockerImageInventory() : Promise<DockerImageInventory> {
+        const { refs, namesByRef } = await this.getStackImageRefs();
+
+        const imageRes = await spawnAsync("docker", [ "image", "ls", "--format", "json", "--no-trunc" ]);
+
+        const rows = parseJsonLines<DockerImageRow>(imageRes.stdout);
+
+        return {
+            images: groupImages(rows, refs, namesByRef),
+            disk: await this.getDockerDiskUsage(),
+        };
+    }
+
+    /**
+     * Remove images by id. Docker refuses to delete an image referenced by a
+     * container; that message is surfaced verbatim. Each image is removed by its
+     * tags because `image rm <id>` refuses multi-tagged images. Images in use
+     * (by a container or pinned by a stack) are rejected here too, so the guard
+     * does not depend on the client disabling the remove button.
+     * @param ids Image ids to remove
+     * @returns Image references reported as removed or untagged
+     */
+    async removeDockerImages(ids : string[]) : Promise<string[]> {
+        const requested = new Set(ids);
+
+        // Resolve ids to tag references, the only form docker deletes reliably.
+        const refs : string[] = [];
+        const inUse : string[] = [];
+        const { refs: stackRefs, namesByRef } = await this.getStackImageRefs();
+        const imageRes = await spawnAsync("docker", [ "image", "ls", "--format", "json", "--no-trunc" ]);
+        const inventory = groupImages(parseJsonLines<DockerImageRow>(imageRes.stdout), stackRefs, namesByRef);
+
+        for (const image of inventory) {
+            if (!requested.has(image.id)) {
+                continue;
+            }
+            if (image.inUse) {
+                inUse.push(image.tags.join(", ") || image.shortId);
+                continue;
+            }
+            refs.push(...(image.tags.length > 0 ? image.tags : [ image.id ]));
+        }
+
+        if (inUse.length > 0) {
+            throw new ValidationError(`Image is in use: ${inUse.join(", ")}`);
+        }
+
+        if (refs.length === 0) {
+            throw new ValidationError("No matching images to remove");
+        }
+
+        const res = await spawnAsync("docker", [ "image", "rm", ...refs ]);
+
+        const removed : string[] = [];
+        for (const line of `${res.stdout}\n${res.stderr}`.split("\n")) {
+            const match = line.match(/^(?:Deleted|Untagged):\s*(.+)$/i);
+            if (match) {
+                removed.push(match[1].trim());
+            }
+        }
+        return removed;
+    }
+
+    /**
+     * Prune images. Dangling uses docker's own prune; "all unused" is done by
+     * removing each unused image individually so images pinned by a stopped
+     * stack are never deleted (`docker image prune -a` would remove them).
+     * @param all Prune all unused images instead of just dangling ones
+     * @returns Human readable reclaimed space, empty when nothing was removed
+     */
+    async pruneDockerImages(all : boolean) : Promise<string> {
+        if (! all) {
+            const res = await spawnAsync("docker", [ "image", "prune", "-f" ]);
+            return parsePruneReclaimed(res.stdout) || parsePruneReclaimed(res.stderr);
+        }
+
+        const { refs: stackRefs, namesByRef } = await this.getStackImageRefs();
+        const imageRes = await spawnAsync("docker", [ "image", "ls", "--format", "json", "--no-trunc" ]);
+        const before = await this.getDockerDiskUsage();
+        const inventory = groupImages(parseJsonLines<DockerImageRow>(imageRes.stdout), stackRefs, namesByRef);
+
+        const removable = inventory.filter(image => ! image.inUse);
+        const targets = removable.flatMap(image => image.tags.length > 0 ? image.tags : [ image.id ]);
+
+        let reclaimed = "";
+        if (targets.length > 0) {
+            const res = await spawnAsync("docker", [ "image", "rm", ...targets ]);
+            reclaimed = parsePruneReclaimed(res.stdout) || parsePruneReclaimed(res.stderr);
+        }
+
+        // Fall back to the reported delta when docker rm didn't print a figure.
+        if (! reclaimed) {
+            const after = await this.getDockerDiskUsage();
+            const delta = (before?.reclaimableBytes ?? 0) - (after?.reclaimableBytes ?? 0);
+            if (delta > 0) {
+                reclaimed = formatBytes(delta);
+            }
+        }
+
+        return reclaimed;
+    }
+
+    /**
+     * Images disk usage from `docker system df`, used to compute reclaim deltas.
+     * @returns Disk usage, or null when unavailable
+     */
+    async getDockerDiskUsage() : Promise<DockerDiskUsage | null> {
+        try {
+            const res = await spawnAsync("docker", [ "system", "df", "--format", "json" ]);
+            return toDiskUsage(parseJsonLines<DockerSystemDfRow>(res.stdout));
+        } catch {
+            log.warn("getDockerDiskUsage", "docker system df failed");
+            return null;
         }
     }
 

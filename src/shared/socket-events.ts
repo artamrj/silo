@@ -42,4 +42,7 @@ export interface ClientToServerEvents {
     requestStackList: (callback: SocketCallback) => void;
     needSetup: (callback: (needSetup: boolean) => void) => void;
     composerize: (command: string, callback: (result: SocketResult & { composeTemplate?: string }) => void) => void;
+    getDockerImageList: (callback: SocketCallback<{ imageInventory?: unknown }>) => void;
+    removeDockerImages: (ids: unknown, callback: SocketCallback<{ removed?: string[] }>) => void;
+    pruneDockerImages: (options: unknown, callback: SocketCallback<{ reclaimed?: string }>) => void;
 }

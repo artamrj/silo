@@ -3,6 +3,9 @@ import {
     changePasswordSchema,
     composerizeSchema,
     dbConfigSchema,
+    imageIdSchema,
+    imageIdsSchema,
+    imagePruneSchema,
     loginSchema,
     nonEmptyString,
     serviceActionSchema,
@@ -161,5 +164,32 @@ describe("Primitive helpers", () => {
 
     it("defaults deleteData to false", () => {
         expect(stackDeleteSchema.parse({ name: "web" }).deleteData).toBe(false);
+    });
+});
+
+describe("Image operation boundaries", () => {
+    it("accepts full and short image ids", () => {
+        expect(imageIdSchema.parse("sha256:" + "a".repeat(64))).toBe("sha256:" + "a".repeat(64));
+        expect(imageIdSchema.parse("a1b2c3d4e5f6")).toBe("a1b2c3d4e5f6");
+    });
+
+    it("rejects unsafe or malformed image ids", () => {
+        expect(() => imageIdSchema.parse("nginx:latest")).toThrow();
+        expect(() => imageIdSchema.parse("sha256:xyz")).toThrow();
+        expect(() => imageIdSchema.parse("a".repeat(65))).toThrow();
+    });
+
+    it("requires a bounded, non-empty id list", () => {
+        expect(imageIdsSchema.parse({ ids: [ "a1b2c3d4e5f6" ] }).ids).toHaveLength(1);
+        expect(() => imageIdsSchema.parse({ ids: [] })).toThrow();
+        expect(() => imageIdsSchema.parse({ ids: Array.from({ length: 501 }, () => "a1b2c3d4e5f6") })).toThrow();
+        expect(() => imageIdsSchema.parse({ ids: [ "not an id" ] })).toThrow();
+    });
+
+    it("defaults the prune scope to dangling only", () => {
+        expect(imagePruneSchema.parse({}).all).toBe(false);
+        expect(imagePruneSchema.parse({ all: true }).all).toBe(true);
+        expect(() => imagePruneSchema.parse({ all: true,
+            extra: 1 })).toThrow();
     });
 });
