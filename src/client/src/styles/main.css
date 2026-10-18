@@ -362,6 +362,24 @@
 /* App-specific, non-token styles. */
 .app-icon { flex: none; }
 
+/* Frosted sidebar tooltip: subtle inner highlight + hairline separator. */
+.silo-tooltip::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(to bottom, rgb(255 255 255 / .06), transparent 60%);
+    pointer-events: none;
+}
+.silo-tooltip::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .08);
+    pointer-events: none;
+}
+
 /* xterm frame stays black on both themes. */
 .terminal {
     background-color: #000 !important;

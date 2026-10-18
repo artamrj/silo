@@ -26,9 +26,15 @@ export default {
         /** Theme value -> lucide icon, cross-faded on change. */
         options() {
             return [
-                { theme: "light", icon: "sun" },
-                { theme: "dark", icon: "moon" },
-                { theme: "auto", icon: "monitor" },
+                {
+                    theme: "light",
+                    icon: "sun" },
+                {
+                    theme: "dark",
+                    icon: "moon" },
+                {
+                    theme: "auto",
+                    icon: "monitor" },
             ];
         },
     },

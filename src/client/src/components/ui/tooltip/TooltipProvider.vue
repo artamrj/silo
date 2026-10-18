@@ -3,7 +3,8 @@ import type { TooltipProviderProps } from "reka-ui"
 import { TooltipProvider } from "reka-ui"
 
 const props = withDefaults(defineProps<TooltipProviderProps>(), {
-  delayDuration: 200,
+  delayDuration: 120,
+  skipDelayDuration: 300,
 })
 </script>
 
