@@ -143,7 +143,6 @@ export const imagePruneSchema = z.strictObject({
 export const settingsSchema = z.object({
     disableAuth: z.boolean().optional(),
     primaryHostname: z.string().max(255).optional(),
-    keepDataPeriodDays: z.number().int().min(0).optional(),
     trustProxy: z.boolean().optional(),
     globalENV: z.string().max(1_000_000).optional(),
 });

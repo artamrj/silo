@@ -31,7 +31,7 @@ export interface ServiceContext {
 export const serviceContextKey : InjectionKey<ServiceContext> = Symbol("serviceContext");
 
 /**
- * Context shared by Settings.vue with the settings sub-pages.
+ * Context shared by ControlPanel.vue with the settings sub-pages.
  */
 export interface SettingsContext {
     /** The mutable settings object loaded from the server. */

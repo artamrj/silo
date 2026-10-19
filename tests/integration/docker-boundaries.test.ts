@@ -99,17 +99,14 @@ describe("Settings boundaries", () => {
         const parsed = settingsSchema.parse({
             disableAuth: true,
             primaryHostname: "silo.example.com",
-            keepDataPeriodDays: 30,
             trustProxy: false,
         });
         expect(parsed.disableAuth).toBe(true);
-        expect(parsed.keepDataPeriodDays).toBe(30);
+        expect(parsed.primaryHostname).toBe("silo.example.com");
     });
 
     it("rejects wrong types for known keys", () => {
         expect(() => settingsSchema.parse({ disableAuth: "yes" })).toThrow();
-        expect(() => settingsSchema.parse({ keepDataPeriodDays: -1 })).toThrow();
-        expect(() => settingsSchema.parse({ keepDataPeriodDays: 1.5 })).toThrow();
         expect(() => settingsSchema.parse({ primaryHostname: "x".repeat(256) })).toThrow();
     });
 

@@ -16,7 +16,6 @@ import {
 export interface SettingsKeyMap {
     disableAuth: boolean;
     trustProxy: boolean;
-    keepDataPeriodDays: number;
     primaryHostname: string;
 }
 

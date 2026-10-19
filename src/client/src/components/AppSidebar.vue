@@ -9,10 +9,17 @@
                 <TooltipTrigger as-child>
                     <router-link
                         to="/"
-                        class="group flex size-11 shrink-0 items-center justify-center rounded-xl no-underline transition-all duration-200 hover:scale-105 active:scale-95 aria-[current=page]:bg-accent aria-[current=page]:shadow-sm"
+                        :class="iconButtonClass"
                         :aria-label="$t('Silo Dashboard')"
                     >
-                        <object width="40" height="40" data="/icon.svg" class="pointer-events-none rounded-xl" />
+                        <img
+                            src="/icon.svg"
+                            alt=""
+                            width="40"
+                            height="40"
+                            draggable="false"
+                            class="pointer-events-none size-10 rounded-xl select-none"
+                        />
                     </router-link>
                 </TooltipTrigger>
                 <TooltipContent side="right">{{ $t("Silo Dashboard") }}</TooltipContent>
@@ -43,15 +50,6 @@
 
                 <Tooltip>
                     <TooltipTrigger as-child>
-                        <router-link to="/console" :class="iconButtonClass" :aria-label="$t('console')">
-                            <app-icon icon="terminal" size="lg" />
-                        </router-link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{{ $t("console") }}</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                    <TooltipTrigger as-child>
                         <ThemeToggle />
                     </TooltipTrigger>
                     <TooltipContent side="right">{{ $t("Theme") }}: {{ $t(themeLabel) }}</TooltipContent>
@@ -59,27 +57,20 @@
 
                 <Tooltip>
                     <TooltipTrigger as-child>
-                        <router-link to="/settings/general" :class="iconButtonClass" :aria-label="$t('Settings')">
-                            <app-icon icon="cog" size="lg" />
+                        <router-link to="/control-panel/account" :class="iconButtonClass" :aria-label="$t('controlPanel')">
+                            <app-icon icon="sliders" size="lg" />
                         </router-link>
                     </TooltipTrigger>
-                    <TooltipContent side="right">{{ $t("Settings") }}</TooltipContent>
+                    <TooltipContent side="right">{{ $t("controlPanel") }}</TooltipContent>
                 </Tooltip>
-
-                <Separator class="my-1 w-8 bg-line" />
 
                 <Tooltip>
                     <TooltipTrigger as-child>
-                        <button
-                            type="button"
-                            class="flex size-11 items-center justify-center rounded-xl text-ink-muted transition-all duration-200 hover:scale-105 hover:bg-destructive/10 hover:text-destructive active:scale-95"
-                            :aria-label="$t('Logout')"
-                            @click="logout"
-                        >
-                            <app-icon icon="sign-out-alt" size="lg" />
-                        </button>
+                        <router-link to="/console" :class="iconButtonClass" :aria-label="$t('console')">
+                            <app-icon icon="terminal" size="lg" />
+                        </router-link>
                     </TooltipTrigger>
-                    <TooltipContent side="right">{{ $t("Logout") }}</TooltipContent>
+                    <TooltipContent side="right">{{ $t("console") }}</TooltipContent>
                 </Tooltip>
             </div>
         </nav>
@@ -88,7 +79,6 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ThemeToggle from "./ThemeToggle.vue";
 import { useSocket } from "../composables/useSocket";
@@ -96,7 +86,7 @@ import { useTheme } from "../composables/useTheme";
 import { useToast } from "../composables/useToast";
 import type { SocketResult } from "../../../shared/socket-events";
 
-const { emitServer, logout } = useSocket();
+const { emitServer } = useSocket();
 const { userTheme } = useTheme();
 const { toastRes } = useToast();
 
@@ -120,6 +110,7 @@ const navItems = [
 const themeLabels : Record<string, string> = {
     light: "Light",
     dark: "Dark",
+    auto: "Auto",
 };
 
 /** i18n key for the current theme, shown in the tooltip. */

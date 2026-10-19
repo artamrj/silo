@@ -29,8 +29,8 @@ describe("Settings facade", () => {
         const { Database } = await import("../../src/server/database");
         Database.connect(dir);
 
-        await Settings.set("keepDataPeriodDays", 14, "general");
-        expect(await Settings.get("keepDataPeriodDays")).toBe(14);
+        await Settings.set("primaryHostname", "silo.example.com", "general");
+        expect(await Settings.get("primaryHostname")).toBe("silo.example.com");
 
         await Settings.set("disableAuth", true, "general");
         expect(await Settings.get("disableAuth")).toBe(true);
@@ -57,12 +57,12 @@ describe("Settings facade", () => {
 
         await Settings.setSettings("general", {
             disableAuth: false,
-            keepDataPeriodDays: 30,
+            trustProxy: true,
         });
 
         expect(await Settings.getSettings("general")).toEqual({
             disableAuth: false,
-            keepDataPeriodDays: 30,
+            trustProxy: true,
         });
     });
 

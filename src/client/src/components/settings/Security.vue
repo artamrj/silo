@@ -1,106 +1,70 @@
 <template>
-    <div>
-        <div v-if="settingsLoaded">
-            <!-- Change Password -->
-            <template v-if="!settings.disableAuth">
-                <p class="mb-3 flex flex-wrap items-center gap-3">
-                    <span>{{ $t("Current User") }}: <strong>{{ username }}</strong></span>
-                    <button v-if="! settings.disableAuth" id="logout-btn" class="button button-danger button-sm" @click="logout">{{ $t("Logout") }}</button>
-                </p>
+    <div v-if="settingsLoaded" class="flex flex-col gap-6">
+        <!-- Trust proxy -->
+        <Card>
+            <CardHeader>
+                <CardTitle>{{ $t("Trust proxy") }}</CardTitle>
+                <CardDescription>{{ $t("trustProxyDescription") }}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Label class="items-start gap-3">
+                    <Checkbox
+                        :model-value="Boolean(settings.trustProxy)"
+                        @update:model-value="(value) => setTrustProxy(Boolean(value))"
+                    />
+                    <span class="text-sm font-normal">{{ $t("trustProxyLabel") }}</span>
+                </Label>
+            </CardContent>
+        </Card>
 
-                <h5 class="mb-3">{{ $t("Change Password") }}</h5>
-                <form class="mb-3" @submit.prevent="savePassword">
-                    <div class="mb-3">
-                        <label for="current-password" class="field-label">
-                            {{ $t("Current Password") }}
-                        </label>
-                        <input
-                            id="current-password"
-                            v-model="password.currentPassword"
-                            type="password"
-                            class="field"
-                            autocomplete="current-password"
-                            required
-                        />
-                    </div>
+        <!-- Authentication -->
+        <Card>
+            <CardHeader>
+                <CardTitle>{{ $t("Authentication") }}</CardTitle>
+                <CardDescription>
+                    {{ authDisabled ? $t("authDisabledDescription") : $t("authEnabledDescription") }}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="flex flex-wrap items-center gap-2">
+                    <span
+                        class="pill"
+                        :class="authDisabled ? 'bg-destructive/15 text-destructive' : 'bg-primary-soft text-primary'"
+                    >
+                        {{ authDisabled ? $t("Disabled") : $t("Enabled") }}
+                    </span>
 
-                    <div class="mb-3">
-                        <label for="new-password" class="field-label">
-                            {{ $t("New Password") }}
-                        </label>
-                        <input
-                            id="new-password"
-                            v-model="password.newPassword"
-                            type="password"
-                            class="field"
-                            autocomplete="new-password"
-                            required
-                        />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="repeat-new-password" class="field-label">
-                            {{ $t("Repeat New Password") }}
-                        </label>
-                        <input
-                            id="repeat-new-password"
-                            v-model="password.repeatNewPassword"
-                            type="password"
-                            class="field"
-                            :class="{ 'bg-destructive/10': invalidPassword }"
-                            :aria-invalid="invalidPassword"
-                            aria-describedby="password-mismatch"
-                            autocomplete="new-password"
-                            required
-                        />
-                        <div v-if="invalidPassword" id="password-mismatch" class="field-hint text-danger">
-                            {{ $t("passwordNotMatchMsg") }}
-                        </div>
-                    </div>
-
-                    <div>
-                        <button class="button button-primary" type="submit">
-                            {{ $t("Update Password") }}
-                        </button>
-                    </div>
-                </form>
-            </template>
-
-            <div class="mt-4">
-                <!-- Advanced -->
-                <h5 class="mb-3">{{ $t("Advanced") }}</h5>
-
-                <div class="mb-4">
-                    <button v-if="settings.disableAuth" id="enableAuth-btn" class="button button-outline" @click="enableAuth">{{ $t("Enable Auth") }}</button>
-                    <button v-if="! settings.disableAuth" id="disableAuth-btn" class="button button-primary" @click="confirmDisableAuth">{{ $t("Disable Auth") }}</button>
+                    <Button v-if="authDisabled" variant="outline" size="sm" @click="enableAuth">
+                        {{ $t("Enable Auth") }}
+                    </Button>
+                    <Button v-else variant="destructive" size="sm" @click="confirmDisableAuth">
+                        {{ $t("Disable Auth") }}
+                    </Button>
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
 
         <Confirm ref="confirmDisableAuthRef" btn-style="button-danger" :yes-text="$t('I understand, please disable')" :no-text="$t('Leave')" @yes="disableAuth">
             <i18n-t keypath="disableauth.message1" tag="p">
                 <template #disableAuth>
-                    <strong>{{ $t('disableAuth') }}</strong>
+                    <strong>{{ $t("disableAuth") }}</strong>
                 </template>
             </i18n-t>
 
             <i18n-t keypath="disableauth.message2" tag="p">
                 <template #scenarios>
-                    <strong>{{ $t('scenarios') }}</strong>
+                    <strong>{{ $t("scenarios") }}</strong>
                 </template>
             </i18n-t>
 
             <p>{{ $t("Please use this option carefully!") }}</p>
 
-            <div class="mb-3">
-                <label for="current-password2" class="field-label">
-                    {{ $t("Current Password") }}
-                </label>
-                <input
-                    id="current-password2"
+            <div class="flex flex-col gap-1.5">
+                <Label for="disable-auth-password">{{ $t("Current Password") }}</Label>
+                <Input
+                    id="disable-auth-password"
                     v-model="password.currentPassword"
                     type="password"
-                    class="field"
                     required
                 />
             </div>
@@ -109,53 +73,42 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, reactive, ref, watch } from "vue";
-import Confirm from "../../components/Confirm.vue";
+import { computed, inject, reactive, ref } from "vue";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Confirm from "../Confirm.vue";
 import { settingsContextKey, type SettingsContext } from "../../context";
 import { useSocket } from "../../composables/useSocket";
-import { useToast } from "../../composables/useToast";
-import type { SocketResult } from "../../../../shared/socket-events";
 
 const settingsContext = inject<SettingsContext | null>(settingsContextKey, null);
-const { username, socketIO, getSocket, logout, storage } = useSocket();
-const { toastRes } = useToast();
+const { username, socketIO, storage } = useSocket();
 
-const invalidPassword = ref(false);
-const password = reactive({
-    currentPassword: "",
-    newPassword: "",
-    repeatNewPassword: "",
-});
+const password = reactive({ currentPassword: "" });
 
 const settings = computed(() => settingsContext?.getSettings() ?? {});
 const settingsLoaded = computed(() => settingsContext?.isSettingsLoaded() ?? false);
+const authDisabled = computed(() => Boolean(settings.value.disableAuth));
 
-watch(() => password.repeatNewPassword, () => {
-    invalidPassword.value = false;
-});
+const confirmDisableAuthRef = ref<InstanceType<typeof Confirm> | null>(null);
 
-/** Check new passwords match before saving them */
-function savePassword() : void {
-    if (password.newPassword !== password.repeatNewPassword) {
-        invalidPassword.value = true;
-    } else {
-        (getSocket().emit as (event : string, payload : unknown, cb : (res : SocketResult) => void) => void)("changePassword", password, (res) => {
-            toastRes(res);
-            if (res.ok) {
-                password.currentPassword = "";
-                password.newPassword = "";
-                password.repeatNewPassword = "";
-            }
-        });
-    }
+/** Persist the trust-proxy toggle. */
+function setTrustProxy(value : boolean) : void {
+    settings.value.trustProxy = value;
+    settingsContext?.saveSettings();
 }
 
-/** Disable authentication for web app access */
+/** Show the confirmation dialog before disabling auth. */
+function confirmDisableAuth() : void {
+    confirmDisableAuthRef.value?.show();
+}
+
+/** Disable authentication; requires the current password. */
 function disableAuth() : void {
     settings.value.disableAuth = true;
 
-    // Need current password to disable auth
-    // Set it to empty if done
     settingsContext?.saveSettings(() => {
         password.currentPassword = "";
         username.value = null;
@@ -163,18 +116,11 @@ function disableAuth() : void {
     }, password.currentPassword);
 }
 
-/** Enable authentication for web app access */
+/** Re-enable authentication and force a fresh login. */
 function enableAuth() : void {
     settings.value.disableAuth = false;
     settingsContext?.saveSettings();
     storage().removeItem("token");
     location.reload();
 }
-
-/** Show confirmation dialog for disable auth */
-function confirmDisableAuth() : void {
-    confirmDisableAuthRef.value?.show();
-}
-
-const confirmDisableAuthRef = ref<InstanceType<typeof Confirm> | null>(null);
 </script>

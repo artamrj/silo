@@ -11,13 +11,13 @@ const Stacks = () => import("./pages/Stacks.vue");
 const Images = () => import("./pages/Images.vue");
 const Compose = () => import("./pages/Compose.vue");
 const ContainerTerminal = () => import("./pages/ContainerTerminal.vue");
-const Settings = () => import("./pages/Settings.vue");
+const ControlPanel = () => import("./pages/ControlPanel.vue");
 
-// Settings - Sub Pages
+// Control Panel - tabs
+const AccountTab = () => import("./components/settings/Account.vue");
 const General = () => import("./components/settings/General.vue");
 const Security = () => import("./components/settings/Security.vue");
-const GlobalEnv = () => import("./components/settings/GlobalEnv.vue");
-const About = () => import("./components/settings/About.vue");
+const Environment = () => import("./components/settings/Environment.vue");
 
 const routes = [
     {
@@ -59,9 +59,17 @@ const routes = [
                         component: Images,
                     },
                     {
-                        path: "/settings",
-                        component: Settings,
+                        path: "/control-panel",
+                        component: ControlPanel,
                         children: [
+                            {
+                                path: "",
+                                redirect: "/control-panel/account",
+                            },
+                            {
+                                path: "account",
+                                component: AccountTab,
+                            },
                             {
                                 path: "general",
                                 component: General,
@@ -71,18 +79,27 @@ const routes = [
                                 component: Security,
                             },
                             {
-                                path: "globalEnv",
-                                component: GlobalEnv,
-                            },
-                            {
-                                path: "about",
-                                component: About,
+                                path: "environment",
+                                component: Environment,
                             },
                         ]
                     },
                 ]
             },
         ]
+    },
+    // Legacy links: the Settings page was renamed to the Control Panel.
+    {
+        path: "/settings",
+        redirect: "/control-panel/account",
+    },
+    {
+        path: "/settings/globalEnv",
+        redirect: "/control-panel/environment",
+    },
+    {
+        path: "/settings/:pathMatch(.*)*",
+        redirect: "/control-panel/account",
     },
     {
         path: "/setup",

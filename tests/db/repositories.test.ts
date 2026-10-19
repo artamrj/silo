@@ -125,13 +125,13 @@ describe("settings repository", () => {
     });
 
     it("upserts on repeated writes instead of duplicating rows", () => {
-        setSetting(db, "keepDataPeriodDays", "1", "general");
-        setSetting(db, "keepDataPeriodDays", "7", "general");
+        setSetting(db, "primaryHostname", "a", "general");
+        setSetting(db, "primaryHostname", "b", "general");
 
         const rows = getSettingsByType(db, "general");
         expect(rows).toHaveLength(1);
-        expect(rows[0].value).toBe("7");
-        expect(getSetting(db, "keepDataPeriodDays")).toBe("7");
+        expect(rows[0].value).toBe("b");
+        expect(getSetting(db, "primaryHostname")).toBe("b");
     });
 
     it("filters by type", () => {
