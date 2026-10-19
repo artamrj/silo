@@ -3,7 +3,7 @@ import { io, type Socket } from "socket.io-client";
 import type { Terminal } from "@xterm/xterm";
 import { i18n } from "../i18n";
 import { useToast } from "./useToast";
-import type { ServerInfo, StackMeta } from "./types";
+import type { DeploymentEvent, ServerInfo, StackMeta } from "./types";
 import type { ClientToServerEvents, ServerToClientEvents, SocketResult } from "../../../shared/socket-events";
 
 /**
@@ -51,6 +51,13 @@ const composeTemplate = ref("");
 const envTemplate = ref("");
 const stackList = ref<Record<string, StackMeta>>({});
 const stackListLoaded = ref(false);
+
+/**
+ * Rolling log of `deploymentEvent` pushes, newest first. Lives here (not in a
+ * page) so the activity feed keeps history across route changes.
+ */
+const deploymentEvents = ref<DeploymentEvent[]>([]);
+const DEPLOYMENT_EVENT_LIMIT = 50;
 
 // Keep the refusal message in sync with the active locale.
 socketIO.connectionErrorMsg = `${i18n.global.t("Cannot connect to the socket server.")} ${i18n.global.t("Reconnecting...")}`;
@@ -318,6 +325,10 @@ export function useSocket() {
             stackListLoaded.value = true;
         });
 
+        socket.on("deploymentEvent", (event) => {
+            deploymentEvents.value = [ event, ...deploymentEvents.value ].slice(0, DEPLOYMENT_EVENT_LIMIT);
+        });
+
         socket.on("refresh", () => {
             location.reload();
         });
@@ -335,6 +346,7 @@ export function useSocket() {
         envTemplate,
         stackList,
         stackListLoaded,
+        deploymentEvents,
         // computed
         completeStackList,
         usernameFirstChar,

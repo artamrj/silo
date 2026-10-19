@@ -1,6 +1,7 @@
 import { log } from "./log";
 import { LooseObject } from "../shared/utils";
 import { Database } from "./database";
+import type { DashboardConfig } from "../shared/dashboard";
 import {
     findSetting,
     getSettingsByType,
@@ -17,6 +18,7 @@ export interface SettingsKeyMap {
     disableAuth: boolean;
     trustProxy: boolean;
     primaryHostname: string;
+    dashboard: DashboardConfig;
 }
 
 export type SettingsKey = keyof SettingsKeyMap;

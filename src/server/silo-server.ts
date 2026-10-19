@@ -20,6 +20,7 @@ import { devNoAuth, genSecret, isDev } from "../shared/utils";
 import { generatePasswordHash } from "./password-hash";
 import { Arguments, Config, SiloSocket, ValidationError } from "./utils/socket";
 import { DockerSocketHandler } from "./socket-handlers/local/docker-socket-handler";
+import { DashboardSocketHandler } from "./socket-handlers/local/dashboard-socket-handler";
 import { paths } from "./paths";
 import path from "path";
 import { TerminalSocketHandler } from "./socket-handlers/local/terminal-socket-handler";
@@ -79,6 +80,7 @@ export class SiloServer {
     socketHandlerList : SocketHandler[] = [
         new MainSocketHandler(),
         new DockerSocketHandler(),
+        new DashboardSocketHandler(),
         new TerminalSocketHandler(),
     ];
 

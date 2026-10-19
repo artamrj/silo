@@ -1,3 +1,5 @@
+import type { DashboardConfig } from "./dashboard";
+
 export interface SocketResult<T = undefined> {
     ok?: boolean;
     msg?: string;
@@ -45,4 +47,7 @@ export interface ClientToServerEvents {
     getDockerImageList: (callback: SocketCallback<{ imageInventory?: unknown }>) => void;
     removeDockerImages: (ids: unknown, callback: SocketCallback<{ removed?: string[] }>) => void;
     pruneDockerImages: (options: unknown, callback: SocketCallback<{ reclaimed?: string }>) => void;
+    dockerStats: (callback: SocketCallback<{ dockerStats?: Record<string, unknown> }>) => void;
+    getDashboard: (callback: SocketCallback<{ dashboard?: DashboardConfig }>) => void;
+    setDashboard: (config: unknown, callback: SocketCallback<{ dashboard?: DashboardConfig }>) => void;
 }

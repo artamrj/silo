@@ -31,3 +31,21 @@ export interface ServiceStatus {
     name : string;
     status : string;
 }
+
+/** Pixel rectangle a bento tile occupies inside the grid container. */
+export interface BentoRect {
+    left : number;
+    top : number;
+    width : number;
+    height : number;
+}
+
+/** A deploy/stop/restart event pushed by the server while a stack operation runs. */
+export interface DeploymentEvent {
+    stackName : string;
+    operation : string;
+    status : string;
+    message : string;
+    at : string;
+}
+

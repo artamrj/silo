@@ -7,6 +7,7 @@
  */
 
 import { z } from "zod";
+import { WIDGET_TYPES, SAFE_SHORTCUT_URL } from "./dashboard";
 
 /**
  * Minimal schema contract used by the server's `validate()` helper. Keeps the
@@ -170,3 +171,39 @@ export const startupConfigSchema = z.object({
 export type StartupConfig = z.infer<typeof startupConfigSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;
 export type DbConfig = z.infer<typeof dbConfigSchema>;
+
+// --- Dashboard ---------------------------------------------------------------
+
+/** One widget in a breakpoint layout. `type` must be a known widget. */
+export const widgetInstanceSchema = z.strictObject({
+    id: z.string().trim().min(1).max(64),
+    type: z.enum(WIDGET_TYPES),
+    x: z.number().int().min(0).max(64),
+    y: z.number().int().min(0).max(1024),
+    w: z.number().int().min(1).max(64),
+    h: z.number().int().min(1).max(64),
+});
+
+/** A shortcut card. Only http(s)/relative URLs so it is safe to render as href. */
+export const shortcutSchema = z.strictObject({
+    id: z.string().trim().min(1).max(64),
+    name: z.string().trim().min(1).max(64),
+    url: z.string().trim().min(1).max(2048).regex(SAFE_SHORTCUT_URL, "Invalid URL"),
+    icon: z.string().trim().max(64).optional(),
+    group: z.string().trim().max(64).optional(),
+});
+
+const widgetListSchema = z.array(widgetInstanceSchema).max(128);
+
+/** The responsive layouts plus the shortcut list, as persisted. */
+export const dashboardConfigSchema = z.strictObject({
+    layout: z.strictObject({
+        lg: widgetListSchema,
+        md: widgetListSchema,
+        sm: widgetListSchema,
+    }),
+    shortcuts: z.array(shortcutSchema).max(500),
+});
+
+export type DashboardConfigInput = z.infer<typeof dashboardConfigSchema>;
+
