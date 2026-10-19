@@ -25,13 +25,13 @@ import { useTheme } from "../composables/useTheme";
 
 const { userTheme, toggleTheme } = useTheme();
 
-/** Theme value -> lucide icon, cross-faded on change. */
+/** Theme value -> lucide icon (shows the theme you switch to), cross-faded on change. */
 const options = [
     {
         theme: "light",
-        icon: "sun" },
+        icon: "moon" },
     {
         theme: "dark",
-        icon: "moon" },
+        icon: "sun" },
 ];
 </script>
