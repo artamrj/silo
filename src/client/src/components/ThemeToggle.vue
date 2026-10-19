@@ -3,7 +3,7 @@
         type="button"
         class="relative flex size-11 items-center justify-center rounded-xl text-ink-muted transition-all duration-200 hover:scale-105 hover:bg-accent hover:text-ink active:scale-95"
         :aria-label="$t('Theme')"
-        @click="cycleTheme"
+        @click="toggleTheme"
     >
         <span class="relative size-[22px]">
             <app-icon
@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import { useTheme } from "../composables/useTheme";
 
-const { userTheme, cycleTheme } = useTheme();
+const { userTheme, toggleTheme } = useTheme();
 
 /** Theme value -> lucide icon, cross-faded on change. */
 const options = [
@@ -33,8 +33,5 @@ const options = [
     {
         theme: "dark",
         icon: "moon" },
-    {
-        theme: "auto",
-        icon: "monitor" },
 ];
 </script>

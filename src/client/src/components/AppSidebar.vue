@@ -120,7 +120,6 @@ const navItems = [
 const themeLabels : Record<string, string> = {
     light: "Light",
     dark: "Dark",
-    auto: "Auto",
 };
 
 /** i18n key for the current theme, shown in the tooltip. */

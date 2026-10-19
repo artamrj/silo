@@ -1,13 +1,10 @@
 import { computed, ref, watch } from "vue";
 
-type ThemeName = "light" | "dark" | "auto";
+type ThemeName = "light" | "dark";
 
-const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
-
-const system = ref<"light" | "dark">(prefersDark.matches ? "dark" : "light");
 const userTheme = ref<ThemeName | null>(localStorage.getItem("theme") as ThemeName | null);
 
-const theme = computed<"light" | "dark">(() => (userTheme.value === "auto" ? system.value : (userTheme.value === "dark" ? "dark" : "light")));
+const theme = computed<"light" | "dark">(() => (userTheme.value === "dark" ? "dark" : "light"));
 
 const isDark = computed(() => theme.value === "dark");
 
@@ -48,28 +45,21 @@ if (!userTheme.value) {
 }
 applyTheme(null);
 
-prefersDark.addEventListener("change", (event) => {
-    system.value = event.matches ? "dark" : "light";
-});
-
 /**
- * Shared theme state (light / dark / auto). State lives at module scope so the
- * theme is global, mirroring the previous root mixin.
+ * Shared theme state (light / dark). State lives at module scope so the theme is
+ * global, mirroring the previous root mixin.
  */
 export function useTheme() {
     /**
-     * Advance the theme in the order light -> dark -> auto -> light.
+     * Toggle the theme between light and dark.
      * @returns {void}
      */
-    function cycleTheme() : void {
-        const order : ThemeName[] = [ "light", "dark", "auto" ];
-        const current = order.indexOf(userTheme.value as ThemeName);
-        userTheme.value = order[(current + 1) % order.length];
+    function toggleTheme() : void {
+        userTheme.value = theme.value === "dark" ? "light" : "dark";
     }
 
-    return { system,
-        userTheme,
+    return { userTheme,
         theme,
         isDark,
-        cycleTheme };
+        toggleTheme };
 }
