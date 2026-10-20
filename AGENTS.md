@@ -229,6 +229,9 @@ hand-formatting:
 - Do not add React-focused skills as general Silo guidance. Use
   `test-driven-development` as the default test-first workflow; reserve `tdd`
   for an explicit red-green-refactor or integration-test request.
+  
+- UX (- ux-heuristics — usability audits, Nielsen heuristics, navigation, forms, accessibility, cognitive load.
+- ux-writing — product microcopy: buttons, errors, forms, onboarding, empty states, notifications.)
 
 ## Git / PR workflow
 
@@ -243,3 +246,16 @@ hand-formatting:
 - `src/client/src/components/ui/**` — generated shadcn-vue primitives.
 - Applied migrations in `src/server/db/migrations.ts`.
 - `node_modules/`, `package-lock.json` (change only through npm).
+redegin whole content! make the pages looks good fast and beatiful and very good ui!!
+
+remove unncecery...
+
+focus on good ux and very beatiful gui!
+
+
+dont chnage the sidebar!
+
+only contant page
+
+
+and as possible make the project lightweight and smaller!!
