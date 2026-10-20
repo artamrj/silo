@@ -201,13 +201,34 @@ hand-formatting:
 
 ### Skills
 
-- Installed skills are global. For this repo prefer `vue-best-practices` and
-  `vue-router-best-practices` (Composition API matches the current stack), and
-  `shadcn-vue` for UI primitives. The React-oriented `shadcn` skill is denied in
-  `opencode.json` because Silo uses shadcn-vue.
+- Installed skills are global. Use matching skills before starting covered work;
+  keep their workflow within Silo's repository and security constraints.
+- Use `test-driven-development` before implementing a feature or bug fix. Keep
+  tests self-contained: never require a Docker daemon or network access.
+- Use `vitest` when writing, changing, mocking, configuring, or investigating
+  Vitest tests.
+- Use `systematic-debugging` before fixing unexpected behavior or a failing
+  test. Escalate to `diagnosing-bugs` for a hard root-cause investigation or a
+  performance regression.
+- Use `writing-plans` before multi-step work spanning multiple files or
+  subsystems. A clear, local fix does not need a plan.
+- Use `verification-before-completion` before claiming work is complete, fixed,
+  or passing, and before preparing a commit or PR. Run applicable repository
+  checks first.
+- Use `code-review` when reviewing a branch, PR, or work-in-progress diff.
+- Use `webapp-testing` to verify changed local client flows. Use
+  `playwright-best-practices` when writing or changing Playwright tests.
+- For client work use `vue-best-practices`; use `vue-router-best-practices` for
+  routes, guards, route params, or route lifecycle behavior; use `shadcn-vue`
+  for shadcn-vue primitives, registries, or `components.json` work. The
+  React-oriented `shadcn` skill is denied in `opencode.json` because Silo uses
+  shadcn-vue.
 - `vue-router-best-practices` targets Vue Router 4; Silo is on Vue Router 5. The
   Composition API helpers (`useRoute`, `useRouter`, `onBeforeRouteLeave`, ...) are
   the same — treat any v3/v4-only guidance with care.
+- Do not add React-focused skills as general Silo guidance. Use
+  `test-driven-development` as the default test-first workflow; reserve `tdd`
+  for an explicit red-green-refactor or integration-test request.
 
 ## Git / PR workflow
 
