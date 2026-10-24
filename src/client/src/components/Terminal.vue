@@ -1,21 +1,23 @@
 <template>
-    <div class="card overflow-hidden bg-slate-950 p-0">
+    <div :class="surfaceClass">
         <div v-pre ref="terminal" class="h-full w-full"></div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { TERMINAL_COLS, TERMINAL_ROWS } from "../../../shared/utils";
 import { useSocket } from "../composables/useSocket";
 import { useToast } from "../composables/useToast";
+import { getTerminalAppearance, type TerminalAppearance } from "../lib/terminal-appearance";
 import type { SocketResult } from "../../../shared/socket-events";
 import "@xterm/xterm/lib/xterm.js";
 import "@xterm/xterm/css/xterm.css";
 
 type TerminalMode = "displayOnly" | "mainTerminal" | "interactive";
+type TerminalSurface = "card" | "bare";
 
 const props = withDefaults(defineProps<{
     name : string;
@@ -32,6 +34,10 @@ const props = withDefaults(defineProps<{
     // mainTerminal: Allow input limited commands and output
     // interactive: Free input and output
     mode?: TerminalMode;
+    /** Visual treatment. Defaults preserve existing terminal consumers. */
+    appearance?: TerminalAppearance;
+    /** Outer terminal frame. Console uses bare because it supplies its own window. */
+    surface?: TerminalSurface;
 }>(), {
     stackName: "",
     serviceName: "",
@@ -39,18 +45,24 @@ const props = withDefaults(defineProps<{
     rows: TERMINAL_ROWS,
     cols: TERMINAL_COLS,
     mode: "displayOnly",
+    appearance: "default",
+    surface: "card",
 });
 
 const emit = defineEmits<{ "has-data": [] }>();
 
 const { emitServer, bindTerminal, unbindTerminal } = useSocket();
 const { toastRes, toastError } = useToast();
+const surfaceClass = computed(() => props.surface === "bare"
+    ? "h-full min-h-0 overflow-hidden"
+    : "card overflow-hidden bg-slate-950 p-0");
 
 /** Host element xterm renders into. */
 const terminal = ref<HTMLElement | null>(null);
 
 let xterm : Terminal | null = null;
 let terminalFitAddOn : FitAddon | null = null;
+let resizeObserver : ResizeObserver | null = null;
 const first = ref(true);
 let terminalInputBuffer = "";
 let cursorPosition = 0;
@@ -68,6 +80,7 @@ onMounted(() => {
         cursorBlink,
         cols: props.cols,
         rows: props.rows,
+        ...getTerminalAppearance(props.appearance),
     });
 
     if (props.mode === "mainTerminal") {
@@ -119,10 +132,14 @@ onMounted(() => {
     }
     // Fit the terminal width to the div container size after terminal is created.
     updateTerminalSize();
+    resizeObserver = new ResizeObserver(onResizeEvent);
+    resizeObserver.observe(terminal.value as HTMLElement);
 });
 
 onUnmounted(() => {
     window.removeEventListener("resize", onResizeEvent); // Remove the resize event listener from the window object.
+    resizeObserver?.disconnect();
+    resizeObserver = null;
     unbindTerminal(props.name);
     xterm?.dispose();
     terminal.value?.removeEventListener("contextmenu", handleContextMenu);
@@ -255,7 +272,6 @@ function updateTerminalSize() : void {
     if (!terminalFitAddOn) {
         terminalFitAddOn = new FitAddon();
         xterm?.loadAddon(terminalFitAddOn);
-        window.addEventListener("resize", onResizeEvent);
     }
     terminalFitAddOn.fit();
 }

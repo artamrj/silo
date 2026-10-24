@@ -131,6 +131,20 @@
     --elevation-sm: 0 1px 2px rgb(15 23 42 / .04), 0 1px 4px rgb(15 23 42 / .04);
     --elevation-md: 0 10px 30px rgb(15 23 42 / .08);
     --elevation-lg: 0 24px 70px rgb(15 23 42 / .14);
+
+    /* Console stays deliberately dark regardless of global application theme. */
+    --terminal-window: #171819;
+    --terminal-chrome: #252627;
+    --terminal-chrome-highlight: #343536;
+    --terminal-ink: #e7e8ea;
+    --terminal-ink-muted: #a5a7ab;
+    --terminal-connected: #5dd879;
+    --terminal-close: #ff5f57;
+    --terminal-minimize: #febc2e;
+    --terminal-maximize: #28c840;
+    --terminal-focus: #79c0ff;
+    --terminal-highlight: rgb(255 255 255 / .03);
+    --terminal-shadow: rgb(0 0 0 / .28);
 }
 
 .dark {

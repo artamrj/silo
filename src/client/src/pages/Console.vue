@@ -1,11 +1,13 @@
 <template>
-    <PageContainer wide fill>
-        <PageHeader :title="$t('console')" :description="$t('consoleDescription')" />
+    <section class="console-page">
+        <ConsoleTerminalWindow v-if="enableConsole" :connected="socketIO.connected" />
 
-        <Terminal v-if="enableConsole" class="h-[410px] flex-1" :rows="20" mode="mainTerminal" name="console"></Terminal>
+        <div v-else-if="processing" class="console-page-status" role="status">
+            {{ $t("connecting...") }}
+        </div>
 
-        <div v-else-if="!processing" class="card bg-warning/10" role="alert">
-            <h4 class="mb-2 text-warning">{{ $t("Console is not enabled") }}</h4>
+        <div v-else class="console-page-disabled" role="alert">
+            <h1 class="console-page-disabled-title">{{ $t("Console is not enabled") }}</h1>
             <i18n-t keypath="ConsoleNotEnabledMSG1" tag="p">
                 <template #docker><code>{{ $t('dockerCode') }}</code></template>
                 <template #rm><code>{{ $t('rmCode') }}</code></template>
@@ -23,18 +25,16 @@
                 </template>
             </i18n-t>
         </div>
-    </PageContainer>
+    </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import Terminal from "../components/Terminal.vue";
-import PageContainer from "../components/PageContainer.vue";
-import PageHeader from "../components/PageHeader.vue";
+import ConsoleTerminalWindow from "../components/ConsoleTerminalWindow.vue";
 import { useSocket } from "../composables/useSocket";
 import type { SocketResult } from "../../../shared/socket-events";
 
-const { emitServer } = useSocket();
+const { emitServer, socketIO } = useSocket();
 
 const processing = ref(true);
 const enableConsole = ref(false);
@@ -46,3 +46,45 @@ onMounted(() => {
     });
 });
 </script>
+
+<style scoped>
+.console-page {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    padding: .75rem;
+}
+
+.console-page-status {
+    display: grid;
+    min-height: 0;
+    flex: 1;
+    place-items: center;
+    color: var(--color-ink-muted);
+    font-size: .875rem;
+}
+
+.console-page-disabled {
+    width: min(100%, 42rem);
+    margin: auto;
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+    padding: 1.25rem;
+    color: var(--color-ink);
+}
+
+.console-page-disabled-title {
+    color: var(--color-warning);
+}
+
+.console-page-disabled :deep(p + p) {
+    margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+    .console-page {
+        padding: 1rem;
+    }
+}
+</style>
