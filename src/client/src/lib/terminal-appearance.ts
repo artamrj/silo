@@ -1,6 +1,7 @@
 import type { ITheme } from "@xterm/xterm";
 
 export type TerminalAppearance = "default" | "mac";
+export type TerminalColorScheme = "light" | "dark";
 
 export interface TerminalAppearanceOptions {
     theme : Readonly<ITheme>;
@@ -42,10 +43,45 @@ const MAC_APPEARANCE : TerminalAppearanceOptions = Object.freeze({
     cursorWidth: 2,
 });
 
+const MAC_LIGHT_APPEARANCE : TerminalAppearanceOptions = Object.freeze({
+    theme: Object.freeze({
+        background: "#FFFFFF",
+        foreground: "#242526",
+        cursor: "#242526",
+        cursorAccent: "#FFFFFF",
+        selectionBackground: "#B7C8E899",
+        black: "#242526",
+        red: "#B42318",
+        green: "#16803C",
+        yellow: "#9A6700",
+        blue: "#175CD3",
+        magenta: "#7A3E9D",
+        cyan: "#087E8B",
+        white: "#FFFFFF",
+        brightBlack: "#667085",
+        brightRed: "#D92D20",
+        brightGreen: "#16803C",
+        brightYellow: "#B54708",
+        brightBlue: "#2E90FA",
+        brightMagenta: "#9E77ED",
+        brightCyan: "#06AED5",
+        brightWhite: "#FFFFFF",
+    }),
+    cursorStyle: "bar",
+    cursorWidth: 2,
+});
+
 /**
  * Return visual settings for an xterm surface without coupling appearance to
  * terminal transport or output handling.
  */
-export function getTerminalAppearance(appearance : TerminalAppearance) : TerminalAppearanceOptions {
-    return appearance === "mac" ? MAC_APPEARANCE : DEFAULT_APPEARANCE;
+export function getTerminalAppearance(
+    appearance : TerminalAppearance,
+    colorScheme : TerminalColorScheme = "dark",
+) : TerminalAppearanceOptions {
+    if (appearance !== "mac") {
+        return DEFAULT_APPEARANCE;
+    }
+
+    return colorScheme === "light" ? MAC_LIGHT_APPEARANCE : MAC_APPEARANCE;
 }

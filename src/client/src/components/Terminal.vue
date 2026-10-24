@@ -5,13 +5,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { TERMINAL_COLS, TERMINAL_ROWS } from "../../../shared/utils";
 import { useSocket } from "../composables/useSocket";
 import { useToast } from "../composables/useToast";
-import { getTerminalAppearance, type TerminalAppearance } from "../lib/terminal-appearance";
+import { getTerminalAppearance, type TerminalAppearance, type TerminalColorScheme } from "../lib/terminal-appearance";
 import type { SocketResult } from "../../../shared/socket-events";
 import "@xterm/xterm/lib/xterm.js";
 import "@xterm/xterm/css/xterm.css";
@@ -36,6 +36,8 @@ const props = withDefaults(defineProps<{
     mode?: TerminalMode;
     /** Visual treatment. Defaults preserve existing terminal consumers. */
     appearance?: TerminalAppearance;
+    /** Color scheme for terminal appearances that support theme-aware palettes. */
+    colorScheme?: TerminalColorScheme;
     /** Outer terminal frame. Console uses bare because it supplies its own window. */
     surface?: TerminalSurface;
 }>(), {
@@ -46,6 +48,7 @@ const props = withDefaults(defineProps<{
     cols: TERMINAL_COLS,
     mode: "displayOnly",
     appearance: "default",
+    colorScheme: "dark",
     surface: "card",
 });
 
@@ -80,7 +83,7 @@ onMounted(() => {
         cursorBlink,
         cols: props.cols,
         rows: props.rows,
-        ...getTerminalAppearance(props.appearance),
+        ...getTerminalAppearance(props.appearance, props.colorScheme),
     });
 
     if (props.mode === "mainTerminal") {
@@ -134,6 +137,15 @@ onMounted(() => {
     updateTerminalSize();
     resizeObserver = new ResizeObserver(onResizeEvent);
     resizeObserver.observe(terminal.value as HTMLElement);
+});
+
+watch(() => props.colorScheme, (colorScheme) => {
+    const appearance = getTerminalAppearance(props.appearance, colorScheme);
+    if (xterm) {
+        xterm.options.theme = appearance.theme;
+        xterm.options.cursorStyle = appearance.cursorStyle;
+        xterm.options.cursorWidth = appearance.cursorWidth;
+    }
 });
 
 onUnmounted(() => {

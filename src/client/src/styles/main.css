@@ -145,6 +145,14 @@
     --terminal-focus: #79c0ff;
     --terminal-highlight: rgb(255 255 255 / .03);
     --terminal-shadow: rgb(0 0 0 / .28);
+    --terminal-window-light: #ffffff;
+    --terminal-chrome-light: #ececea;
+    --terminal-chrome-highlight-light: #d5d5d1;
+    --terminal-ink-light: #242526;
+    --terminal-ink-muted-light: #667085;
+    --terminal-connected-light: #16803c;
+    --terminal-highlight-light: rgb(255 255 255 / .75);
+    --terminal-shadow-light: rgb(15 23 42 / .12);
 }
 
 .dark {

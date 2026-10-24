@@ -53,7 +53,6 @@ onMounted(() => {
     min-height: 0;
     flex: 1;
     flex-direction: column;
-    padding: .75rem;
 }
 
 .console-page-status {
@@ -82,9 +81,4 @@ onMounted(() => {
     margin-top: 1rem;
 }
 
-@media (min-width: 768px) {
-    .console-page {
-        padding: 1rem;
-    }
-}
 </style>

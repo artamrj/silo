@@ -1,5 +1,5 @@
 <template>
-    <section ref="windowElement" class="console-window" :class="{ 'is-fullscreen': isFullscreen }" :aria-label="t('consoleWindowTitle')">
+    <section ref="windowElement" class="console-window" :class="{ 'is-fullscreen': isFullscreen, 'is-light': theme === 'light' }" :aria-label="t('consoleWindowTitle')">
         <div class="console-window-bar">
             <div class="console-window-lights" aria-hidden="true">
                 <span class="console-window-light is-close"></span>
@@ -27,7 +27,7 @@
             </div>
         </div>
 
-        <Terminal class="min-h-0 flex-1" name="console" mode="mainTerminal" appearance="mac" surface="bare" />
+        <Terminal class="min-h-0 flex-1" name="console" mode="mainTerminal" appearance="mac" :color-scheme="theme" surface="bare" />
     </section>
 </template>
 
@@ -36,12 +36,14 @@ import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from "vu
 import { useI18n } from "vue-i18n";
 import { Maximize2, Minimize2 } from "@lucide/vue";
 import Terminal from "./Terminal.vue";
+import { useTheme } from "../composables/useTheme";
 
 const { connected } = defineProps<{
     connected : boolean;
 }>();
 
 const { t } = useI18n();
+const { theme } = useTheme();
 const windowElement = useTemplateRef<HTMLElement>("windowElement");
 const isFullscreen = shallowRef(false);
 const connectionLabel = computed(() => connected ? t("consoleConnected") : t("consoleReconnecting"));
@@ -90,6 +92,17 @@ onUnmounted(() => {
 .console-window.is-fullscreen {
     border: 0;
     border-radius: 0;
+}
+
+.console-window.is-light {
+    --terminal-window: var(--terminal-window-light);
+    --terminal-chrome: var(--terminal-chrome-light);
+    --terminal-chrome-highlight: var(--terminal-chrome-highlight-light);
+    --terminal-ink: var(--terminal-ink-light);
+    --terminal-ink-muted: var(--terminal-ink-muted-light);
+    --terminal-connected: var(--terminal-connected-light);
+    --terminal-highlight: var(--terminal-highlight-light);
+    --terminal-shadow: var(--terminal-shadow-light);
 }
 
 .console-window-bar {
